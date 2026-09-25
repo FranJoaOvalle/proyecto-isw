@@ -1,8 +1,40 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Categoria {
+  id_categoria Int       @id @default(autoincrement())
+  nombre       String    @unique @db.VarChar(80)
+  descripcion  String?   @db.Text
+  estado       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  servicios    Servicio[]
+
+  @@map("categoria")
+}
+
+model Servicio {
+  id_servicio  Int       @id @default(autoincrement())
+  nombre       String    @db.VarChar(100)
+  descripcion  String?   @db.Text
+  precio_base  Float
+  estado       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  id_categoria Int
+  categoria    Categoria @relation(
+    fields: [id_categoria],
+    references: [id_categoria],
+    onDelete: Restrict
+  )
+
+  @@map("servicio")
 }
