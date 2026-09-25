@@ -1,8 +1,64 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output = "../generated/prisma"
+  moduleFormat = "cjs"
+  importFileExtension = "ts"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum RolUsuario {
+  CLIENTE
+  PRODUCCION
+  COMERCIAL
+  ADMIN
+}
+
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+
+  cliente  Cliente?
+  personal Personal?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Cliente {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  email     String?
+  telefono  String?
+  direccion String?
+  notas     String?
+  activo    Boolean @default(true)
+
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Personal {
+  id           Int     @id @default(autoincrement())
+  nombre       String
+  email        String?
+  telefono     String?
+  tipo         String?
+  especialidad String?
+  notas        String?
+  activo       Boolean @default(true)
+
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
