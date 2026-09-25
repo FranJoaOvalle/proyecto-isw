@@ -30,11 +30,7 @@ model Servicio {
   updatedAt    DateTime  @updatedAt
 
   id_categoria Int
-  categoria    Categoria @relation(
-    fields: [id_categoria],
-    references: [id_categoria],
-    onDelete: Restrict
-  )
+  categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Restrict)
 
   @@map("servicio")
 }
