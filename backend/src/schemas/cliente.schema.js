@@ -68,9 +68,18 @@ const createClienteUsuarioSchema = z.object({
     })
 });
 
+const getClientesSchema = z.object({
+    query: z.object({
+        incluirInactivos: z.enum(["true", "false"])
+            .transform(value => value === "true")
+            .optional()
+    })
+});
+
 module.exports = {
     createClienteSchema,
     updateClienteSchema,
     clienteIdSchema,
-    createClienteUsuarioSchema
+    createClienteUsuarioSchema,
+    getClientesSchema
 };

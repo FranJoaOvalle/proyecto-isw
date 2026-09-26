@@ -5,8 +5,9 @@ const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 
 class ClienteService {
-    async getAll() {
+    async getAll(incluirInactivos = false) {
         return prisma.cliente.findMany({
+            where: incluirInactivos ? {} : { activo: true },
             orderBy: { nombre: "asc" }
         });
     }
@@ -28,7 +29,9 @@ class ClienteService {
     }
 
     async update(id, data) {
-        await this.getById(id);
+        const cliente = await this.getById(id);
+
+        if (!cliente.activo) throw new ConflictException("No se puede modificar un cliente desactivado.");
 
         return prisma.cliente.update({
             where: { id },
@@ -39,7 +42,7 @@ class ClienteService {
     async remove(id) {
         const cliente = await this.getById(id);
 
-        if (!cliente.activo) return cliente;
+        if (!cliente.activo) throw new ConflictException("El cliente ya se encuentra desactivado.");
 
         return prisma.cliente.update({
             where: { id },
@@ -60,7 +63,7 @@ class ClienteService {
             });
 
             if (!cliente) throw new NotFoundException("Cliente no encontrado.");
-
+            if (!cliente.activo) throw new ConflictException("No se puede crear una cuenta para un cliente desactivado.");
             if (cliente.usuarioId) throw new ConflictException("El cliente ya tiene una cuenta asociada.");
 
             const usuarioExistente = await tx.usuario.findUnique({
@@ -91,6 +94,17 @@ class ClienteService {
             });
 
             return usuario;
+        });
+    }
+
+    async reactivate(id) {
+        const cliente = await this.getById(id);
+
+        if (cliente.activo) throw new ConflictException("El cliente ya se encuentra activo.");
+
+        return prisma.cliente.update({
+            where: { id },
+            data: { activo: true }
         });
     }
 }

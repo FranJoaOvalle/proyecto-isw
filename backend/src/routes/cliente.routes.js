@@ -9,7 +9,8 @@ const {
     createClienteSchema,
     updateClienteSchema,
     clienteIdSchema,
-    createClienteUsuarioSchema
+    createClienteUsuarioSchema,
+    getClientesSchema
 } = require("../schemas/cliente.schema");
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.use(authMiddleware);
 
 router.get("/",
     authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(getClientesSchema),
     clienteController.getAll
 );
 
@@ -49,6 +51,12 @@ router.delete("/:id",
     authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
     validate(clienteIdSchema),
     clienteController.remove
+);
+
+router.patch("/:id/reactivar",
+    authorize("ADMIN"),
+    validate(clienteIdSchema),
+    clienteController.reactivate
 );
 
 module.exports = router;

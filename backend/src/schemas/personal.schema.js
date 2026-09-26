@@ -80,9 +80,18 @@ const createPersonalUsuarioSchema = z.object({
     })
 });
 
+const getPersonalSchema = z.object({
+    query: z.object({
+        incluirInactivos: z.enum(["true", "false"])
+            .transform(value => value === "true")
+            .optional()
+    })
+});
+
 module.exports = {
     createPersonalSchema,
     updatePersonalSchema,
     personalIdSchema,
-    createPersonalUsuarioSchema
+    createPersonalUsuarioSchema,
+    getPersonalSchema
 };

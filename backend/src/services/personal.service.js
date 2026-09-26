@@ -5,8 +5,9 @@ const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 
 class PersonalService {
-    async getAll() {
+    async getAll(incluirInactivos = false) {
         return prisma.personal.findMany({
+            where: incluirInactivos ? {} : { activo: true },
             orderBy: { nombre: "asc" }
         });
     }
@@ -28,7 +29,9 @@ class PersonalService {
     }
 
     async update(id, data) {
-        await this.getById(id);
+        const personal = await this.getById(id);
+
+        if (!personal.activo) throw new ConflictException("No se puede modificar personal desactivado.");
 
         return prisma.personal.update({
             where: { id },
@@ -39,7 +42,7 @@ class PersonalService {
     async remove(id) {
         const personal = await this.getById(id);
 
-        if (!personal.activo) return personal;
+        if (!personal.activo) throw new ConflictException("El personal ya se encuentra desactivado.");
 
         return prisma.personal.update({
             where: { id },
@@ -60,7 +63,7 @@ class PersonalService {
             });
 
             if (!personal) throw new NotFoundException("Personal no encontrado.");
-
+            if (!personal.activo) throw new ConflictException("No se puede crear una cuenta para personal desactivado.");
             if (personal.usuarioId) throw new ConflictException("El personal ya tiene una cuenta asociada.");
 
             const usuarioExistente = await tx.usuario.findUnique({
@@ -91,6 +94,17 @@ class PersonalService {
             });
 
             return usuario;
+        });
+    }
+
+    async reactivate(id) {
+        const personal = await this.getById(id);
+
+        if (personal.activo) throw new ConflictException("El personal ya se encuentra activo.");
+
+        return prisma.personal.update({
+            where: { id },
+            data: { activo: true }
         });
     }
 }

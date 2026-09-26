@@ -16,10 +16,7 @@ const validate = (schema) => {
             return next(new ValidationException(message));
         }
 
-        if (result.data.body) req.body = result.data.body;
-        if (result.data.params) req.params = result.data.params;
-        if (result.data.query) req.query = result.data.query;
-
+        req.validated = result.data;
         next();
     };
 };

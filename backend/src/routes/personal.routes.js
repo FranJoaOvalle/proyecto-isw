@@ -9,7 +9,8 @@ const {
     createPersonalSchema,
     updatePersonalSchema,
     personalIdSchema,
-    createPersonalUsuarioSchema
+    createPersonalUsuarioSchema,
+    getPersonalSchema
 } = require("../schemas/personal.schema");
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.use(authMiddleware);
 
 router.get("/",
     authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(getPersonalSchema),
     personalController.getAll
 );
 
@@ -49,6 +51,12 @@ router.delete("/:id",
     authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
     validate(personalIdSchema),
     personalController.remove
+);
+
+router.patch("/:id/reactivar",
+    authorize("ADMIN"),
+    validate(personalIdSchema),
+    personalController.reactivate
 );
 
 module.exports = router;
