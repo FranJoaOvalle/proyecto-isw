@@ -76,10 +76,23 @@ const getClientesSchema = z.object({
     })
 });
 
+const clienteAutorizacionSchema = z.object({
+    params: z.object({
+        id: z.coerce.number()
+            .int()
+            .positive("ID de cliente inválido."),
+
+        usuarioId: z.coerce.number()
+            .int()
+            .positive("ID de usuario inválido.")
+    })
+});
+
 module.exports = {
     createClienteSchema,
     updateClienteSchema,
     clienteIdSchema,
     createClienteUsuarioSchema,
-    getClientesSchema
+    getClientesSchema,
+    clienteAutorizacionSchema
 };

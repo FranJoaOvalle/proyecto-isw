@@ -1,7 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output = "../generated/prisma"
-  moduleFormat = "cjs"
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  moduleFormat        = "cjs"
   importFileExtension = "ts"
 }
 
@@ -26,8 +26,10 @@ model Usuario {
   cliente  Cliente?
   personal Personal?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  autorizacionClientes  AutorizacionCliente[]
+  autorizacionPersonals AutorizacionPersonal[]
 }
 
 model Cliente {
@@ -42,8 +44,9 @@ model Cliente {
   usuarioId Int?     @unique
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  autorizacionClientes AutorizacionCliente[]
 }
 
 model Personal {
@@ -59,6 +62,27 @@ model Personal {
   usuarioId Int?     @unique
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  autorizacionPersonals AutorizacionPersonal[]
+}
+
+model AutorizacionCliente {
+  usuarioId Int
+  clienteId Int
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, clienteId])
+}
+
+model AutorizacionPersonal {
+  usuarioId  Int
+  personalId Int
+
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  personal Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, personalId])
 }

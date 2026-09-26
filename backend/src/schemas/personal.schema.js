@@ -88,10 +88,23 @@ const getPersonalSchema = z.object({
     })
 });
 
+const personalAutorizacionSchema = z.object({
+    params: z.object({
+        id: z.coerce.number()
+            .int()
+            .positive("ID de personal inválido."),
+
+        usuarioId: z.coerce.number()
+            .int()
+            .positive("ID de usuario inválido.")
+    })
+});
+
 module.exports = {
     createPersonalSchema,
     updatePersonalSchema,
     personalIdSchema,
     createPersonalUsuarioSchema,
-    getPersonalSchema
+    getPersonalSchema,
+    personalAutorizacionSchema
 };

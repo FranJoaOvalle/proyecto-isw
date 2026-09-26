@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const prisma = require("../db/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
+const autorizacionService = require("./autorizacion.service");
 
 class ClienteService {
     async getAll(incluirInactivos = false) {
@@ -28,7 +29,9 @@ class ClienteService {
         });
     }
 
-    async update(id, data) {
+    async update(id, data, usuario) {
+        await autorizacionService.cliente(usuario, id);
+
         const cliente = await this.getById(id);
 
         if (!cliente.activo) throw new ConflictException("No se puede modificar un cliente desactivado.");
@@ -39,7 +42,9 @@ class ClienteService {
         });
     }
 
-    async remove(id) {
+    async remove(id, usuario) {
+        await autorizacionService.cliente(usuario, id);
+
         const cliente = await this.getById(id);
 
         if (!cliente.activo) throw new ConflictException("El cliente ya se encuentra desactivado.");
