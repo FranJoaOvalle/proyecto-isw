@@ -1,4 +1,3 @@
-const bcrypt = require("bcryptjs");
 
 const prisma = require("../db/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
