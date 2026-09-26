@@ -1,47 +1,62 @@
-import { z } from 'zod';
+const { z } = require("zod");
 
-export const createCategorySchema = z.object({
-  nombre: z
-    .string({ required_error: 'El nombre de la categoria es obligatorio' })
-    .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .max(80, 'El nombre no puede exceder los 80 caracteres')
-    .trim(),
+const categoriaBaseSchema = z.object({
+    nombre: z.string({
+        required_error: "El nombre de la categoria es obligatorio."
+    })
+        .trim()
+        .min(2, "El nombre debe tener al menos 2 caracteres.")
+        .max(80, "El nombre no puede exceder los 80 caracteres."),
 
-  descripcion: z
-    .string()
-    .max(500, 'La descripcion no puede exceder los 500 caracteres')
-    .trim()
-    .optional(),
+    descripcion: z.string()
+        .trim()
+        .max(500, "La descripcion no puede exceder los 500 caracteres.")
+        .optional()
+        .nullable(),
 
-  estado: z
-    .boolean({ required_error: 'El estado de la categoria es obligatorio' })
+    estado: z.boolean({
+        required_error: "El estado de la categoria es obligatorio."
+    })
 });
 
-
-export const updateCategorySchema = z.object({
-  nombre: z
-    .string()
-    .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .max(80, 'El nombre no puede exceder los 80 caracteres')
-    .trim()
-    .optional(),
-
-  descripcion: z
-    .string()
-    .max(500, 'La descripcion no puede exceder los 500 caracteres')
-    .trim()
-    .optional(),
-
-  estado: z
-    .boolean()
-    .optional()
+const createCategorySchema = z.object({
+    body: categoriaBaseSchema
 });
 
+const updateCategorySchema = z.object({
+    params: z.object({
+        id: z.coerce.number()
+            .int()
+            .positive("ID inválido.")
+    }),
 
-export const idCategorySchema = z.object({
-  id_categoria: z
-    .coerce
-    .number({ required_error: 'El ID de la categoria es obligatorio' })
-    .int('El ID de categoria debe ser un numero entero')
-    .positive('El ID de categoria debe ser mayor a 0')
+    body: categoriaBaseSchema
+        .partial()
+        .refine(
+            data => Object.keys(data).length > 0,
+            "Debe proporcionar al menos un campo para modificar."
+        )
 });
+
+const categoryIdSchema = z.object({
+    params: z.object({
+        id: z.coerce.number()
+            .int()
+            .positive("ID invalido.")
+    })
+});
+
+const getCategoriesSchema = z.object({
+    query: z.object({
+        incluirInactivos: z.enum(["true", "false"])
+            .transform(value => value === "true")
+            .optional()
+    })
+});
+
+module.exports = {
+    createCategorySchema,
+    updateCategorySchema,
+    categoryIdSchema,
+    getCategoriesSchema
+};
