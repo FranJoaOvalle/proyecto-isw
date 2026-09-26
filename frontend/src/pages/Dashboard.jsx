@@ -1,166 +1,90 @@
-import { useNavigate } from "react-router-dom";
-
-const menuItems = [
-    {
-        title: "Inicio",
-        path: "/",
-        icon: "⌂"
-    },
-    {
-        title: "Catálogo",
-        path: "/catalogo",
-        icon: "▣"
-    }
-];
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Dashboard() {
+    const { usuario, logout } = useAuth();
+
+    const puedeGestionar = [
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL"
+    ].includes(usuario?.rol);
+
     const navigate = useNavigate();
 
+    const handleLogout = () => {
+        logout();
+        navigate("/login", { replace: true });
+    };
+
     return (
-        <div className="d-flex min-vh-100 bg-white">
+        <div className="min-h-screen bg-gray-50">
+            <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
+                <span className="text-xl font-bold text-blue-600">
+                    NES Eventos
+                </span>
 
-            {/* Sidebar */}
-            <aside
-                className="bg-light border-end d-flex flex-column"
-                style={{ width: "270px" }}
-            >
-
-                {/* Logo */}
-                <div
-                    className="d-flex align-items-center gap-2 px-4 border-bottom"
-                    style={{ height: "82px" }}
+                <button
+                    onClick={handleLogout}
+                    className="text-sm font-medium text-gray-600 hover:text-red-600"
                 >
-                    <div
-                        className="bg-dark text-white rounded-3 d-flex align-items-center justify-content-center fw-bold"
-                        style={{ width: "40px", height: "40px" }}
-                    >
-                        NE
-                    </div>
+                    Cerrar sesión
+                </button>
+            </nav>
 
-                    <span className="fw-semibold fs-5">
-                        Nes Eventos
-                    </span>
-                </div>
+            <main className="p-8">
+                <h1 className="text-3xl font-bold text-gray-900">
+                    Dashboard
+                </h1>
 
-                {/* Menú */}
-                <nav className="p-3">
-                    {menuItems.map((item) => {
-                        const activo = window.location.pathname === item.path;
+                <p className="mt-2 text-gray-600">
+                    Sesión iniciada como {usuario?.rol}
+                </p>
 
-                        return (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className={`btn w-100 text-start d-flex align-items-center gap-3 mb-1 ${
-                                    activo
-                                        ? "btn-dark"
-                                        : "btn-light text-secondary"
-                                }`}
+                <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {puedeGestionar && (
+                        <>
+                            <Link
+                                to="/clientes"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
                             >
-                                <span className="fs-5">
-                                    {item.icon}
-                                </span>
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Clientes
+                                </h2>
 
-                                <span>
-                                    {item.title}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </nav>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Registrar, consultar y gestionar clientes.
+                                </p>
+                            </Link>
 
-            </aside>
+                            <Link
+                                to="/personal"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Personal
+                                </h2>
 
-            {/* Contenido principal */}
-            <div className="flex-grow-1">
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Registrar, consultar y gestionar personal.
+                                </p>
+                            </Link>
+                        </>
+                    )}
 
-                {/* Barra superior */}
-                <header
-                    className="border-bottom px-4 d-flex align-items-center"
-                    style={{ height: "62px" }}
-                >
-                    <span className="text-secondary small">
-                        Sábado, 26 de septiembre 2026
-                    </span>
-                </header>
+                    {usuario?.rol === "CLIENTE" && (
+                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold text-gray-900">
+                                Servicios
+                            </h2>
 
-                {/* Dashboard */}
-                <main className="container-fluid px-5 py-4">
-
-                    {/* Bienvenida */}
-                    <div className="mb-4">
-                        <h1 className="fw-bold">
-                            Buenos días
-                        </h1>
-
-                        <p className="text-secondary">
-                            Aquí tienes el resumen de Nes Eventos.
-                        </p>
-                    </div>
-
-                    {/* Tarjetas */}
-                    <div className="row g-4">
-
-                        <div className="col-md-4">
-                            <div className="card h-100 shadow-sm">
-                                <div className="card-body">
-                                    <h2 className="fw-bold">
-                                        0
-                                    </h2>
-
-                                    <h5>
-                                        Servicios activos
-                                    </h5>
-
-                                    <p className="text-secondary mb-0">
-                                        Servicios disponibles en el catálogo.
-                                    </p>
-                                </div>
-                            </div>
+                            <p className="mt-2 text-sm text-gray-500">
+                                Consulta y contratación de servicios.
+                            </p>
                         </div>
-
-                        <div className="col-md-4">
-                            <div className="card h-100 shadow-sm">
-                                <div className="card-body">
-                                    <h2 className="fw-bold">
-                                        0
-                                    </h2>
-
-                                    <h5>
-                                        Categorías
-                                    </h5>
-
-                                    <p className="text-secondary mb-0">
-                                        Categorías registradas en el catálogo.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-md-4">
-                            <div className="card h-100 shadow-sm">
-                                <div className="card-body">
-                                    <h2 className="fw-bold">
-                                        0
-                                    </h2>
-
-                                    <h5>
-                                        Eventos
-                                    </h5>
-
-                                    <p className="text-secondary mb-0">
-                                        Eventos registrados.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                </main>
-
-            </div>
-
+                    )}
+                </div>
+            </main>
         </div>
     );
 }

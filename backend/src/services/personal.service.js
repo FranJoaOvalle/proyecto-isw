@@ -3,6 +3,7 @@ const prisma = require("../db/prisma");
 
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
+const autorizacionService = require("./autorizacion.service");
 
 class PersonalService {
     async getAll(incluirInactivos = false) {
@@ -28,7 +29,9 @@ class PersonalService {
         });
     }
 
-    async update(id, data) {
+    async update(id, data, usuario) {
+        await autorizacionService.personal(usuario, id);
+
         const personal = await this.getById(id);
 
         if (!personal.activo) throw new ConflictException("No se puede modificar personal desactivado.");
@@ -39,7 +42,9 @@ class PersonalService {
         });
     }
 
-    async remove(id) {
+    async remove(id, usuario) {
+        await autorizacionService.personal(usuario, id);
+
         const personal = await this.getById(id);
 
         if (!personal.activo) throw new ConflictException("El personal ya se encuentra desactivado.");

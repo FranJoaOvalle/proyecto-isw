@@ -1,4 +1,5 @@
 const clienteService = require("../services/cliente.service");
+const autorizacionService = require("../services/autorizacion.service");
 
 const getAll = async (req, res, next) => {
     try {
@@ -35,7 +36,8 @@ const update = async (req, res, next) => {
     try {
         const cliente = await clienteService.update(
             req.validated.params.id,
-            req.body
+            req.body,
+            req.usuario
         );
 
         return res.status(200).json(cliente);
@@ -46,7 +48,11 @@ const update = async (req, res, next) => {
 
 const remove = async (req, res, next) => {
     try {
-        const cliente = await clienteService.remove(req.validated.params.id);
+        const cliente = await clienteService.remove(
+            req.validated.params.id,
+            req.usuario
+        );
+
         return res.status(200).json(cliente);
     } catch (error) {
         next(error);
@@ -78,6 +84,30 @@ const reactivate = async (req, res, next) => {
     }
 };
 
+const asignarAutorizacion = async (req, res, next) => {
+    try {
+        const { id, usuarioId } = req.validated.params;
+        const autorizacion =
+            await autorizacionService.asignarCliente(usuarioId, id);
+
+        return res.status(201).json(autorizacion);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const quitarAutorizacion = async (req, res, next) => {
+    try {
+        const { id, usuarioId } = req.validated.params;
+        const autorizacion =
+            await autorizacionService.quitarCliente(usuarioId, id);
+
+        return res.status(200).json(autorizacion);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
@@ -85,5 +115,7 @@ module.exports = {
     update,
     remove,
     createUsuario,
-    reactivate
+    reactivate,
+    asignarAutorizacion,
+    quitarAutorizacion
 };
