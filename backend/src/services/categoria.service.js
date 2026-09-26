@@ -57,7 +57,7 @@ class CategoriaService {
 
         return prisma.categoria.update({
             where: { id },
-            data: { activo: true }
+            data: { estado: true }
         });
     }
 }
