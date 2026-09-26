@@ -1,17 +1,24 @@
-const validate = (schema) => (req, res, next) => {
-    try {
-        const result = schema.parse({
+const ValidationException = require("../exceptions/ValidationException");
+
+const validate = (schema) => {
+    return (req, res, next) => {
+        const result = schema.safeParse({
             body: req.body,
             params: req.params,
             query: req.query
         });
 
-        req.validated = result;
+        if (!result.success) {
+            const message = result.error.issues
+                .map(issue => issue.message)
+                .join(", ");
 
+            return next(new ValidationException(message));
+        }
+
+        req.validated = result.data;
         next();
-    } catch (error) {
-        next(error);
-    }
+    };
 };
 
 module.exports = validate;
