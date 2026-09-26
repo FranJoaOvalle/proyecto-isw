@@ -44,7 +44,6 @@ export default function Dashboard() {
 
                 {/* Menú */}
                 <nav className="p-3">
-
                     {menuItems.map((item) => {
                         const activo = window.location.pathname === item.path;
 
@@ -68,7 +67,6 @@ export default function Dashboard() {
                             </button>
                         );
                     })}
-
                 </nav>
 
             </aside>
@@ -91,7 +89,6 @@ export default function Dashboard() {
 
                     {/* Bienvenida */}
                     <div className="mb-4">
-
                         <h1 className="fw-bold">
                             Buenos días
                         </h1>
@@ -99,16 +96,14 @@ export default function Dashboard() {
                         <p className="text-secondary">
                             Aquí tienes el resumen de Nes Eventos.
                         </p>
-
                     </div>
 
                     {/* Tarjetas */}
-                    <div className="row g-4 mb-4">
+                    <div className="row g-4">
 
                         <div className="col-md-4">
                             <div className="card h-100 shadow-sm">
                                 <div className="card-body">
-
                                     <h2 className="fw-bold">
                                         0
                                     </h2>
@@ -120,7 +115,6 @@ export default function Dashboard() {
                                     <p className="text-secondary mb-0">
                                         Servicios disponibles en el catálogo.
                                     </p>
-
                                 </div>
                             </div>
                         </div>
@@ -128,7 +122,6 @@ export default function Dashboard() {
                         <div className="col-md-4">
                             <div className="card h-100 shadow-sm">
                                 <div className="card-body">
-
                                     <h2 className="fw-bold">
                                         0
                                     </h2>
@@ -140,7 +133,6 @@ export default function Dashboard() {
                                     <p className="text-secondary mb-0">
                                         Categorías registradas en el catálogo.
                                     </p>
-
                                 </div>
                             </div>
                         </div>
@@ -148,7 +140,6 @@ export default function Dashboard() {
                         <div className="col-md-4">
                             <div className="card h-100 shadow-sm">
                                 <div className="card-body">
-
                                     <h2 className="fw-bold">
                                         0
                                     </h2>
@@ -160,55 +151,8 @@ export default function Dashboard() {
                                     <p className="text-secondary mb-0">
                                         Eventos registrados.
                                     </p>
-
                                 </div>
                             </div>
-                        </div>
-
-                    </div>
-
-                    {/* Catálogo */}
-                    <div className="card shadow-sm">
-
-                        <div className="card-header bg-white d-flex justify-content-between align-items-center py-3">
-
-                            <h5 className="mb-0 fw-semibold">
-                                Catálogo
-                            </h5>
-
-                            <button
-                                className="btn btn-link text-dark text-decoration-none"
-                                onClick={() => navigate("/catalogo")}
-                            >
-                                Ver catálogo →
-                            </button>
-
-                        </div>
-
-                        <div className="card-body p-4">
-
-                            <div className="d-flex justify-content-between align-items-center">
-
-                                <div>
-                                    <h5>
-                                        Gestión de servicios
-                                    </h5>
-
-                                    <p className="text-secondary mb-0">
-                                        Administra los servicios ofrecidos
-                                        por Nes Eventos y sus categorías.
-                                    </p>
-                                </div>
-
-                                <button
-                                    className="btn btn-dark"
-                                    onClick={() => navigate("/catalogo")}
-                                >
-                                    Ingresar
-                                </button>
-
-                            </div>
-
                         </div>
 
                     </div>
