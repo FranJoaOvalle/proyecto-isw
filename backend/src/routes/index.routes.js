@@ -1,7 +1,9 @@
 const express = require("express");
 
+const categoriaRoutes = require("./categoria.routes");
+
 const router = express.Router();
 
-// rutas van aquí...
+router.use("/categorias", categoriaRoutes);
 
 module.exports = router;
