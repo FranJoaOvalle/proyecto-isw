@@ -39,6 +39,14 @@ const Servicios = () => {
         imagen_url: ""
     });
 
+    const esCliente = usuario?.rol === "CLIENTE";
+
+    const puedeGestionar = [
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL"
+    ].includes(usuario?.rol);
+
     const esAdmin = usuario?.rol === "ADMIN";
 
     const cargarServicios = async () => {
@@ -46,7 +54,10 @@ const Servicios = () => {
             setLoading(true);
             setError("");
 
-            const data = await getServicios(incluirInactivos);
+            // Los clientes siempre reciben solamente servicios activos.
+            const data = await getServicios(
+                puedeGestionar && incluirInactivos
+            );
 
             setServicios(data);
         } catch (error) {
@@ -74,7 +85,7 @@ const Servicios = () => {
 
     useEffect(() => {
         cargarServicios();
-    }, [incluirInactivos]);
+    }, [incluirInactivos, usuario?.rol]);
 
     useEffect(() => {
         cargarCategorias();
@@ -119,6 +130,10 @@ const Servicios = () => {
     ]);
 
     const abrirCrear = () => {
+        if (!puedeGestionar) {
+            return;
+        }
+
         setSelectedServicio(null);
 
         setFormData({
@@ -135,6 +150,10 @@ const Servicios = () => {
     };
 
     const abrirEditar = servicio => {
+        if (!puedeGestionar) {
+            return;
+        }
+
         setSelectedServicio(servicio);
 
         setFormData({
@@ -170,6 +189,10 @@ const Servicios = () => {
 
     const handleSubmit = async event => {
         event.preventDefault();
+
+        if (!puedeGestionar) {
+            return;
+        }
 
         try {
             setSaving(true);
@@ -208,6 +231,10 @@ const Servicios = () => {
     };
 
     const handleDesactivar = async servicio => {
+        if (!puedeGestionar) {
+            return;
+        }
+
         const confirmar = window.confirm(
             `¿Deseas desactivar el servicio "${servicio.nombre}"?`
         );
@@ -233,6 +260,10 @@ const Servicios = () => {
     };
 
     const handleReactivar = async servicio => {
+        if (!esAdmin) {
+            return;
+        }
+
         const confirmar = window.confirm(
             `¿Deseas reactivar el servicio "${servicio.nombre}"?`
         );
@@ -268,17 +299,23 @@ const Servicios = () => {
                     </h1>
 
                     <p className="mt-2 text-gray-600">
-                        Consulta y gestiona los servicios disponibles para los eventos.
+                        {esCliente
+                            ? "Consulta los servicios disponibles para los eventos."
+                            : "Consulta y gestiona los servicios disponibles para los eventos."
+                        }
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={abrirCrear}
-                    className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
-                >
-                    + Nuevo servicio
-                </button>
+                {/* SOLO ROLES DE GESTIÓN */}
+                {puedeGestionar && (
+                    <button
+                        type="button"
+                        onClick={abrirCrear}
+                        className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+                    >
+                        + Nuevo servicio
+                    </button>
+                )}
             </div>
 
             {/* ERROR */}
@@ -456,50 +493,53 @@ const Servicios = () => {
                                     </p>
                                 </div>
 
-                                {/* BOTONES */}
-                                <div className="mt-5 flex gap-2">
+                                {/* BOTONES DE GESTIÓN */}
+                                {puedeGestionar && (
+                                    <div className="mt-5 flex gap-2">
 
-                                    {servicio.estado && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                abrirEditar(servicio)
-                                            }
-                                            className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                                        >
-                                            Editar
-                                        </button>
-                                    )}
-
-                                    {servicio.estado ? (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleDesactivar(
-                                                    servicio
-                                                )
-                                            }
-                                            className="flex-1 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
-                                        >
-                                            Desactivar
-                                        </button>
-                                    ) : (
-                                        esAdmin && (
+                                        {servicio.estado && (
                                             <button
                                                 type="button"
                                                 onClick={() =>
-                                                    handleReactivar(
+                                                    abrirEditar(servicio)
+                                                }
+                                                className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                            >
+                                                Editar
+                                            </button>
+                                        )}
+
+                                        {servicio.estado ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleDesactivar(
                                                         servicio
                                                     )
                                                 }
-                                                className="flex-1 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                                                className="flex-1 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
                                             >
-                                                Reactivar
+                                                Desactivar
                                             </button>
-                                        )
-                                    )}
+                                        ) : (
+                                            esAdmin && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleReactivar(
+                                                            servicio
+                                                        )
+                                                    }
+                                                    className="flex-1 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                                                >
+                                                    Reactivar
+                                                </button>
+                                            )
+                                        )}
 
-                                </div>
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                     ))}
@@ -508,7 +548,7 @@ const Servicios = () => {
             )}
 
             {/* MODAL CREAR / EDITAR */}
-            {showForm && (
+            {showForm && puedeGestionar && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
 
                     <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">

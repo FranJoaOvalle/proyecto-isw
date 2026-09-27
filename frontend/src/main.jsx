@@ -1,3 +1,4 @@
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -13,11 +14,12 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import Personal from "./pages/Personal.jsx";
-import Servicios from "./pages/Servicios.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
+import ServiciosCliente from "./pages/ServiciosCliente.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
+
 import { AuthProvider } from "./context/AuthContext.jsx";
 
 createRoot(document.getElementById("root")).render(
@@ -44,6 +46,11 @@ createRoot(document.getElementById("root")).render(
                         />
 
                         <Route
+                            path="/servicios"
+                            element={<ServiciosCliente />}
+                        />
+
+                        <Route
                             element={
                                 <RoleRoute
                                     roles={[
@@ -54,6 +61,7 @@ createRoot(document.getElementById("root")).render(
                                 />
                             }
                         >
+
                             <Route
                                 path="/clientes"
                                 element={<Clientes />}
@@ -62,11 +70,6 @@ createRoot(document.getElementById("root")).render(
                             <Route
                                 path="/personal"
                                 element={<Personal />}
-                            />
-
-                            <Route
-                                path="/servicios"
-                                element={<Servicios />}
                             />
 
                             <Route
