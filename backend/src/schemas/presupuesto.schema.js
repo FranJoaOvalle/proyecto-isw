@@ -1,30 +1,29 @@
-const Joi = require('joi');
+const { z } = require("zod");
 
-const presupuestoSchema = Joi.object({
-  clienteId: Joi.number().required().messages({
-    'any.required': 'El ID del cliente es obligatorio',
-    'number.base': 'El ID del cliente debe ser un número'
-  }),
-  descuento: Joi.number().min(0).default(0).messages({
-    'number.min': 'El descuento no puede ser negativo'
-  }),
-  observaciones: Joi.string().optional(),
-  servicios: Joi.array().items(
-    Joi.object({
-      servicioId: Joi.number().required().messages({
-        'any.required': 'El ID del servicio es obligatorio'
-      }),
-      cantidad: Joi.number().integer().min(1).default(1).messages({
-        'number.min': 'La cantidad debe ser al menos 1'
-      }),
-      precioUnitario: Joi.number().min(0).required().messages({
-        'number.min': 'El precio unitario no puede ser negativo'
-      }),
-      subtotal: Joi.number().min(0).required()
-    })
-  ).min(1).required().messages({
-    'array.min': 'El presupuesto debe incluir al menos un servicio'
-  })
+const presupuestoBaseSchema = z.object({
+    clienteId: z.coerce.number().int().positive("El ID del cliente es obligatorio y debe ser válido."),
+    descuento: z.coerce.number().min(0, "El descuento no puede ser negativo.").optional().default(0),
+    observaciones: z.string().trim().optional().nullable(),
+    servicios: z.array(
+        z.object({
+            servicioId: z.coerce.number().int().positive("El ID del servicio es obligatorio."),
+            cantidad: z.coerce.number().int().min(1, "La cantidad debe ser al menos 1.").default(1),
+            precioUnitario: z.coerce.number().min(0, "El precio unitario no puede ser negativo.")
+        })
+    ).min(1, "El presupuesto debe incluir al menos un servicio.")
 });
 
-module.exports = { presupuestoSchema };
+const createPresupuestoSchema = z.object({
+    body: presupuestoBaseSchema
+});
+
+const presupuestoIdSchema = z.object({
+    params: z.object({
+        id: z.coerce.number().int().positive("ID inválido.")
+    })
+});
+
+module.exports = {
+    createPresupuestoSchema,
+    presupuestoIdSchema
+};

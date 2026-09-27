@@ -1,26 +1,23 @@
 const { Router } = require('express');
 const { crearPresupuesto, obtenerPresupuestos, eliminarPresupuesto } = require('../controllers/presupuesto.controller.js');
-const { presupuestoSchema } = require('../schemas/presupuesto.schema.js');
+const { createPresupuestoSchema } = require('../schemas/presupuesto.schema.js');
 
 const router = Router();
 
-// Middleware interceptor para validar la carga de datos entrante utilizando Joi
+// Middleware para validar los datos de entrada usando Zod
 const validarDatos = (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.body, { abortEarly: false });
-  if (error) {
-    return res.status(400).json({ error: error.details.map(e => e.message) });
-  }
-  req.body = value;
-  next();
+    try {
+        // Validamos específicamente el body como lo armó Oscar
+        const validado = schema.parse({ body: req.body, params: req.params, query: req.query });
+        req.body = validado.body || req.body; 
+        next();
+    } catch (error) {
+        return res.status(400).json({ error: error.errors.map(e => e.message) });
+    }
 };
 
-// Ruta GET para obtener la lista de presupuestos activos
 router.get('/', obtenerPresupuestos);
-
-// Ruta POST protegida por el middleware de validación para registrar un nuevo presupuesto
-router.post('/', validarDatos(presupuestoSchema), crearPresupuesto);
-
-// Ruta DELETE para aplicar el borrado lógico a un presupuesto específico mediante su ID
+router.post('/', validarDatos(createPresupuestoSchema), crearPresupuesto);
 router.delete('/:id', eliminarPresupuesto);
 
 module.exports = router;
