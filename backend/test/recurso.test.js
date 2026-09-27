@@ -58,8 +58,8 @@ async function post(body, rol) {
     return fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
 }
 
-test("registra recursos para ambos roles y persiste datos normalizados", async () => {
-    for (const rol of ["OPERACIONES_LOGISTICA", "BODEGA"]) {
+test("registra recursos para los tres roles autorizados y persiste datos normalizados", async () => {
+    for (const rol of ["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"]) {
         const response = await post(recurso, rol);
         assert.equal(response.status, 201);
         assert.deepEqual(await response.json(), {
@@ -73,7 +73,7 @@ test("registra recursos para ambos roles y persiste datos normalizados", async (
 test("rechaza solicitudes sin sesión y de roles ajenos a RF03", async () => {
     const count = calls.length;
     assert.equal((await post(recurso)).status, 401);
-    for (const rol of ["CLIENTE", "PRODUCCION", "COMERCIAL", "ADMIN"]) {
+    for (const rol of ["CLIENTE", "PRODUCCION", "COMERCIAL"]) {
         assert.equal((await post(recurso, rol)).status, 403);
     }
     assert.equal(calls.length, count);
@@ -115,7 +115,7 @@ test("consulta un listado vacío y recursos en todos sus estados", async () => {
         { id_recurso: 2, nombre: "Generador", estado: "EN_REPARACION" },
         { id_recurso: 3, nombre: "Foco", estado: "RETIRADO" }
     ];
-    for (const rol of ["OPERACIONES_LOGISTICA", "BODEGA"]) {
+    for (const rol of ["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"]) {
         const response = await get("", rol);
         assert.equal(response.status, 200);
         assert.deepEqual((await response.json()).map(item => item.id_recurso), [3, 2, 1]);
@@ -141,7 +141,7 @@ test("protege listado y detalle contra consultas no autorizadas", async () => {
     const count = readCalls.length;
     for (const path of ["", "/1"]) {
         assert.equal((await get(path, null)).status, 401);
-        for (const rol of ["CLIENTE", "COMERCIAL", "PRODUCCION", "ADMIN"]) {
+        for (const rol of ["CLIENTE", "COMERCIAL", "PRODUCCION"]) {
             assert.equal((await get(path, rol)).status, 403);
         }
     }
@@ -157,7 +157,7 @@ async function put(body, id = "1", rol = "BODEGA") {
 test("modifica campos parciales sin restablecer estado ni borrar antecedentes", async () => {
     records = [{ id_recurso: 1, tipo: "Sonido", nombre: "Parlante",
         cantidad: 2, estado: "EN_REPARACION", observaciones: "Cable dañado" }];
-    for (const rol of ["BODEGA", "OPERACIONES_LOGISTICA"]) {
+    for (const rol of ["ADMIN", "BODEGA", "OPERACIONES_LOGISTICA"]) {
         const response = await put({ nombre: " Parlante reparado " }, "1", rol);
         assert.equal(response.status, 200);
         assert.deepEqual(await response.json(), {
@@ -185,7 +185,7 @@ test("rechaza modificaciones vacías, inválidas o sin autorización", async () 
     }
     assert.equal((await put({ cantidad: 3 }, "999")).status, 404);
     assert.equal((await put({ cantidad: 3 }, "1", null)).status, 401);
-    for (const rol of ["CLIENTE", "PRODUCCION", "COMERCIAL", "ADMIN"]) {
+    for (const rol of ["CLIENTE", "PRODUCCION", "COMERCIAL"]) {
         assert.equal((await put({ cantidad: 3 }, "1", rol)).status, 403);
     }
     assert.equal(updateCalls.length, count);
