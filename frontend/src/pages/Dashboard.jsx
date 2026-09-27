@@ -19,7 +19,10 @@ export default function Dashboard() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+
+            {/* NAVBAR */}
             <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
+
                 <span className="text-xl font-bold text-blue-600">
                     NES Eventos
                 </span>
@@ -30,9 +33,12 @@ export default function Dashboard() {
                 >
                     Cerrar sesión
                 </button>
+
             </nav>
 
+            {/* CONTENIDO */}
             <main className="p-8">
+
                 <h1 className="text-3xl font-bold text-gray-900">
                     Dashboard
                 </h1>
@@ -42,11 +48,17 @@ export default function Dashboard() {
                 </p>
 
                 <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+                    {/* =============================== */}
+                    {/* ADMIN / PRODUCCION / COMERCIAL */}
+                    {/* =============================== */}
+
                     {puedeGestionar && (
                         <>
+                            {/* CLIENTES */}
                             <Link
                                 to="/clientes"
-                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                             >
                                 <h2 className="text-lg font-semibold text-gray-900">
                                     Clientes
@@ -57,9 +69,10 @@ export default function Dashboard() {
                                 </p>
                             </Link>
 
+                            {/* PERSONAL */}
                             <Link
                                 to="/personal"
-                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                             >
                                 <h2 className="text-lg font-semibold text-gray-900">
                                     Personal
@@ -70,31 +83,39 @@ export default function Dashboard() {
                                 </p>
                             </Link>
 
+                            {/* CATÁLOGO COMPLETO */}
                             <Link
-                                to="/servicios"
-                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                                to="/catalogo"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                             >
                                 <h2 className="text-lg font-semibold text-gray-900">
-                                    Catálogo de servicios
+                                    Catálogo
                                 </h2>
 
                                 <p className="mt-2 text-sm text-gray-500">
-                                    Consultar y gestionar el catálogo de servicios.
+                                    Consultar y gestionar el catálogo.
                                 </p>
                             </Link>
                         </>
                     )}
 
+                    {/* =============================== */}
+                    {/* CLIENTE */}
+                    {/* =============================== */}
+
                     {usuario?.rol === "CLIENTE" && (
-                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <Link
+                            to="/servicios"
+                            className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                        >
                             <h2 className="text-lg font-semibold text-gray-900">
-                                Servicios
+                                Catálogo de servicios
                             </h2>
 
                             <p className="mt-2 text-sm text-gray-500">
-                                Consulta y contratación de servicios.
+                                Consulta los servicios disponibles.
                             </p>
-                        </div>
+                        </Link>
                     )}
                     {["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"].includes(usuario?.rol) && (
                         <Link to="/recursos"
@@ -105,8 +126,10 @@ export default function Dashboard() {
                             </p>
                         </Link>
                     )}
+
                 </div>
             </main>
         </div>
     );
 }
+

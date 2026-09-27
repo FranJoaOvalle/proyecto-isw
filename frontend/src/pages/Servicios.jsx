@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 
 import {
     getServicios,
@@ -40,6 +39,14 @@ const Servicios = () => {
         imagen_url: ""
     });
 
+    const esCliente = usuario?.rol === "CLIENTE";
+
+    const puedeGestionar = [
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL"
+    ].includes(usuario?.rol);
+
     const esAdmin = usuario?.rol === "ADMIN";
 
     const cargarServicios = async () => {
@@ -47,12 +54,15 @@ const Servicios = () => {
             setLoading(true);
             setError("");
 
-            const data = await getServicios(incluirInactivos);
+            // Los clientes siempre reciben solamente servicios activos.
+            const data = await getServicios(
+                puedeGestionar && incluirInactivos
+            );
 
             setServicios(data);
         } catch (error) {
             setError(
-                error.response?.data?.error?.message ??
+                error.response?.data?.error ??
                 "No fue posible cargar los servicios."
             );
         } finally {
@@ -67,7 +77,7 @@ const Servicios = () => {
             setCategorias(data);
         } catch (error) {
             setError(
-                error.response?.data?.error?.message ??
+                error.response?.data?.error ??
                 "No fue posible cargar las categorías."
             );
         }
@@ -75,7 +85,7 @@ const Servicios = () => {
 
     useEffect(() => {
         cargarServicios();
-    }, [incluirInactivos]);
+    }, [incluirInactivos, usuario?.rol]);
 
     useEffect(() => {
         cargarCategorias();
@@ -120,6 +130,10 @@ const Servicios = () => {
     ]);
 
     const abrirCrear = () => {
+        if (!puedeGestionar) {
+            return;
+        }
+
         setSelectedServicio(null);
 
         setFormData({
@@ -136,6 +150,10 @@ const Servicios = () => {
     };
 
     const abrirEditar = servicio => {
+        if (!puedeGestionar) {
+            return;
+        }
+
         setSelectedServicio(servicio);
 
         setFormData({
@@ -172,6 +190,10 @@ const Servicios = () => {
     const handleSubmit = async event => {
         event.preventDefault();
 
+        if (!puedeGestionar) {
+            return;
+        }
+
         try {
             setSaving(true);
             setError("");
@@ -200,7 +222,7 @@ const Servicios = () => {
             await cargarServicios();
         } catch (error) {
             setError(
-                error.response?.data?.error?.message ??
+                error.response?.data?.error ??
                 "No fue posible guardar el servicio."
             );
         } finally {
@@ -209,6 +231,10 @@ const Servicios = () => {
     };
 
     const handleDesactivar = async servicio => {
+        if (!puedeGestionar) {
+            return;
+        }
+
         const confirmar = window.confirm(
             `¿Deseas desactivar el servicio "${servicio.nombre}"?`
         );
@@ -227,13 +253,17 @@ const Servicios = () => {
             await cargarServicios();
         } catch (error) {
             setError(
-                error.response?.data?.error?.message ??
+                error.response?.data?.error ??
                 "No fue posible desactivar el servicio."
             );
         }
     };
 
     const handleReactivar = async servicio => {
+        if (!esAdmin) {
+            return;
+        }
+
         const confirmar = window.confirm(
             `¿Deseas reactivar el servicio "${servicio.nombre}"?`
         );
@@ -252,44 +282,32 @@ const Servicios = () => {
             await cargarServicios();
         } catch (error) {
             setError(
-                error.response?.data?.error?.message ??
+                error.response?.data?.error ??
                 "No fue posible reactivar el servicio."
             );
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div>
 
-            {/* NAVBAR */}
-            <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
-                <span className="text-xl font-bold text-blue-600">
-                    NES Eventos
-                </span>
+            {/* ENCABEZADO */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        Catálogo de servicios
+                    </h1>
 
-                <Link
-                    to="/dashboard"
-                    className="text-sm font-medium text-gray-600 transition hover:text-blue-600"
-                >
-                    Volver al dashboard
-                </Link>
-            </nav>
+                    <p className="mt-2 text-gray-600">
+                        {esCliente
+                            ? "Consulta los servicios disponibles para los eventos."
+                            : "Consulta y gestiona los servicios disponibles para los eventos."
+                        }
+                    </p>
+                </div>
 
-            {/* CONTENIDO PRINCIPAL */}
-            <main className="p-8">
-
-                {/* ENCABEZADO */}
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            Catálogo de servicios
-                        </h1>
-
-                        <p className="mt-2 text-gray-600">
-                            Consulta y gestiona los servicios disponibles para los eventos.
-                        </p>
-                    </div>
-
+                {/* SOLO ROLES DE GESTIÓN */}
+                {puedeGestionar && (
                     <button
                         type="button"
                         onClick={abrirCrear}
@@ -297,184 +315,186 @@ const Servicios = () => {
                     >
                         + Nuevo servicio
                     </button>
+                )}
+            </div>
+
+            {/* ERROR */}
+            {error && (
+                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {error}
+                </div>
+            )}
+
+            {/* FILTROS */}
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+
+                {/* BUSCAR */}
+                <div>
+                    <label
+                        htmlFor="busqueda"
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                        Buscar servicio
+                    </label>
+
+                    <input
+                        id="busqueda"
+                        type="text"
+                        value={busqueda}
+                        onChange={event =>
+                            setBusqueda(event.target.value)
+                        }
+                        placeholder="Nombre o categoría..."
+                        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
                 </div>
 
-                {/* ERROR */}
-                {error && (
-                    <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                        {error}
+                {/* CATEGORÍA */}
+                <div>
+                    <label
+                        htmlFor="categoriaFiltro"
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                        Filtrar por categoría
+                    </label>
+
+                    <select
+                        id="categoriaFiltro"
+                        value={categoriaFiltro}
+                        onChange={event =>
+                            setCategoriaFiltro(event.target.value)
+                        }
+                        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
+                        <option value="">
+                            Todas las categorías
+                        </option>
+
+                        {categorias.map(categoria => (
+                            <option
+                                key={categoria.id_categoria}
+                                value={categoria.id_categoria}
+                            >
+                                {categoria.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* MOSTRAR INACTIVOS */}
+                {esAdmin && (
+                    <div className="flex items-end">
+                        <label className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3">
+                            <input
+                                type="checkbox"
+                                checked={incluirInactivos}
+                                onChange={event =>
+                                    setIncluirInactivos(
+                                        event.target.checked
+                                    )
+                                }
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+
+                            <span className="text-sm font-medium text-gray-700">
+                                Mostrar inactivos
+                            </span>
+                        </label>
                     </div>
                 )}
+            </div>
 
-                {/* FILTROS */}
-                <div className="mt-8 grid gap-4 md:grid-cols-3">
-
-                    {/* BUSCAR */}
-                    <div>
-                        <label
-                            htmlFor="busqueda"
-                            className="mb-2 block text-sm font-medium text-gray-700"
-                        >
-                            Buscar servicio
-                        </label>
-
-                        <input
-                            id="busqueda"
-                            type="text"
-                            value={busqueda}
-                            onChange={event =>
-                                setBusqueda(event.target.value)
-                            }
-                            placeholder="Nombre o categoría..."
-                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                    </div>
-
-                    {/* CATEGORÍA */}
-                    <div>
-                        <label
-                            htmlFor="categoriaFiltro"
-                            className="mb-2 block text-sm font-medium text-gray-700"
-                        >
-                            Filtrar por categoría
-                        </label>
-
-                        <select
-                            id="categoriaFiltro"
-                            value={categoriaFiltro}
-                            onChange={event =>
-                                setCategoriaFiltro(event.target.value)
-                            }
-                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="">
-                                Todas las categorías
-                            </option>
-
-                            {categorias.map(categoria => (
-                                <option
-                                    key={categoria.id_categoria}
-                                    value={categoria.id_categoria}
-                                >
-                                    {categoria.nombre}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* MOSTRAR INACTIVOS */}
-                    {esAdmin && (
-                        <div className="flex items-end">
-                            <label className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3">
-                                <input
-                                    type="checkbox"
-                                    checked={incluirInactivos}
-                                    onChange={event =>
-                                        setIncluirInactivos(
-                                            event.target.checked
-                                        )
-                                    }
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-
-                                <span className="text-sm font-medium text-gray-700">
-                                    Mostrar inactivos
-                                </span>
-                            </label>
-                        </div>
-                    )}
+            {/* SERVICIOS */}
+            {loading ? (
+                <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
+                    Cargando servicios...
                 </div>
+            ) : serviciosFiltrados.length === 0 ? (
+                <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
+                    No se encontraron servicios.
+                </div>
+            ) : (
+                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
 
-                {/* SERVICIOS */}
-                {loading ? (
-                    <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
-                        Cargando servicios...
-                    </div>
-                ) : serviciosFiltrados.length === 0 ? (
-                    <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
-                        No se encontraron servicios.
-                    </div>
-                ) : (
-                    <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {serviciosFiltrados.map(servicio => (
+                        <div
+                            key={servicio.id_servicio}
+                            className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+                        >
 
-                        {serviciosFiltrados.map(servicio => (
-                            <div
-                                key={servicio.id_servicio}
-                                className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
-                            >
+                            {/* IMAGEN */}
+                            <div className="relative h-52 w-full overflow-hidden bg-gray-100">
 
-                                {/* IMAGEN */}
-                                <div className="relative h-52 w-full overflow-hidden bg-gray-100">
-
-                                    {servicio.imagen_url ? (
-                                        <img
-                                            src={servicio.imagen_url}
-                                            alt={servicio.nombre}
-                                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                                            onError={event => {
-                                                event.currentTarget.style.display =
-                                                    "none";
-                                            }}
-                                        />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
-                                            Sin imagen
-                                        </div>
-                                    )}
-
-                                    {/* DEGRADADO */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-
-                                    {/* CATEGORÍA */}
-                                    <div className="absolute bottom-4 left-4">
-                                        <span className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-                                            {getNombreCategoria(
-                                                servicio.id_categoria
-                                            )}
-                                        </span>
+                                {servicio.imagen_url ? (
+                                    <img
+                                        src={servicio.imagen_url}
+                                        alt={servicio.nombre}
+                                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                        onError={event => {
+                                            event.currentTarget.style.display =
+                                                "none";
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
+                                        Sin imagen
                                     </div>
+                                )}
 
-                                    {/* ESTADO */}
-                                    <div className="absolute right-4 top-4">
-                                        {servicio.estado ? (
-                                            <span className="rounded-full bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-                                                Activo
-                                            </span>
-                                        ) : (
-                                            <span className="rounded-full bg-gray-700 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-                                                Inactivo
-                                            </span>
+                                {/* DEGRADADO */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+
+                                {/* CATEGORÍA */}
+                                <div className="absolute bottom-4 left-4">
+                                    <span className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                                        {getNombreCategoria(
+                                            servicio.id_categoria
                                         )}
-                                    </div>
-
+                                    </span>
                                 </div>
 
-                                {/* INFORMACIÓN */}
-                                <div className="flex flex-1 flex-col p-5">
+                                {/* ESTADO */}
+                                <div className="absolute right-4 top-4">
+                                    {servicio.estado ? (
+                                        <span className="rounded-full bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                                            Activo
+                                        </span>
+                                    ) : (
+                                        <span className="rounded-full bg-gray-700 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                                            Inactivo
+                                        </span>
+                                    )}
+                                </div>
 
-                                    <h2 className="text-xl font-bold text-gray-900">
-                                        {servicio.nombre}
-                                    </h2>
+                            </div>
 
-                                    <p className="mt-2 min-h-[48px] text-sm leading-6 text-gray-600">
-                                        {servicio.descripcion}
+                            {/* INFORMACIÓN */}
+                            <div className="flex flex-1 flex-col p-5">
+
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    {servicio.nombre}
+                                </h2>
+
+                                <p className="mt-2 min-h-[48px] text-sm leading-6 text-gray-600">
+                                    {servicio.descripcion}
+                                </p>
+
+                                {/* PRECIO */}
+                                <div className="mt-5 rounded-xl bg-gray-50 px-4 py-3">
+                                    <p className="text-sm text-gray-500">
+                                        Precio base
                                     </p>
 
-                                    {/* PRECIO */}
-                                    <div className="mt-5 rounded-xl bg-gray-50 px-4 py-3">
-                                        <p className="text-sm text-gray-500">
-                                            Precio base
-                                        </p>
+                                    <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900">
+                                        $
+                                        {Number(
+                                            servicio.precio_base
+                                        ).toLocaleString("es-CL")}
+                                    </p>
+                                </div>
 
-                                        <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900">
-                                            $
-                                            {Number(
-                                                servicio.precio_base
-                                            ).toLocaleString("es-CL")}
-                                        </p>
-                                    </div>
-
-                                    {/* BOTONES */}
+                                {/* BOTONES DE GESTIÓN */}
+                                {puedeGestionar && (
                                     <div className="mt-5 flex gap-2">
 
                                         {servicio.estado && (
@@ -518,16 +538,17 @@ const Servicios = () => {
                                         )}
 
                                     </div>
-                                </div>
-                            </div>
-                        ))}
+                                )}
 
-                    </div>
-                )}
-            </main>
+                            </div>
+                        </div>
+                    ))}
+
+                </div>
+            )}
 
             {/* MODAL CREAR / EDITAR */}
-            {showForm && (
+            {showForm && puedeGestionar && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
 
                     <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
