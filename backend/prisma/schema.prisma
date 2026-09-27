@@ -6,3 +6,60 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// --- MODELOS DEL EQUIPO
+
+model Cliente {
+  id           Int           @id @default(autoincrement())
+  nombre       String
+  // Tu relación: un cliente puede tener muchos presupuestos
+  presupuestos Presupuesto[]
+}
+
+model Servicio {
+  id           Int                   @id @default(autoincrement())
+  nombre       String
+  precio       Float
+  // Tu relación: un servicio puede estar en muchos detalles de presupuesto
+  presupuestos PresupuestoServicio[]
+}
+
+// RF04 - GESTIÓN DE PRESUPUESTOS
+
+model Presupuesto {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  // Regla de negocio: PENDIENTE, ACEPTADO, RECHAZADO, INACTIVO
+  estado        String   @default("PENDIENTE")
+  subtotal      Float    @default(0)
+  descuento     Float    @default(0)
+  total         Float    @default(0)
+  observaciones String?  @db.Text
+
+  // Ancla al cliente
+  clienteId Int
+  cliente   Cliente @relation(fields: [clienteId], references: [id])
+
+  // Relación con el detalle de los servicios que lleva este presupuesto
+  servicios PresupuestoServicio[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// El Detalle
+
+model PresupuestoServicio {
+  id             Int   @id @default(autoincrement())
+  cantidad       Int   @default(1)
+  precioUnitario Float
+  subtotal       Float
+
+  // Ancla al presupuesto principal
+  presupuestoId Int
+  presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
+
+  // Ancla al servicio del catálogo
+  servicioId Int
+  servicio   Servicio @relation(fields: [servicioId], references: [id])
+}
