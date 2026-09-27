@@ -6,14 +6,14 @@ const servicioBaseSchema = z.object({
     })
         .trim()
         .min(2, "El nombre debe tener al menos 2 caracteres.")
-        .max(100, "El nombre no puede exceder los 100 caracteres."),
+        .max(100, "El nombre no puede exceder 100 caracteres."),
 
     descripcion: z.string({
         required_error: "La descripcion del servicio es obligatoria."
     })
         .trim()
         .min(10, "La descripcion debe tener al menos 10 caracteres.")
-        .max(500, "La descripcion no puede exceder los 500 caracteres."),
+        .max(500, "La descripcion no puede exceder 500 caracteres."),
 
     precio_base: z.coerce.number({
         required_error: "El precio base es obligatorio."
@@ -28,7 +28,13 @@ const servicioBaseSchema = z.object({
         required_error: "La categoria es obligatoria."
     })
         .int("El ID de categoria debe ser un numero entero.")
-        .positive("El ID de categoria debe ser mayor a 0.")
+        .positive("El ID de categoria debe ser mayor a 0"),
+
+    imagen_url: z.string()
+        .trim()
+        .url("La URL de la imagen no es válida.")
+        .optional()
+        .nullable()
 });
 
 const createServiceSchema = z.object({
@@ -41,7 +47,6 @@ const updateServiceSchema = z.object({
             .int()
             .positive("ID invalido.")
     }),
-
     body: servicioBaseSchema
         .partial()
         .refine(

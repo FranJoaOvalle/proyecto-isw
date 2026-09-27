@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+
 import {
     getServicios,
     createServicio,
@@ -7,10 +8,12 @@ import {
     deactivateServicio,
     reactivateServicio
 } from "../services/servicio.service";
+
 import { getCategorias } from "../services/categoria.service";
+
 import { useAuth } from "../context/AuthContext";
 
-export default function Servicios() {
+const Servicios = () => {
     const { usuario } = useAuth();
 
     const [servicios, setServicios] = useState([]);
@@ -26,7 +29,6 @@ export default function Servicios() {
 
     const [showForm, setShowForm] = useState(false);
     const [selectedServicio, setSelectedServicio] = useState(null);
-
     const [saving, setSaving] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -34,17 +36,19 @@ export default function Servicios() {
         descripcion: "",
         precio_base: "",
         estado: true,
-        id_categoria: ""
+        id_categoria: "",
+        imagen_url: ""
     });
 
     const esAdmin = usuario?.rol === "ADMIN";
 
-    const loadServicios = async () => {
+    const cargarServicios = async () => {
         try {
             setLoading(true);
             setError("");
 
             const data = await getServicios(incluirInactivos);
+
             setServicios(data);
         } catch (error) {
             setError(
@@ -56,9 +60,10 @@ export default function Servicios() {
         }
     };
 
-    const loadCategorias = async () => {
+    const cargarCategorias = async () => {
         try {
             const data = await getCategorias();
+
             setCategorias(data);
         } catch (error) {
             setError(
@@ -69,12 +74,91 @@ export default function Servicios() {
     };
 
     useEffect(() => {
-        loadServicios();
+        cargarServicios();
     }, [incluirInactivos]);
 
     useEffect(() => {
-        loadCategorias();
+        cargarCategorias();
     }, []);
+
+    const getNombreCategoria = idCategoria => {
+        const categoria = categorias.find(
+            categoria =>
+                categoria.id_categoria === idCategoria
+        );
+
+        return categoria?.nombre ?? "Sin categoría";
+    };
+
+    const serviciosFiltrados = useMemo(() => {
+        const textoBusqueda = busqueda.trim().toLowerCase();
+
+        return servicios.filter(servicio => {
+            const nombreServicio =
+                servicio.nombre?.toLowerCase() ?? "";
+
+            const nombreCategoria =
+                getNombreCategoria(servicio.id_categoria)
+                    .toLowerCase();
+
+            const coincideBusqueda =
+                nombreServicio.includes(textoBusqueda) ||
+                nombreCategoria.includes(textoBusqueda);
+
+            const coincideCategoria =
+                categoriaFiltro === "" ||
+                String(servicio.id_categoria) ===
+                    String(categoriaFiltro);
+
+            return coincideBusqueda && coincideCategoria;
+        });
+    }, [
+        servicios,
+        busqueda,
+        categoriaFiltro,
+        categorias
+    ]);
+
+    const abrirCrear = () => {
+        setSelectedServicio(null);
+
+        setFormData({
+            nombre: "",
+            descripcion: "",
+            precio_base: "",
+            estado: true,
+            id_categoria: "",
+            imagen_url: ""
+        });
+
+        setError("");
+        setShowForm(true);
+    };
+
+    const abrirEditar = servicio => {
+        setSelectedServicio(servicio);
+
+        setFormData({
+            nombre: servicio.nombre ?? "",
+            descripcion: servicio.descripcion ?? "",
+            precio_base: servicio.precio_base ?? "",
+            estado: servicio.estado ?? true,
+            id_categoria: servicio.id_categoria ?? "",
+            imagen_url: servicio.imagen_url ?? ""
+        });
+
+        setError("");
+        setShowForm(true);
+    };
+
+    const cerrarFormulario = () => {
+        if (saving) {
+            return;
+        }
+
+        setShowForm(false);
+        setSelectedServicio(null);
+    };
 
     const handleChange = event => {
         const { name, value, type, checked } = event.target;
@@ -83,39 +167,6 @@ export default function Servicios() {
             ...prev,
             [name]: type === "checkbox" ? checked : value
         }));
-    };
-
-    const resetForm = () => {
-        setFormData({
-            nombre: "",
-            descripcion: "",
-            precio_base: "",
-            estado: true,
-            id_categoria: ""
-        });
-
-        setSelectedServicio(null);
-    };
-
-    const handleCreate = () => {
-        resetForm();
-        setShowForm(true);
-        setError("");
-    };
-
-    const handleEdit = servicio => {
-        setSelectedServicio(servicio);
-
-        setFormData({
-            nombre: servicio.nombre ?? "",
-            descripcion: servicio.descripcion ?? "",
-            precio_base: servicio.precio_base ?? "",
-            estado: servicio.estado,
-            id_categoria: servicio.id_categoria ?? ""
-        });
-
-        setShowForm(true);
-        setError("");
     };
 
     const handleSubmit = async event => {
@@ -130,7 +181,8 @@ export default function Servicios() {
                 descripcion: formData.descripcion.trim(),
                 precio_base: Number(formData.precio_base),
                 estado: formData.estado,
-                id_categoria: Number(formData.id_categoria)
+                id_categoria: Number(formData.id_categoria),
+                imagen_url: formData.imagen_url.trim() || null
             };
 
             if (selectedServicio) {
@@ -142,10 +194,10 @@ export default function Servicios() {
                 await createServicio(data);
             }
 
-            resetForm();
             setShowForm(false);
+            setSelectedServicio(null);
 
-            await loadServicios();
+            await cargarServicios();
         } catch (error) {
             setError(
                 error.response?.data?.error?.message ??
@@ -156,12 +208,23 @@ export default function Servicios() {
         }
     };
 
-    const handleDeactivate = async id => {
+    const handleDesactivar = async servicio => {
+        const confirmar = window.confirm(
+            `¿Deseas desactivar el servicio "${servicio.nombre}"?`
+        );
+
+        if (!confirmar) {
+            return;
+        }
+
         try {
             setError("");
 
-            await deactivateServicio(id);
-            await loadServicios();
+            await deactivateServicio(
+                servicio.id_servicio
+            );
+
+            await cargarServicios();
         } catch (error) {
             setError(
                 error.response?.data?.error?.message ??
@@ -170,12 +233,23 @@ export default function Servicios() {
         }
     };
 
-    const handleReactivate = async id => {
+    const handleReactivar = async servicio => {
+        const confirmar = window.confirm(
+            `¿Deseas reactivar el servicio "${servicio.nombre}"?`
+        );
+
+        if (!confirmar) {
+            return;
+        }
+
         try {
             setError("");
 
-            await reactivateServicio(id);
-            await loadServicios();
+            await reactivateServicio(
+                servicio.id_servicio
+            );
+
+            await cargarServicios();
         } catch (error) {
             setError(
                 error.response?.data?.error?.message ??
@@ -184,122 +258,94 @@ export default function Servicios() {
         }
     };
 
-    const getNombreCategoria = idCategoria => {
-        const categoria = categorias.find(
-            categoria =>
-                categoria.id_categoria === idCategoria
-        );
-
-        return categoria?.nombre ?? "Sin categoría";
-    };
-
-    const serviciosFiltrados = servicios.filter(servicio => {
-        const textoBusqueda = busqueda.trim().toLowerCase();
-
-        const nombreServicio =
-            servicio.nombre?.toLowerCase() ?? "";
-
-        const nombreCategoria =
-            getNombreCategoria(servicio.id_categoria)
-                .toLowerCase();
-
-        const coincideBusqueda =
-            nombreServicio.includes(textoBusqueda) ||
-            nombreCategoria.includes(textoBusqueda);
-
-        const coincideCategoria =
-            categoriaFiltro === "" ||
-            String(servicio.id_categoria) ===
-                String(categoriaFiltro);
-
-        return coincideBusqueda && coincideCategoria;
-    });
-
     return (
         <div className="min-h-screen bg-gray-50">
+
+            {/* NAVBAR */}
             <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
-                <Link
-                    to="/dashboard"
-                    className="text-xl font-bold text-blue-600"
-                >
+                <span className="text-xl font-bold text-blue-600">
                     NES Eventos
-                </Link>
+                </span>
 
                 <Link
                     to="/dashboard"
-                    className="text-sm font-medium text-gray-600 hover:text-blue-600"
+                    className="text-sm font-medium text-gray-600 transition hover:text-blue-600"
                 >
                     Volver al dashboard
                 </Link>
             </nav>
 
+            {/* CONTENIDO PRINCIPAL */}
             <main className="p-8">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                {/* ENCABEZADO */}
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">
                             Catálogo de servicios
                         </h1>
 
                         <p className="mt-2 text-gray-600">
-                            Gestiona los servicios disponibles en el sistema.
+                            Consulta y gestiona los servicios disponibles para los eventos.
                         </p>
                     </div>
 
                     <button
-                        onClick={handleCreate}
-                        className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
+                        type="button"
+                        onClick={abrirCrear}
+                        className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
                     >
-                        Nuevo servicio
+                        + Nuevo servicio
                     </button>
                 </div>
 
-                {esAdmin && (
-                    <label className="mt-6 flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                            type="checkbox"
-                            checked={incluirInactivos}
-                            onChange={event =>
-                                setIncluirInactivos(
-                                    event.target.checked
-                                )
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                        />
-
-                        Mostrar servicios inactivos
-                    </label>
+                {/* ERROR */}
+                {error && (
+                    <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                        {error}
+                    </div>
                 )}
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {/* FILTROS */}
+                <div className="mt-8 grid gap-4 md:grid-cols-3">
+
+                    {/* BUSCAR */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="busqueda"
+                            className="mb-2 block text-sm font-medium text-gray-700"
+                        >
                             Buscar servicio
                         </label>
 
                         <input
+                            id="busqueda"
                             type="text"
                             value={busqueda}
                             onChange={event =>
                                 setBusqueda(event.target.value)
                             }
-                            placeholder="Buscar por nombre o categoría..."
-                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
+                            placeholder="Nombre o categoría..."
+                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
 
+                    {/* CATEGORÍA */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="categoriaFiltro"
+                            className="mb-2 block text-sm font-medium text-gray-700"
+                        >
                             Filtrar por categoría
                         </label>
 
                         <select
+                            id="categoriaFiltro"
                             value={categoriaFiltro}
                             onChange={event =>
-                                setCategoriaFiltro(
-                                    event.target.value
-                                )
+                                setCategoriaFiltro(event.target.value)
                             }
-                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
+                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
                             <option value="">
                                 Todas las categorías
@@ -315,201 +361,245 @@ export default function Servicios() {
                             ))}
                         </select>
                     </div>
+
+                    {/* MOSTRAR INACTIVOS */}
+                    {esAdmin && (
+                        <div className="flex items-end">
+                            <label className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3">
+                                <input
+                                    type="checkbox"
+                                    checked={incluirInactivos}
+                                    onChange={event =>
+                                        setIncluirInactivos(
+                                            event.target.checked
+                                        )
+                                    }
+                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+
+                                <span className="text-sm font-medium text-gray-700">
+                                    Mostrar inactivos
+                                </span>
+                            </label>
+                        </div>
+                    )}
                 </div>
 
-                {error && (
-                    <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                        {error}
-                    </div>
-                )}
-
+                {/* SERVICIOS */}
                 {loading ? (
-                    <div className="mt-8 rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">
+                    <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
                         Cargando servicios...
                     </div>
                 ) : serviciosFiltrados.length === 0 ? (
-                    <div className="mt-8 rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">
-                        {servicios.length === 0
-                            ? "No hay servicios para mostrar."
-                            : "No se encontraron servicios con los filtros seleccionados."}
+                    <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
+                        No se encontraron servicios.
                     </div>
                 ) : (
-                    <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 text-sm text-gray-600">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left font-semibold">
-                                            Nombre
-                                        </th>
+                    <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
 
-                                        <th className="px-6 py-4 text-left font-semibold">
-                                            Descripción
-                                        </th>
+                        {serviciosFiltrados.map(servicio => (
+                            <div
+                                key={servicio.id_servicio}
+                                className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+                            >
 
-                                        <th className="px-6 py-4 text-left font-semibold">
-                                            Precio base
-                                        </th>
+                                {/* IMAGEN */}
+                                <div className="relative h-52 w-full overflow-hidden bg-gray-100">
 
-                                        <th className="px-6 py-4 text-left font-semibold">
-                                            Categoría
-                                        </th>
-
-                                        <th className="px-6 py-4 text-left font-semibold">
-                                            Estado
-                                        </th>
-
-                                        <th className="px-6 py-4 text-left font-semibold">
-                                            Gestionar
-                                        </th>
-                                    </tr>
-                                </thead>
-
-                                <tbody className="divide-y divide-gray-200">
-                                    {serviciosFiltrados.map(
-                                        servicio => (
-                                            <tr
-                                                key={
-                                                    servicio.id_servicio
-                                                }
-                                            >
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    {servicio.nombre}
-                                                </td>
-
-                                                <td className="max-w-sm px-6 py-4 text-sm text-gray-600">
-                                                    {servicio.descripcion}
-                                                </td>
-
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    $
-                                                    {Number(
-                                                        servicio.precio_base
-                                                    ).toLocaleString(
-                                                        "es-CL"
-                                                    )}
-                                                </td>
-
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    {getNombreCategoria(
-                                                        servicio.id_categoria
-                                                    )}
-                                                </td>
-
-                                                <td className="px-6 py-4 text-sm">
-                                                    {servicio.estado ? (
-                                                        <span className="font-medium text-green-600">
-                                                            Activo
-                                                        </span>
-                                                    ) : (
-                                                        <span className="font-medium text-red-600">
-                                                            Inactivo
-                                                        </span>
-                                                    )}
-                                                </td>
-
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {servicio.estado && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleEdit(
-                                                                            servicio
-                                                                        )
-                                                                    }
-                                                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                                                                >
-                                                                    Editar
-                                                                </button>
-
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleDeactivate(
-                                                                            servicio.id_servicio
-                                                                        )
-                                                                    }
-                                                                    className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                                                                >
-                                                                    Desactivar
-                                                                </button>
-                                                            </>
-                                                        )}
-
-                                                        {!servicio.estado &&
-                                                            esAdmin && (
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleReactivate(
-                                                                            servicio.id_servicio
-                                                                        )
-                                                                    }
-                                                                    className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700"
-                                                                >
-                                                                    Reactivar
-                                                                </button>
-                                                            )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )
+                                    {servicio.imagen_url ? (
+                                        <img
+                                            src={servicio.imagen_url}
+                                            alt={servicio.nombre}
+                                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                            onError={event => {
+                                                event.currentTarget.style.display =
+                                                    "none";
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
+                                            Sin imagen
+                                        </div>
                                     )}
-                                </tbody>
-                            </table>
-                        </div>
+
+                                    {/* DEGRADADO */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+
+                                    {/* CATEGORÍA */}
+                                    <div className="absolute bottom-4 left-4">
+                                        <span className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                                            {getNombreCategoria(
+                                                servicio.id_categoria
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    {/* ESTADO */}
+                                    <div className="absolute right-4 top-4">
+                                        {servicio.estado ? (
+                                            <span className="rounded-full bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                                                Activo
+                                            </span>
+                                        ) : (
+                                            <span className="rounded-full bg-gray-700 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                                                Inactivo
+                                            </span>
+                                        )}
+                                    </div>
+
+                                </div>
+
+                                {/* INFORMACIÓN */}
+                                <div className="flex flex-1 flex-col p-5">
+
+                                    <h2 className="text-xl font-bold text-gray-900">
+                                        {servicio.nombre}
+                                    </h2>
+
+                                    <p className="mt-2 min-h-[48px] text-sm leading-6 text-gray-600">
+                                        {servicio.descripcion}
+                                    </p>
+
+                                    {/* PRECIO */}
+                                    <div className="mt-5 rounded-xl bg-gray-50 px-4 py-3">
+                                        <p className="text-sm text-gray-500">
+                                            Precio base
+                                        </p>
+
+                                        <p className="mt-1 text-2xl font-bold tracking-tight text-gray-900">
+                                            $
+                                            {Number(
+                                                servicio.precio_base
+                                            ).toLocaleString("es-CL")}
+                                        </p>
+                                    </div>
+
+                                    {/* BOTONES */}
+                                    <div className="mt-5 flex gap-2">
+
+                                        {servicio.estado && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    abrirEditar(servicio)
+                                                }
+                                                className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                            >
+                                                Editar
+                                            </button>
+                                        )}
+
+                                        {servicio.estado ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleDesactivar(
+                                                        servicio
+                                                    )
+                                                }
+                                                className="flex-1 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+                                            >
+                                                Desactivar
+                                            </button>
+                                        ) : (
+                                            esAdmin && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleReactivar(
+                                                            servicio
+                                                        )
+                                                    }
+                                                    className="flex-1 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                                                >
+                                                    Reactivar
+                                                </button>
+                                            )
+                                        )}
+
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
                     </div>
                 )}
             </main>
 
+            {/* MODAL CREAR / EDITAR */}
             {showForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+
                     <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+
                         <div className="max-h-[90vh] overflow-y-auto p-6">
+
+                            {/* CABECERA */}
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-gray-900">
-                                    {selectedServicio
-                                        ? "Editar servicio"
-                                        : "Nuevo servicio"}
-                                </h2>
+
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">
+                                        {selectedServicio
+                                            ? "Editar servicio"
+                                            : "Nuevo servicio"}
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Completa los datos del servicio.
+                                    </p>
+                                </div>
 
                                 <button
-                                    onClick={() => {
-                                        setShowForm(false);
-                                        resetForm();
-                                    }}
-                                    className="text-2xl text-gray-400 hover:text-gray-700"
+                                    type="button"
+                                    onClick={cerrarFormulario}
+                                    disabled={saving}
+                                    className="text-2xl text-gray-400 transition hover:text-gray-600 disabled:cursor-not-allowed"
                                 >
                                     ×
                                 </button>
+
                             </div>
 
+                            {/* FORMULARIO */}
                             <form
                                 onSubmit={handleSubmit}
-                                className="mt-6 space-y-4"
+                                className="mt-6 space-y-5"
                             >
+
+                                {/* NOMBRE */}
                                 <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    <label
+                                        htmlFor="nombre"
+                                        className="mb-2 block text-sm font-medium text-gray-700"
+                                    >
                                         Nombre
                                     </label>
 
                                     <input
-                                        type="text"
+                                        id="nombre"
                                         name="nombre"
+                                        type="text"
                                         value={formData.nombre}
                                         onChange={handleChange}
                                         required
                                         minLength={2}
                                         maxLength={100}
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        placeholder="Ej. Banquetería"
                                     />
                                 </div>
 
+                                {/* DESCRIPCIÓN */}
                                 <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    <label
+                                        htmlFor="descripcion"
+                                        className="mb-2 block text-sm font-medium text-gray-700"
+                                    >
                                         Descripción
                                     </label>
 
                                     <textarea
+                                        id="descripcion"
                                         name="descripcion"
                                         value={formData.descripcion}
                                         onChange={handleChange}
@@ -517,45 +607,57 @@ export default function Servicios() {
                                         minLength={10}
                                         maxLength={500}
                                         rows={4}
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        placeholder="Describe el servicio..."
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                                        Precio base
-                                    </label>
+                                {/* PRECIO Y CATEGORÍA */}
+                                <div className="grid gap-5 md:grid-cols-2">
 
-                                    <input
-                                        type="number"
-                                        name="precio_base"
-                                        value={formData.precio_base}
-                                        onChange={handleChange}
-                                        required
-                                        min="0.01"
-                                        step="0.01"
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                                    />
-                                </div>
+                                    <div>
+                                        <label
+                                            htmlFor="precio_base"
+                                            className="mb-2 block text-sm font-medium text-gray-700"
+                                        >
+                                            Precio base
+                                        </label>
 
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                                        Categoría
-                                    </label>
+                                        <input
+                                            id="precio_base"
+                                            name="precio_base"
+                                            type="number"
+                                            min="1"
+                                            step="0.01"
+                                            value={formData.precio_base}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                            placeholder="150000"
+                                        />
+                                    </div>
 
-                                    <select
-                                        name="id_categoria"
-                                        value={formData.id_categoria}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
-                                    >
-                                        <option value="">
-                                            Seleccionar categoría
-                                        </option>
+                                    <div>
+                                        <label
+                                            htmlFor="id_categoria"
+                                            className="mb-2 block text-sm font-medium text-gray-700"
+                                        >
+                                            Categoría
+                                        </label>
 
-                                        {categorias.map(
-                                            categoria => (
+                                        <select
+                                            id="id_categoria"
+                                            name="id_categoria"
+                                            value={formData.id_categoria}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        >
+                                            <option value="">
+                                                Selecciona una categoría
+                                            </option>
+
+                                            {categorias.map(categoria => (
                                                 <option
                                                     key={
                                                         categoria.id_categoria
@@ -566,31 +668,80 @@ export default function Servicios() {
                                                 >
                                                     {categoria.nombre}
                                                 </option>
-                                            )
-                                        )}
-                                    </select>
+                                            ))}
+                                        </select>
+                                    </div>
+
                                 </div>
 
-                                <label className="flex items-center gap-2 text-sm text-gray-700">
+                                {/* URL IMAGEN */}
+                                <div>
+                                    <label
+                                        htmlFor="imagen_url"
+                                        className="mb-2 block text-sm font-medium text-gray-700"
+                                    >
+                                        URL de imagen
+                                    </label>
+
+                                    <input
+                                        id="imagen_url"
+                                        name="imagen_url"
+                                        type="url"
+                                        value={formData.imagen_url}
+                                        onChange={handleChange}
+                                        placeholder="https://ejemplo.com/imagen.jpg"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    />
+
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        Puedes dejar este campo vacío si el servicio no tendrá imagen.
+                                    </p>
+                                </div>
+
+                                {/* VISTA PREVIA */}
+                                {formData.imagen_url.trim() && (
+                                    <div>
+                                        <p className="mb-2 text-sm font-medium text-gray-700">
+                                            Vista previa
+                                        </p>
+
+                                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                                            <img
+                                                src={formData.imagen_url}
+                                                alt="Vista previa"
+                                                className="h-48 w-full object-cover"
+                                                onError={event => {
+                                                    event.currentTarget.style.display =
+                                                        "none";
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ESTADO */}
+                                <label className="flex cursor-pointer items-center gap-3">
                                     <input
                                         type="checkbox"
                                         name="estado"
                                         checked={formData.estado}
                                         onChange={handleChange}
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
 
-                                    Servicio activo
+                                    <span className="text-sm font-medium text-gray-700">
+                                        Servicio activo
+                                    </span>
                                 </label>
 
-                                <div className="flex justify-end gap-3 pt-4">
+                                {/* BOTONES */}
+                                <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
+
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setShowForm(false);
-                                            resetForm();
-                                        }}
-                                        className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50"
+                                        onClick={cerrarFormulario}
+                                        disabled={saving}
+                                        className="rounded-xl border border-gray-300 px-4 py-2.5 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         Cancelar
                                     </button>
@@ -598,7 +749,7 @@ export default function Servicios() {
                                     <button
                                         type="submit"
                                         disabled={saving}
-                                        className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         {saving
                                             ? "Guardando..."
@@ -606,12 +757,17 @@ export default function Servicios() {
                                                 ? "Guardar cambios"
                                                 : "Crear servicio"}
                                     </button>
+
                                 </div>
+
                             </form>
                         </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
-}
+};
+
+export default Servicios;
