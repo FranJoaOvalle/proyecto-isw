@@ -5,6 +5,30 @@ generator client {
   importFileExtension = "ts"
 }
 
+model Espacio {
+  id Int @id @default(autoincrement())
+  nombre String @db.VarChar(100)
+  direccion String @db.VarChar(250)
+  capacidad Int
+  habilitado Boolean @default(true)
+  observaciones String? @db.Text
+  reservas ReservaEspacio[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReservaEspacio {
+  id Int @id @default(autoincrement())
+  espacioId Int
+  espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  referencia String @db.VarChar(150)
+  inicio DateTime @db.Timestamptz(3)
+  fin DateTime @db.Timestamptz(3)
+  cancelada Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([espacioId, inicio, fin])
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
