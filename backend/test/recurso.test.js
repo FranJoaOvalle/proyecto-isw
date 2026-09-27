@@ -6,11 +6,18 @@ const jwt = require("jsonwebtoken");
 // Sustituye solo la persistencia: se prueban rutas, JWT, permisos y validación.
 const calls = [];
 const readCalls = [];
+const updateCalls = [];
 let records = [];
 const prismaPath = require.resolve("../src/db/prisma");
 require.cache[prismaPath] = {
     id: prismaPath, filename: prismaPath, loaded: true,
     exports: { recurso: {
+        update: async ({ where, data }) => {
+            updateCalls.push({ where, data });
+            const record = records.find(item => item.id_recurso === where.id_recurso);
+            Object.assign(record, data);
+            return record;
+        },
         findMany: async (options) => {
             readCalls.push(options);
             return [...records].sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -139,4 +146,47 @@ test("protege listado y detalle contra consultas no autorizadas", async () => {
         }
     }
     assert.equal(readCalls.length, count);
+});
+
+async function put(body, id = "1", rol = "BODEGA") {
+    const headers = { "Content-Type": "application/json" };
+    if (rol) headers.Authorization = `Bearer ${jwt.sign({ id_usuario: 1, rol }, process.env.JWT_SECRET)}`;
+    return fetch(`${url}/${id}`, { method: "PUT", headers, body: JSON.stringify(body) });
+}
+
+test("modifica campos parciales sin restablecer estado ni borrar antecedentes", async () => {
+    records = [{ id_recurso: 1, tipo: "Sonido", nombre: "Parlante",
+        cantidad: 2, estado: "EN_REPARACION", observaciones: "Cable dañado" }];
+    for (const rol of ["BODEGA", "OPERACIONES_LOGISTICA"]) {
+        const response = await put({ nombre: " Parlante reparado " }, "1", rol);
+        assert.equal(response.status, 200);
+        assert.deepEqual(await response.json(), {
+            id_recurso: 1, tipo: "Sonido", nombre: "Parlante reparado",
+            cantidad: 2, estado: "EN_REPARACION", observaciones: "Cable dañado"
+        });
+        assert.deepEqual(updateCalls.at(-1).data, { nombre: "Parlante reparado" });
+    }
+    const response = await put({ estado: "DISPONIBLE", cantidad: 0, observaciones: null });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.estado, "DISPONIBLE");
+    assert.equal(body.cantidad, 0);
+    assert.equal(body.observaciones, null);
+});
+
+test("rechaza modificaciones vacías, inválidas o sin autorización", async () => {
+    const count = updateCalls.length;
+    for (const body of [{}, { cantidad: -1 }, { cantidad: 1.5 }, { cantidad: "2" },
+        { nombre: " " }, { estado: "INVALIDO" }, { id_recurso: 4 }]) {
+        assert.equal((await put(body)).status, 422);
+    }
+    for (const id of ["0", "abc", "2147483648"]) {
+        assert.equal((await put({ cantidad: 3 }, id)).status, 422);
+    }
+    assert.equal((await put({ cantidad: 3 }, "999")).status, 404);
+    assert.equal((await put({ cantidad: 3 }, "1", null)).status, 401);
+    for (const rol of ["CLIENTE", "PRODUCCION", "COMERCIAL", "ADMIN"]) {
+        assert.equal((await put({ cantidad: 3 }, "1", rol)).status, 403);
+    }
+    assert.equal(updateCalls.length, count);
 });

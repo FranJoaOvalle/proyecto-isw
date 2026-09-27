@@ -23,6 +23,15 @@ class RecursoService {
     async create(data) {
         return prisma.recurso.create({ data });
     }
+
+    async update(id, data) {
+        await this.getById(id);
+
+        return prisma.recurso.update({
+            where: { id_recurso: Number(id) },
+            data
+        });
+    }
 }
 
 module.exports = new RecursoService();

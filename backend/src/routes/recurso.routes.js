@@ -5,6 +5,7 @@ const authorize = require("../middleware/role.middleware");
 const validate = require("../middleware/validate.middleware");
 const {
     createRecursoSchema,
+    updateRecursoSchema,
     recursoIdSchema
 } = require("../schemas/recurso.schema");
 
@@ -27,6 +28,12 @@ router.post("/",
     authorize("OPERACIONES_LOGISTICA", "BODEGA"),
     validate(createRecursoSchema),
     recursoController.create
+);
+
+router.put("/:id",
+    authorize("OPERACIONES_LOGISTICA", "BODEGA"),
+    validate(updateRecursoSchema),
+    recursoController.update
 );
 
 module.exports = router;

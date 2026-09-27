@@ -27,8 +27,22 @@ const create = async (req, res, next) => {
     }
 };
 
+const update = async (req, res, next) => {
+    try {
+        const recurso = await recursoService.update(
+            req.validated.params.id,
+            req.validated.body
+        );
+
+        return res.status(200).json(recurso);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
-    create
+    create,
+    update
 };
