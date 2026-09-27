@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import Personal from "./pages/Personal.jsx";
 import Servicios from "./pages/Servicios.jsx";
+import Recursos from "./pages/Recursos.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
@@ -25,6 +26,9 @@ createRoot(document.getElementById("root")).render(
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
+                        <Route element={<RoleRoute roles={["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"]} />}>
+                            <Route path="/recursos" element={<Recursos />} />
+                        </Route>
 
                         <Route
                             element={
