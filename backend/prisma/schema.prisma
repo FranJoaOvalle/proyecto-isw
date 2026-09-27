@@ -44,6 +44,27 @@ enum RolUsuario {
   PRODUCCION
   COMERCIAL
   ADMIN
+  OPERACIONES_LOGISTICA
+  BODEGA
+}
+
+enum EstadoRecurso {
+  DISPONIBLE
+  EN_REPARACION
+  RETIRADO
+}
+
+model Recurso {
+  id_recurso    Int           @id @default(autoincrement())
+  tipo          String        @db.VarChar(80)
+  nombre        String        @db.VarChar(100)
+  cantidad      Int
+  estado        EstadoRecurso @default(DISPONIBLE)
+  observaciones String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("recurso")
 }
 
 model Usuario {
