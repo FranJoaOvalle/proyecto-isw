@@ -1,22 +1,30 @@
-import { z } from 'zod';
+const Joi = require('joi');
 
-// Manual de reglas que puede usar el backend para validar los datos de entrada de un presupuesto   
-export const presupuestoSchema = z.object({ 
-  clienteId: z.number({
-    required_error: "El ID del cliente es obligatorio"
+const presupuestoSchema = Joi.object({
+  clienteId: Joi.number().required().messages({
+    'any.required': 'El ID del cliente es obligatorio',
+    'number.base': 'El ID del cliente debe ser un número'
   }),
-  descuento: z.number().min(0, "El descuento no puede ser negativo").optional().default(0),
-  observaciones: z.string().optional(),
-  
-  // La lista de servicios solicitados (
-  servicios: z.array(
-    z.object({
-      servicioId: z.number({
-        required_error: "El ID del servicio es obligatorio"
+  descuento: Joi.number().min(0).default(0).messages({
+    'number.min': 'El descuento no puede ser negativo'
+  }),
+  observaciones: Joi.string().optional(),
+  servicios: Joi.array().items(
+    Joi.object({
+      servicioId: Joi.number().required().messages({
+        'any.required': 'El ID del servicio es obligatorio'
       }),
-      cantidad: z.number().int().min(1, "La cantidad debe ser al menos 1").default(1),
-      precioUnitario: z.number().min(0, "El precio unitario no puede ser negativo"),
-      subtotal: z.number().min(0, "El subtotal no puede ser negativo")
+      cantidad: Joi.number().integer().min(1).default(1).messages({
+        'number.min': 'La cantidad debe ser al menos 1'
+      }),
+      precioUnitario: Joi.number().min(0).required().messages({
+        'number.min': 'El precio unitario no puede ser negativo'
+      }),
+      subtotal: Joi.number().min(0).required()
     })
-  ).min(1, "El presupuesto debe incluir al menos un servicio")
+  ).min(1).required().messages({
+    'array.min': 'El presupuesto debe incluir al menos un servicio'
+  })
 });
+
+module.exports = { presupuestoSchema };
