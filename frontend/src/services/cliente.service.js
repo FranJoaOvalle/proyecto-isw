@@ -38,6 +38,14 @@ export const createClienteUsuario = async (id, data) => {
     return response.data;
 };
 
+export const getAutorizacionesCliente = async clienteId => {
+    const response = await api.get(
+        `/clientes/${clienteId}/autorizaciones`
+    );
+
+    return response.data;
+};
+
 export const asignarAutorizacionCliente = async (clienteId, usuarioId) => {
     const response = await api.post(
         `/clientes/${clienteId}/autorizaciones/${usuarioId}`

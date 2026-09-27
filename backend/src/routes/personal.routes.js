@@ -24,6 +24,12 @@ router.get("/",
     personalController.getAll
 );
 
+router.get("/:id/autorizaciones",
+    authorize("ADMIN"),
+    validate(personalIdSchema),
+    personalController.getAutorizaciones
+);
+
 router.post("/:id/usuario",
     authorize("ADMIN"),
     validate(createPersonalUsuarioSchema),

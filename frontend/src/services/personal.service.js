@@ -33,6 +33,14 @@ export const createPersonalUsuario = async (id, data) => {
     return response.data;
 };
 
+export const getAutorizacionesPersonal = async personalId => {
+    const response = await api.get(
+        `/personal/${personalId}/autorizaciones`
+    );
+
+    return response.data;
+};
+
 export const asignarAutorizacionPersonal = async (personalId, usuarioId) => {
     const response = await api.post(
         `/personal/${personalId}/autorizaciones/${usuarioId}`

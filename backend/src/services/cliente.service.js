@@ -63,7 +63,8 @@ class ClienteService {
                 where: { id },
                 select: {
                     id: true,
-                    usuarioId: true
+                    usuarioId: true,
+                    activo: true,
                 }
             });
 
