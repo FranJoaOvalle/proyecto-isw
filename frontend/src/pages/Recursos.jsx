@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getRecursos } from "../services/recurso.service";
+import { getRecursos, createRecurso } from "../services/recurso.service";
+
+const formularioInicial = {
+    nombre: "", tipo: "", cantidad: "", estado: "DISPONIBLE", observaciones: ""
+};
 
 const estados = {
     DISPONIBLE: "Disponible",
@@ -21,6 +25,58 @@ const Recursos = () => {
     const [busqueda, setBusqueda] = useState("");
     const [estadoFiltro, setEstadoFiltro] = useState("");
     const [recarga, setRecarga] = useState(0);
+    const [showForm, setShowForm] = useState(false);
+    const [formData, setFormData] = useState(formularioInicial);
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    const abrirCrear = () => {
+        setFormData({ ...formularioInicial });
+        setFormError("");
+        setSuccess("");
+        setShowForm(true);
+    };
+
+    const handleChange = event => {
+        const { name, value } = event.target;
+        setFormData(actual => ({ ...actual, [name]: value }));
+    };
+
+    const handleSubmit = async event => {
+        event.preventDefault();
+        if (saving) return;
+        const cantidad = Number(formData.cantidad);
+        if (formData.nombre.trim().length < 2 || formData.tipo.trim().length < 2) {
+            setFormError("El nombre y el tipo deben tener al menos 2 caracteres.");
+            return;
+        }
+        if (formData.cantidad.trim() === "" || !Number.isInteger(cantidad) || cantidad < 0 || cantidad > 2147483647) {
+            setFormError("La cantidad debe ser un entero entre 0 y 2147483647.");
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setFormError("");
+            await createRecurso({
+                ...formData,
+                nombre: formData.nombre.trim(),
+                tipo: formData.tipo.trim(),
+                cantidad,
+                observaciones: formData.observaciones.trim() || null
+            });
+            setShowForm(false);
+            setSuccess("Recurso registrado correctamente.");
+            setBusqueda("");
+            setEstadoFiltro("");
+            recargar();
+        } catch (error) {
+            setFormError(error.response?.data?.error?.message ?? "No fue posible registrar el recurso.");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     useEffect(() => {
         let activo = true;
@@ -84,11 +140,71 @@ const Recursos = () => {
                             Consulta los equipos, mobiliario y vehículos de NES Eventos.
                         </p>
                     </div>
-                    <button onClick={recargar} disabled={loading}
+                    <div className="flex flex-wrap gap-3">
+                    <button onClick={abrirCrear} disabled={showForm}
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                        Nuevo recurso
+                    </button>
+                    <button onClick={recargar} disabled={loading || saving}
                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                         Actualizar listado
                     </button>
+                    </div>
                 </div>
+
+                {success && <p role="status" className="mt-6 rounded-lg bg-green-50 p-4 text-green-800">{success}</p>}
+                {showForm && (
+                    <form onSubmit={handleSubmit} className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <h2 className="text-xl font-semibold text-gray-900">Registrar recurso</h2>
+                        <fieldset disabled={saving} className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label htmlFor="recurso-nombre" className="block text-sm font-medium text-gray-700">Nombre</label>
+                                <input id="recurso-nombre" name="nombre" required minLength={2} maxLength={100}
+                                    value={formData.nombre} onChange={handleChange}
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                            </div>
+                            <div>
+                                <label htmlFor="recurso-tipo" className="block text-sm font-medium text-gray-700">Tipo</label>
+                                <input id="recurso-tipo" name="tipo" required minLength={2} maxLength={80}
+                                    placeholder="Ej.: sonido, iluminación o vehículo"
+                                    value={formData.tipo} onChange={handleChange}
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                            </div>
+                            <div>
+                                <label htmlFor="recurso-cantidad" className="block text-sm font-medium text-gray-700">Cantidad</label>
+                                <input id="recurso-cantidad" name="cantidad" type="number" required min={0} max={2147483647} step={1}
+                                    value={formData.cantidad} onChange={handleChange}
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                            </div>
+                            <div>
+                                <label htmlFor="recurso-estado" className="block text-sm font-medium text-gray-700">Estado del recurso</label>
+                                <select id="recurso-estado" name="estado" value={formData.estado} onChange={handleChange}
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+                                    {Object.entries(estados).map(([valor, etiqueta]) => (
+                                        <option key={valor} value={valor}>{etiqueta}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <label htmlFor="recurso-observaciones" className="block text-sm font-medium text-gray-700">Observaciones (opcional)</label>
+                                <textarea id="recurso-observaciones" name="observaciones" maxLength={2000} rows={3}
+                                    value={formData.observaciones} onChange={handleChange}
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                            </div>
+                        </fieldset>
+                        {formError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-red-700">{formError}</p>}
+                        <div className="mt-4 flex gap-3">
+                            <button type="submit" disabled={saving}
+                                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                                {saving ? "Guardando..." : "Guardar recurso"}
+                            </button>
+                            <button type="button" disabled={saving} onClick={() => setShowForm(false)}
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                )}
 
                 <div className="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2">
                     <div>
