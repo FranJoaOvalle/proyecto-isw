@@ -1,5 +1,6 @@
 const prisma = require("../db/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
+const ConflictException = require("../exceptions/ConflictException");
 
 class RecursoService {
     async getAll() {
@@ -20,6 +21,20 @@ class RecursoService {
         return recurso;
     }
 
+    // El futuro servicio de asignaciones debe invocar esta validación antes de asignar.
+    // Comprueba el estado del recurso; no calcula reservas ni disponibilidad por fecha.
+    async validateAvailability(id) {
+        const recurso = await this.getById(id);
+
+        if (recurso.estado !== "DISPONIBLE") {
+            throw new ConflictException(
+                "Solo se pueden asignar recursos en estado disponible."
+            );
+        }
+
+        return recurso;
+    }
+
     async create(data) {
         return prisma.recurso.create({ data });
     }
@@ -30,6 +45,21 @@ class RecursoService {
         return prisma.recurso.update({
             where: { id_recurso: Number(id) },
             data
+        });
+    }
+
+    async remove(id) {
+        const recurso = await this.getById(id);
+
+        if (recurso.estado === "RETIRADO") {
+            throw new ConflictException(
+                "El recurso ya se encuentra retirado."
+            );
+        }
+
+        return prisma.recurso.update({
+            where: { id_recurso: Number(id) },
+            data: { estado: "RETIRADO" }
         });
     }
 }

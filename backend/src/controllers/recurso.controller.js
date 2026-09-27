@@ -40,9 +40,19 @@ const update = async (req, res, next) => {
     }
 };
 
+const remove = async (req, res, next) => {
+    try {
+        const recurso = await recursoService.remove(req.validated.params.id);
+        return res.status(200).json(recurso);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
     create,
-    update
+    update,
+    remove
 };

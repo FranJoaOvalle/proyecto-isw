@@ -36,4 +36,10 @@ router.put("/:id",
     recursoController.update
 );
 
+router.delete("/:id",
+    authorize("ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"),
+    validate(recursoIdSchema),
+    recursoController.remove
+);
+
 module.exports = router;
