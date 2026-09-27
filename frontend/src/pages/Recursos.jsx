@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getRecursos, createRecurso } from "../services/recurso.service";
+import { getRecursos, createRecurso, updateRecurso } from "../services/recurso.service";
 
 const formularioInicial = {
     nombre: "", tipo: "", cantidad: "", estado: "DISPONIBLE", observaciones: ""
@@ -30,9 +30,25 @@ const Recursos = () => {
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState("");
     const [success, setSuccess] = useState("");
+    const [selectedRecurso, setSelectedRecurso] = useState(null);
 
     const abrirCrear = () => {
+        setSelectedRecurso(null);
         setFormData({ ...formularioInicial });
+        setFormError("");
+        setSuccess("");
+        setShowForm(true);
+    };
+
+    const abrirEditar = recurso => {
+        setSelectedRecurso(recurso);
+        setFormData({
+            nombre: recurso.nombre,
+            tipo: recurso.tipo,
+            cantidad: String(recurso.cantidad),
+            estado: recurso.estado,
+            observaciones: recurso.observaciones ?? ""
+        });
         setFormError("");
         setSuccess("");
         setShowForm(true);
@@ -59,20 +75,26 @@ const Recursos = () => {
         try {
             setSaving(true);
             setFormError("");
-            await createRecurso({
+            const data = {
                 ...formData,
                 nombre: formData.nombre.trim(),
                 tipo: formData.tipo.trim(),
                 cantidad,
                 observaciones: formData.observaciones.trim() || null
-            });
+            };
+            if (selectedRecurso) {
+                await updateRecurso(selectedRecurso.id_recurso, data);
+            } else {
+                await createRecurso(data);
+            }
             setShowForm(false);
-            setSuccess("Recurso registrado correctamente.");
+            setSuccess(selectedRecurso ? "Recurso actualizado correctamente." : "Recurso registrado correctamente.");
+            setSelectedRecurso(null);
             setBusqueda("");
             setEstadoFiltro("");
             recargar();
         } catch (error) {
-            setFormError(error.response?.data?.error?.message ?? "No fue posible registrar el recurso.");
+            setFormError(error.response?.data?.error?.message ?? "No fue posible guardar el recurso.");
         } finally {
             setSaving(false);
         }
@@ -155,7 +177,7 @@ const Recursos = () => {
                 {success && <p role="status" className="mt-6 rounded-lg bg-green-50 p-4 text-green-800">{success}</p>}
                 {showForm && (
                     <form onSubmit={handleSubmit} className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-xl font-semibold text-gray-900">Registrar recurso</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">{selectedRecurso ? "Editar recurso" : "Registrar recurso"}</h2>
                         <fieldset disabled={saving} className="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label htmlFor="recurso-nombre" className="block text-sm font-medium text-gray-700">Nombre</label>
@@ -196,7 +218,7 @@ const Recursos = () => {
                         <div className="mt-4 flex gap-3">
                             <button type="submit" disabled={saving}
                                 className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-                                {saving ? "Guardando..." : "Guardar recurso"}
+                                {saving ? "Guardando..." : selectedRecurso ? "Guardar cambios" : "Guardar recurso"}
                             </button>
                             <button type="button" disabled={saving} onClick={() => setShowForm(false)}
                                 className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
@@ -235,7 +257,7 @@ const Recursos = () => {
                                 {recursosFiltrados.length} recursos encontrados
                             </caption>
                             <thead className="bg-gray-50 text-gray-700">
-                                <tr>{["Nombre", "Tipo", "Cantidad", "Estado", "Observaciones"].map(titulo => (
+                                <tr>{["Nombre", "Tipo", "Cantidad", "Estado", "Observaciones", "Acciones"].map(titulo => (
                                     <th key={titulo} scope="col" className="px-4 py-3 font-semibold">{titulo}</th>
                                 ))}</tr>
                             </thead>
@@ -251,10 +273,17 @@ const Recursos = () => {
                                             </span>
                                         </td>
                                         <td className="max-w-sm whitespace-pre-wrap break-words px-4 py-3">{recurso.observaciones || "Sin observaciones"}</td>
+                                        <td className="px-4 py-3">
+                                            <button onClick={() => abrirEditar(recurso)} disabled={showForm || saving}
+                                                aria-label={`Editar ${recurso.nombre}`}
+                                                className="rounded-lg border border-blue-600 px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50">
+                                                Editar
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {recursosFiltrados.length === 0 && (
-                                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                                    <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                                         {recursos.length === 0 ? "No hay recursos registrados." : "No hay recursos que coincidan con la búsqueda."}
                                     </td></tr>
                                 )}
