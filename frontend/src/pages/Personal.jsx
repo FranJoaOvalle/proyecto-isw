@@ -25,6 +25,97 @@ const emptyForm = {
     notas: ""
 };
 
+function PersonalModal({
+                            title,
+                            form,
+                            onChange,
+                            onClose,
+                            onSubmit,
+                            saving,
+                            disabled = false,
+                            footer,
+                            extra
+                        }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+            <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                <div className="max-h-[90vh] overflow-y-auto p-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-900">
+                            {title}
+                        </h2>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-700"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <form onSubmit={onSubmit} className="mt-6 space-y-4">
+                        {[
+                            ["nombre", "Nombre"],
+                            ["email", "Correo"],
+                            ["telefono", "Teléfono"],
+                            ["tipo", "Tipo de personal"],
+                            ["especialidad", "Especialidad"]
+                        ].map(([name, placeholder]) => (
+                            <input
+                                key={name}
+                                name={name}
+                                value={form[name]}
+                                onChange={onChange}
+                                placeholder={placeholder}
+                                required={name === "nombre"}
+                                disabled={disabled}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
+                            />
+                        ))}
+
+                        <textarea
+                            name="notas"
+                            value={form.notas}
+                            onChange={onChange}
+                            placeholder="Notas"
+                            rows="3"
+                            disabled={disabled}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
+                        />
+
+                        {extra}
+
+                        <div className="flex items-center justify-between pt-2">
+                            <div>{footer}</div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="rounded-lg border border-gray-300 px-4 py-2"
+                                >
+                                    Cancelar
+                                </button>
+
+                                {!disabled && (
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                                    >
+                                        {saving ? "Guardando..." : "Guardar"}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Personal() {
     const {usuario} = useAuth();
 
@@ -297,97 +388,6 @@ export default function Personal() {
             );
         }
     };
-
-    function PersonalModal({
-                               title,
-                               form,
-                               onChange,
-                               onClose,
-                               onSubmit,
-                               saving,
-                               disabled = false,
-                               footer,
-                               extra
-                           }) {
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-                <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
-                    <div className="max-h-[90vh] overflow-y-auto p-6">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900">
-                                {title}
-                            </h2>
-
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="text-gray-400 hover:text-gray-700"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-                            {[
-                                ["nombre", "Nombre"],
-                                ["email", "Correo"],
-                                ["telefono", "Teléfono"],
-                                ["tipo", "Tipo de personal"],
-                                ["especialidad", "Especialidad"]
-                            ].map(([name, placeholder]) => (
-                                <input
-                                    key={name}
-                                    name={name}
-                                    value={form[name]}
-                                    onChange={onChange}
-                                    placeholder={placeholder}
-                                    required={name === "nombre"}
-                                    disabled={disabled}
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
-                                />
-                            ))}
-
-                            <textarea
-                                name="notas"
-                                value={form.notas}
-                                onChange={onChange}
-                                placeholder="Notas"
-                                rows="3"
-                                disabled={disabled}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
-                            />
-
-                            {extra}
-
-                            <div className="flex items-center justify-between pt-2">
-                                <div>{footer}</div>
-
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={onClose}
-                                        className="rounded-lg border border-gray-300 px-4 py-2"
-                                    >
-                                        Cancelar
-                                    </button>
-
-                                    {!disabled && (
-                                        <button
-                                            type="submit"
-                                            disabled={saving}
-                                            className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60"
-                                        >
-                                            {saving ? "Guardando..." : "Guardar"}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-gray-50">

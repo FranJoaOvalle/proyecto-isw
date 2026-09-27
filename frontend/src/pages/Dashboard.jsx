@@ -69,6 +69,19 @@ export default function Dashboard() {
                                     Registrar, consultar y gestionar personal.
                                 </p>
                             </Link>
+
+                            <Link
+                                to="/servicios"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Catálogo de servicios
+                                </h2>
+
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Consultar y gestionar el catálogo de servicios.
+                                </p>
+                            </Link>
                         </>
                     )}
 
