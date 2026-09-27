@@ -109,6 +109,19 @@ const quitarAutorizacion = async (req, res, next) => {
     }
 };
 
+const getAutorizaciones = async (req, res, next) => {
+    try {
+        const { id } = req.validated.params;
+
+        const autorizaciones =
+            await autorizacionService.getPersonal(id);
+
+        return res.status(200).json(autorizaciones);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
@@ -118,5 +131,6 @@ module.exports = {
     createUsuario,
     reactivate,
     asignarAutorizacion,
-    quitarAutorizacion
+    quitarAutorizacion,
+    getAutorizaciones
 };

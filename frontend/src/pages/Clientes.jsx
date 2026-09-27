@@ -6,8 +6,14 @@ import {
     createCliente,
     updateCliente,
     deactivateCliente,
-    reactivateCliente
+    reactivateCliente,
+    createClienteUsuario,
+    getAutorizacionesCliente,
+    asignarAutorizacionCliente,
+    quitarAutorizacionCliente
 } from "../services/cliente.service";
+import AutorizacionSelector from "../components/AutorizacionSelector";
+import { getGestores } from "../services/usuario.service";
 import { useAuth } from "../context/AuthContext";
 
 export default function Clientes() {
@@ -18,6 +24,10 @@ export default function Clientes() {
     const [error, setError] = useState("");
     const [incluirInactivos, setIncluirInactivos] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [gestores, setGestores] = useState([]);
+    const [autorizaciones, setAutorizaciones] = useState([]);
+    const [gestorSeleccionado, setGestorSeleccionado] = useState("");
+    const [loadingAutorizaciones, setLoadingAutorizaciones] = useState(false);
 
     const [form, setForm] = useState({
         nombre: "",
@@ -38,6 +48,13 @@ export default function Clientes() {
 
     const [saving, setSaving] = useState(false);
 
+    const [showUsuarioForm, setShowUsuarioForm] = useState(false);
+
+    const [usuarioForm, setUsuarioForm] = useState({
+        email: "",
+        password: ""
+    });
+
     const loadClientes = async () => {
         try {
             setLoading(true);
@@ -52,6 +69,30 @@ export default function Clientes() {
             );
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadAutorizaciones = async clienteId => {
+        if (usuario?.rol !== "ADMIN")
+            return;
+
+        try {
+            setLoadingAutorizaciones(true);
+
+            const [gestoresData, autorizacionesData] = await Promise.all([
+                getGestores(),
+                getAutorizacionesCliente(clienteId)
+            ]);
+
+            setGestores(gestoresData);
+            setAutorizaciones(autorizacionesData);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible cargar las autorizaciones."
+            );
+        } finally {
+            setLoadingAutorizaciones(false);
         }
     };
 
@@ -176,6 +217,85 @@ export default function Clientes() {
             direccion: cliente.direccion ?? "",
             notas: cliente.notas ?? ""
         });
+
+        if (usuario?.rol === "ADMIN")
+            loadAutorizaciones(cliente.id);
+    };
+
+    const handleUsuarioChange = e => {
+        const { name, value } = e.target;
+
+        setUsuarioForm(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleCreateUsuario = async e => {
+        e.preventDefault();
+        setSaving(true);
+        setError("");
+
+        try {
+            await createClienteUsuario(
+                selectedCliente.id,
+                usuarioForm
+            );
+
+            setUsuarioForm({
+                email: "",
+                password: ""
+            });
+
+            setShowUsuarioForm(false);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible crear la cuenta del cliente."
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAsignarAutorizacion = async () => {
+        if (!gestorSeleccionado)
+            return;
+
+        try {
+            setError("");
+
+            await asignarAutorizacionCliente(
+                selectedCliente.id,
+                Number(gestorSeleccionado)
+            );
+
+            setGestorSeleccionado("");
+            await loadAutorizaciones(selectedCliente.id);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible asignar la autorización."
+            );
+        }
+    };
+
+    const handleQuitarAutorizacion = async usuarioId => {
+        try {
+            setError("");
+
+            await quitarAutorizacionCliente(
+                selectedCliente.id,
+                usuarioId
+            );
+
+            await loadAutorizaciones(selectedCliente.id);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible quitar la autorización."
+            );
+        }
     };
 
     useEffect(() => {
@@ -240,8 +360,9 @@ export default function Clientes() {
                 )}
 
                 {showForm && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+                        <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                            <div className="max-h-[90vh] overflow-y-auto p-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold text-gray-900">
                                     Nuevo cliente
@@ -318,13 +439,15 @@ export default function Clientes() {
                                     </button>
                                 </div>
                             </form>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {selectedCliente && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+                        <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                            <div className="max-h-[90vh] overflow-y-auto p-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold text-gray-900">
                                     Gestionar cliente
@@ -383,6 +506,79 @@ export default function Clientes() {
                                     className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
                                 />
 
+                                {usuario?.rol === "ADMIN" && selectedCliente.activo && (
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowUsuarioForm(true)}
+                                            className="text-sm font-semibold text-blue-600 hover:underline"
+                                        >
+                                            Crear cuenta de acceso
+                                        </button>
+                                    </div>
+                                )}
+
+                                {usuario?.rol === "ADMIN" && (
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <h3 className="font-semibold text-gray-900">
+                                            Autorizaciones
+                                        </h3>
+
+                                        {loadingAutorizaciones ? (
+                                            <p className="mt-2 text-sm text-gray-500">
+                                                Cargando autorizaciones...
+                                            </p>
+                                        ) : (
+                                            <>
+                                                <AutorizacionSelector
+                                                    gestores={gestores}
+                                                    autorizaciones={autorizaciones}
+                                                    gestorSeleccionado={gestorSeleccionado}
+                                                    setGestorSeleccionado={setGestorSeleccionado}
+                                                    onAsignar={handleAsignarAutorizacion}
+                                                />
+
+                                                <div className="mt-4 space-y-2">
+                                                    {autorizaciones.map(autorizacion => (
+                                                        <div
+                                                            key={autorizacion.usuarioId}
+                                                            className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                                                        >
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-900">
+                                                                    {autorizacion.usuario.email}
+                                                                </p>
+
+                                                                <p className="text-xs text-gray-500">
+                                                                    {autorizacion.usuario.rol}
+                                                                </p>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleQuitarAutorizacion(
+                                                                        autorizacion.usuarioId
+                                                                    )
+                                                                }
+                                                                className="text-sm font-medium text-red-600 hover:underline"
+                                                            >
+                                                                Quitar
+                                                            </button>
+                                                        </div>
+                                                    ))}
+
+                                                    {autorizaciones.length === 0 && (
+                                                        <p className="text-sm text-gray-500">
+                                                            Ningún gestor tiene autorización para este cliente.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="flex justify-between pt-2">
                                     <div>
                                         {selectedCliente.activo ? (
@@ -425,6 +621,75 @@ export default function Clientes() {
                                             </button>
                                         )}
                                     </div>
+                                </div>
+                            </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showUsuarioForm && selectedCliente && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Crear cuenta
+                                </h2>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUsuarioForm(false)}
+                                    className="text-gray-400 hover:text-gray-700"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <p className="mt-2 text-sm text-gray-500">
+                                Crear cuenta de acceso para {selectedCliente.nombre}.
+                            </p>
+
+                            <form
+                                onSubmit={handleCreateUsuario}
+                                className="mt-6 space-y-4"
+                            >
+                                <input
+                                    name="email"
+                                    type="email"
+                                    value={usuarioForm.email}
+                                    onChange={handleUsuarioChange}
+                                    placeholder="Correo de acceso"
+                                    required
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                                />
+
+                                <input
+                                    name="password"
+                                    type="password"
+                                    value={usuarioForm.password}
+                                    onChange={handleUsuarioChange}
+                                    placeholder="Contraseña"
+                                    minLength={8}
+                                    required
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                                />
+
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUsuarioForm(false)}
+                                        className="rounded-lg border border-gray-300 px-4 py-2"
+                                    >
+                                        Cancelar
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                                    >
+                                        {saving ? "Creando..." : "Crear cuenta"}
+                                    </button>
                                 </div>
                             </form>
                         </div>

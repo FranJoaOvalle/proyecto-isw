@@ -152,6 +152,52 @@ class AutorizacionService {
             }
         });
     }
+
+    async getClientes(clienteId) {
+        const cliente = await prisma.cliente.findUnique({
+            where: { id: clienteId },
+            select: { id: true }
+        });
+
+        if (!cliente) throw new NotFoundException("Cliente no encontrado.");
+
+        return prisma.autorizacionCliente.findMany({
+            where: { clienteId },
+            include: {
+                usuario: {
+                    select: {
+                        id: true,
+                        email: true,
+                        rol: true,
+                        activo: true
+                    }
+                }
+            }
+        });
+    }
+
+    async getPersonal(personalId) {
+        const personal = await prisma.personal.findUnique({
+            where: { id: personalId },
+            select: { id: true }
+        });
+
+        if (!personal) throw new NotFoundException("Personal no encontrado.");
+
+        return prisma.autorizacionPersonal.findMany({
+            where: { personalId },
+            include: {
+                usuario: {
+                    select: {
+                        id: true,
+                        email: true,
+                        rol: true,
+                        activo: true
+                    }
+                }
+            }
+        });
+    }
 }
 
 module.exports = new AutorizacionService();

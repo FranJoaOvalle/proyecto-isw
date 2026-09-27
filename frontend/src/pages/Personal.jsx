@@ -1,15 +1,20 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import {useEffect, useState} from "react";
+import {Link} from "react-router-dom";
 
 import {
     getPersonal,
     createPersonal,
     updatePersonal,
     deactivatePersonal,
-    reactivatePersonal
+    reactivatePersonal,
+    createPersonalUsuario,
+    getAutorizacionesPersonal,
+    asignarAutorizacionPersonal,
+    quitarAutorizacionPersonal
 } from "../services/personal.service";
-
-import { useAuth } from "../context/AuthContext";
+import {getGestores} from "../services/usuario.service";
+import {useAuth} from "../context/AuthContext";
+import AutorizacionSelector from "../components/AutorizacionSelector.jsx";
 
 const emptyForm = {
     nombre: "",
@@ -21,7 +26,7 @@ const emptyForm = {
 };
 
 export default function Personal() {
-    const { usuario } = useAuth();
+    const {usuario} = useAuth();
 
     const [personal, setPersonal] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -34,6 +39,19 @@ export default function Personal() {
 
     const [form, setForm] = useState(emptyForm);
     const [editForm, setEditForm] = useState(emptyForm);
+
+    const [showUsuarioForm, setShowUsuarioForm] = useState(false);
+
+    const [gestores, setGestores] = useState([]);
+    const [autorizaciones, setAutorizaciones] = useState([]);
+    const [gestorSeleccionado, setGestorSeleccionado] = useState("");
+    const [loadingAutorizaciones, setLoadingAutorizaciones] = useState(false);
+
+    const [usuarioForm, setUsuarioForm] = useState({
+        email: "",
+        password: "",
+        rol: "PRODUCCION"
+    });
 
     const loadPersonal = async () => {
         try {
@@ -52,12 +70,36 @@ export default function Personal() {
         }
     };
 
+    const loadAutorizaciones = async personalId => {
+        if (usuario?.rol !== "ADMIN")
+            return;
+
+        try {
+            setLoadingAutorizaciones(true);
+
+            const [gestoresData, autorizacionesData] = await Promise.all([
+                getGestores(),
+                getAutorizacionesPersonal(personalId)
+            ]);
+
+            setGestores(gestoresData);
+            setAutorizaciones(autorizacionesData);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible cargar las autorizaciones."
+            );
+        } finally {
+            setLoadingAutorizaciones(false);
+        }
+    };
+
     useEffect(() => {
         loadPersonal();
     }, [incluirInactivos]);
 
     const handleChange = e => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
 
         setForm(prev => ({
             ...prev,
@@ -66,7 +108,7 @@ export default function Personal() {
     };
 
     const handleEditChange = e => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
 
         setEditForm(prev => ({
             ...prev,
@@ -114,6 +156,9 @@ export default function Personal() {
             especialidad: item.especialidad ?? "",
             notas: item.notas ?? ""
         });
+
+        if (usuario?.rol === "ADMIN")
+            loadAutorizaciones(item.id);
     };
 
     const handleUpdate = async e => {
@@ -176,6 +221,83 @@ export default function Personal() {
         }
     };
 
+    const handleUsuarioChange = e => {
+        const {name, value} = e.target;
+
+        setUsuarioForm(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleCreateUsuario = async e => {
+        e.preventDefault();
+        setSaving(true);
+        setError("");
+
+        try {
+            await createPersonalUsuario(
+                selectedPersonal.id,
+                usuarioForm
+            );
+
+            setUsuarioForm({
+                email: "",
+                password: "",
+                rol: "PRODUCCION"
+            });
+
+            setShowUsuarioForm(false);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible crear la cuenta del personal."
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAsignarAutorizacion = async () => {
+        if (!gestorSeleccionado)
+            return;
+
+        try {
+            setError("");
+
+            await asignarAutorizacionPersonal(
+                selectedPersonal.id,
+                Number(gestorSeleccionado)
+            );
+
+            setGestorSeleccionado("");
+            await loadAutorizaciones(selectedPersonal.id);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible asignar la autorización."
+            );
+        }
+    };
+
+    const handleQuitarAutorizacion = async usuarioId => {
+        try {
+            setError("");
+
+            await quitarAutorizacionPersonal(
+                selectedPersonal.id,
+                usuarioId
+            );
+
+            await loadAutorizaciones(selectedPersonal.id);
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible quitar la autorización."
+            );
+        }
+    };
+
     function PersonalModal({
                                title,
                                form,
@@ -184,79 +306,84 @@ export default function Personal() {
                                onSubmit,
                                saving,
                                disabled = false,
-                               footer
+                               footer,
+                               extra
                            }) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900">
-                            {title}
-                        </h2>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+                <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                    <div className="max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {title}
+                            </h2>
 
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-gray-700"
-                        >
-                            ✕
-                        </button>
-                    </div>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="text-gray-400 hover:text-gray-700"
+                            >
+                                ✕
+                            </button>
+                        </div>
 
-                    <form onSubmit={onSubmit} className="mt-6 space-y-4">
-                        {[
-                            ["nombre", "Nombre"],
-                            ["email", "Correo"],
-                            ["telefono", "Teléfono"],
-                            ["tipo", "Tipo de personal"],
-                            ["especialidad", "Especialidad"]
-                        ].map(([name, placeholder]) => (
-                            <input
-                                key={name}
-                                name={name}
-                                value={form[name]}
+                        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+                            {[
+                                ["nombre", "Nombre"],
+                                ["email", "Correo"],
+                                ["telefono", "Teléfono"],
+                                ["tipo", "Tipo de personal"],
+                                ["especialidad", "Especialidad"]
+                            ].map(([name, placeholder]) => (
+                                <input
+                                    key={name}
+                                    name={name}
+                                    value={form[name]}
+                                    onChange={onChange}
+                                    placeholder={placeholder}
+                                    required={name === "nombre"}
+                                    disabled={disabled}
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
+                                />
+                            ))}
+
+                            <textarea
+                                name="notas"
+                                value={form.notas}
                                 onChange={onChange}
-                                placeholder={placeholder}
-                                required={name === "nombre"}
+                                placeholder="Notas"
+                                rows="3"
                                 disabled={disabled}
                                 className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
                             />
-                        ))}
 
-                        <textarea
-                            name="notas"
-                            value={form.notas}
-                            onChange={onChange}
-                            placeholder="Notas"
-                            rows="3"
-                            disabled={disabled}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 disabled:bg-gray-100"
-                        />
+                            {extra}
 
-                        <div className="flex items-center justify-between pt-2">
-                            <div>{footer}</div>
+                            <div className="flex items-center justify-between pt-2">
+                                <div>{footer}</div>
 
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="rounded-lg border border-gray-300 px-4 py-2"
-                                >
-                                    Cancelar
-                                </button>
-
-                                {!disabled && (
+                                <div className="flex gap-3">
                                     <button
-                                        type="submit"
-                                        disabled={saving}
-                                        className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                                        type="button"
+                                        onClick={onClose}
+                                        className="rounded-lg border border-gray-300 px-4 py-2"
                                     >
-                                        {saving ? "Guardando..." : "Guardar"}
+                                        Cancelar
                                     </button>
-                                )}
+
+                                    {!disabled && (
+                                        <button
+                                            type="submit"
+                                            disabled={saving}
+                                            className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                                        >
+                                            {saving ? "Guardando..." : "Guardar"}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         );
@@ -398,6 +525,84 @@ export default function Personal() {
                     onSubmit={handleUpdate}
                     saving={saving}
                     disabled={!selectedPersonal.activo}
+
+                    extra={
+                        <>
+                            {usuario?.rol === "ADMIN" && selectedPersonal.activo && (
+                                <div className="border-t border-gray-200 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUsuarioForm(true)}
+                                        className="text-sm font-semibold text-blue-600 hover:underline"
+                                    >
+                                        Crear cuenta de acceso
+                                    </button>
+                                </div>
+                            )}
+
+                            {usuario?.rol === "ADMIN" && (
+                                <div className="border-t border-gray-200 pt-4">
+                                    <h3 className="font-semibold text-gray-900">
+                                        Autorizaciones
+                                    </h3>
+
+                                    {loadingAutorizaciones ? (
+                                        <p className="mt-2 text-sm text-gray-500">
+                                            Cargando autorizaciones...
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <AutorizacionSelector
+                                                gestores={gestores}
+                                                autorizaciones={autorizaciones}
+                                                gestorSeleccionado={gestorSeleccionado}
+                                                setGestorSeleccionado={setGestorSeleccionado}
+                                                onAsignar={handleAsignarAutorizacion}
+                                            />
+
+                                            <div className="mt-4 space-y-2">
+                                                {autorizaciones.map(autorizacion => (
+                                                    <div
+                                                        key={autorizacion.usuarioId}
+                                                        className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                                                    >
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-900">
+                                                                {autorizacion.usuario.email}
+                                                            </p>
+
+                                                            <p className="text-xs text-gray-500">
+                                                                {autorizacion.usuario.rol}
+                                                            </p>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleQuitarAutorizacion(
+                                                                    autorizacion.usuarioId
+                                                                )
+                                                            }
+                                                            className="text-sm font-medium text-red-600 hover:underline"
+                                                        >
+                                                            Quitar
+                                                        </button>
+                                                    </div>
+                                                ))}
+
+                                                {autorizaciones.length === 0 && (
+                                                    <p className="text-sm text-gray-500">
+                                                        Ningún gestor tiene autorización para este registro.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    }
+
                     footer={
                         selectedPersonal.activo ? (
                             <button
@@ -420,6 +625,85 @@ export default function Personal() {
                         )
                     }
                 />
+            )}
+
+            {showUsuarioForm && selectedPersonal && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-900">
+                                Crear cuenta
+                            </h2>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowUsuarioForm(false)}
+                                className="text-gray-400 hover:text-gray-700"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <p className="mt-2 text-sm text-gray-500">
+                            Crear cuenta para {selectedPersonal.nombre}.
+                        </p>
+
+                        <form
+                            onSubmit={handleCreateUsuario}
+                            className="mt-6 space-y-4"
+                        >
+                            <input
+                                name="email"
+                                type="email"
+                                value={usuarioForm.email}
+                                onChange={handleUsuarioChange}
+                                placeholder="Correo de acceso"
+                                required
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                            />
+
+                            <input
+                                name="password"
+                                type="password"
+                                value={usuarioForm.password}
+                                onChange={handleUsuarioChange}
+                                placeholder="Contraseña"
+                                minLength={8}
+                                required
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                            />
+
+                            <select
+                                name="rol"
+                                value={usuarioForm.rol}
+                                onChange={handleUsuarioChange}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3"
+                            >
+                                <option value="PRODUCCION">Producción</option>
+                                <option value="COMERCIAL">Comercial</option>
+                                <option value="ADMIN">Administrador</option>
+                            </select>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUsuarioForm(false)}
+                                    className="rounded-lg border border-gray-300 px-4 py-2"
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                                >
+                                    {saving ? "Creando..." : "Crear cuenta"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

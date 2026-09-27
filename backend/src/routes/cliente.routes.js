@@ -24,6 +24,12 @@ router.get("/",
     clienteController.getAll
 );
 
+router.get("/:id/autorizaciones",
+    authorize("ADMIN"),
+    validate(clienteIdSchema),
+    clienteController.getAutorizaciones
+);
+
 router.post("/:id/usuario",
     authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
     validate(createClienteUsuarioSchema),
