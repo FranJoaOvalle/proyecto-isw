@@ -11,4 +11,16 @@ const createRecursoSchema = z.object({
     }).strict()
 });
 
-module.exports = { createRecursoSchema };
+const recursoIdSchema = z.object({
+    params: z.object({
+        id: z.coerce.number()
+            .int("El ID debe ser un número entero.")
+            .positive("ID inválido.")
+            .max(2147483647, "ID fuera de rango.")
+    })
+});
+
+module.exports = {
+    createRecursoSchema,
+    recursoIdSchema
+};

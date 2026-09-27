@@ -5,10 +5,21 @@ const jwt = require("jsonwebtoken");
 
 // Sustituye solo la persistencia: se prueban rutas, JWT, permisos y validación.
 const calls = [];
+const readCalls = [];
+let records = [];
 const prismaPath = require.resolve("../src/db/prisma");
 require.cache[prismaPath] = {
     id: prismaPath, filename: prismaPath, loaded: true,
-    exports: { recurso: { create: async ({ data }) => {
+    exports: { recurso: {
+        findMany: async (options) => {
+            readCalls.push(options);
+            return [...records].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        },
+        findUnique: async ({ where }) => {
+            readCalls.push(where);
+            return records.find(item => item.id_recurso === where.id_recurso) || null;
+        },
+        create: async ({ data }) => {
         calls.push(data);
         return { id_recurso: 1, ...data };
     } } }
@@ -79,4 +90,53 @@ test("acepta stock cero, estado explícito y observaciones", async () => {
         estado: "EN_REPARACION", observaciones: " Revisar cable " }, "BODEGA");
     assert.equal(response.status, 201);
     assert.equal((await response.json()).observaciones, "Revisar cable");
+});
+
+async function get(path = "", rol = "BODEGA") {
+    const headers = {};
+    if (rol) headers.Authorization = `Bearer ${jwt.sign({ id_usuario: 1, rol }, process.env.JWT_SECRET)}`;
+    return fetch(url + path, { headers });
+}
+
+test("consulta un listado vacío y recursos en todos sus estados", async () => {
+    records = [];
+    const empty = await get();
+    assert.equal(empty.status, 200);
+    assert.deepEqual(await empty.json(), []);
+    records = [
+        { id_recurso: 1, nombre: "Parlante", estado: "DISPONIBLE" },
+        { id_recurso: 2, nombre: "Generador", estado: "EN_REPARACION" },
+        { id_recurso: 3, nombre: "Foco", estado: "RETIRADO" }
+    ];
+    for (const rol of ["OPERACIONES_LOGISTICA", "BODEGA"]) {
+        const response = await get("", rol);
+        assert.equal(response.status, 200);
+        assert.deepEqual((await response.json()).map(item => item.id_recurso), [3, 2, 1]);
+        assert.deepEqual(readCalls.at(-1), { orderBy: { nombre: "asc" } });
+        const detail = await get("/3", rol);
+        assert.equal(detail.status, 200);
+        assert.deepEqual(await detail.json(), records[2]);
+    }
+});
+
+test("responde 404 si el recurso no existe y 422 para identificadores inválidos", async () => {
+    const missing = await get("/999");
+    assert.equal(missing.status, 404);
+    assert.equal((await missing.json()).message, "Recurso no encontrado.");
+    const count = readCalls.length;
+    for (const id of ["0", "-1", "1.5", "abc", "2147483648"]) {
+        assert.equal((await get(`/${id}`)).status, 422);
+    }
+    assert.equal(readCalls.length, count);
+});
+
+test("protege listado y detalle contra consultas no autorizadas", async () => {
+    const count = readCalls.length;
+    for (const path of ["", "/1"]) {
+        assert.equal((await get(path, null)).status, 401);
+        for (const rol of ["CLIENTE", "COMERCIAL", "PRODUCCION", "ADMIN"]) {
+            assert.equal((await get(path, rol)).status, 403);
+        }
+    }
+    assert.equal(readCalls.length, count);
 });

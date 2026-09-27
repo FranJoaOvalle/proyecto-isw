@@ -1,4 +1,4 @@
-# RF03: registro de recursos (primer incremento)
+# RF03: registro y consulta de recursos
 
 `POST /api/recursos` registra un recurso y devuelve HTTP 201 con el registro.
 Requiere un token Bearer obtenido mediante el login existente y un usuario con
@@ -43,7 +43,22 @@ conexión real a PostgreSQL ni la aplicación de migraciones.
 
 ## Próximos incrementos
 
-Consulta de recursos, modificación autorizada, desactivación que conserve el
+Modificación autorizada, desactivación que conserve el
 historial y formularios de interfaz, cada uno en su propio commit. Las futuras
 asignaciones a eventos deben preservar sus referencias; este incremento no
 incluye eliminación ni asignaciones.
+
+## Consulta de recursos (segundo incremento)
+
+Ambas rutas requieren sesión y rol `OPERACIONES_LOGISTICA` o `BODEGA`, igual
+que el registro:
+
+- `GET /api/recursos`: devuelve HTTP 200 con el listado ordenado por nombre,
+  incluyendo disponibles, en reparación y retirados para consultar su historial.
+  Si no hay registros devuelve `[]`.
+- `GET /api/recursos/:id`: devuelve HTTP 200 con el recurso solicitado,
+  incluido si está retirado. Si no existe devuelve 404. Un identificador que
+  no sea entero positivo dentro del rango de PostgreSQL recibe 422.
+
+Las pruebas incluyen ambas consultas, listado vacío, permisos e identificadores
+inválidos. Este incremento no requiere nuevas migraciones ni incluye interfaz.
