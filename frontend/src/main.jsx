@@ -9,6 +9,7 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import Personal from "./pages/Personal.jsx";
+import Servicios from "./pages/Servicios.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
@@ -34,6 +35,7 @@ createRoot(document.getElementById("root")).render(
                         >
                             <Route path="/clientes" element={<Clientes />} />
                             <Route path="/personal" element={<Personal />} />
+                            <Route path="/servicios" element={<Servicios />} />
                         </Route>
                     </Route>
                 </Routes>
