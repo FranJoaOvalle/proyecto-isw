@@ -82,20 +82,44 @@ export default function Dashboard() {
                                     Consultar y gestionar el catálogo de servicios.
                                 </p>
                             </Link>
+
+                            <Link
+                                to="/eventos"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Gestión de Eventos
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Administrar, agendar y supervisar los eventos de los clientes.
+                                </p>
+                            </Link>
                         </>
                     )}
 
                     {usuario?.rol === "CLIENTE" && (
-                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-lg font-semibold text-gray-900">
-                                Servicios
-                            </h2>
+                        <>
+                            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Servicios
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Consulta y contratación de servicios.
+                                </p>
+                            </div>
 
-                            <p className="mt-2 text-sm text-gray-500">
-                                Consulta y contratación de servicios.
-                            </p>
-                        </div>
-                    )}
+                            <Link to="/eventos"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                                >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Mis Eventos
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Consulta el estado y los detalles de tus eventos programados.
+                                </p>
+                            </Link>
+                        </>
+                    )}  
                     {["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"].includes(usuario?.rol) && (
                         <Link to="/recursos"
                             className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md">
