@@ -1,25 +1,25 @@
-const express = require("express");
+const { Router } = require('express');
 const eventoController = require("../controllers/evento.controller");
 const authMiddleware = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const validate = require("../middleware/validate.middleware");
-const {
-    createEventoSchema,
-    updateEventoSchema,
-    eventoIdSchema
-} = require("../schemas/evento.schema");
+const { 
+    createEventoSchema, 
+    updateEventoSchema, 
+    eventoIdSchema 
+} = require('../schemas/evento.schema');
 
-const router = express.Router();
+const router = Router();
 
 router.use(authMiddleware);
 
 router.get("/",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL", "CLIENTE"),
     eventoController.getEventos
 );
 
 router.get("/:id",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL", "CLIENTE"),
     validate(eventoIdSchema),
     eventoController.getEventoById
 );
