@@ -7,6 +7,7 @@ const categoriaRoutes = require("./categoria.routes");
 const servicioRoutes = require("./servicio.routes");
 const usuarioRoutes = require("./usuario.routes");
 const recursoRoutes = require("./recurso.routes");
+const eventoRoutes = require('./evento.routes.js');
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.use("/categorias", categoriaRoutes);
 router.use("/servicios", servicioRoutes);
 router.use("/usuarios", usuarioRoutes);
 router.use("/recursos", recursoRoutes);
+router.use('/eventos', eventoRoutes);
 
 module.exports = router;

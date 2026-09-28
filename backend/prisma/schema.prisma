@@ -1,8 +1,13 @@
 generator client {
-  provider            = "prisma-client"
-  output              = "../generated/prisma"
-  moduleFormat        = "cjs"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  moduleFormat    = "cjs"
   importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Espacio {
@@ -12,9 +17,11 @@ model Espacio {
   capacidad Int
   habilitado Boolean @default(true)
   observaciones String? @db.Text
-  reservas ReservaEspacio[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  reservas ReservaEspacio[]
+  presupuestos Presupuesto[] // Enlace a tu módulo
 }
 
 model ReservaEspacio {
@@ -27,11 +34,6 @@ model ReservaEspacio {
   cancelada Boolean @default(false)
   createdAt DateTime @default(now())
   @@index([espacioId, inicio, fin])
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Categoria {
@@ -60,6 +62,8 @@ model Servicio {
   id_categoria Int
   categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Restrict)
 
+  eventosAsignados EventoServicio[]
+  
   @@map("servicio")
 }
 
@@ -87,6 +91,8 @@ model Recurso {
   observaciones String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
+  eventosAsignados EventoRecurso[]
 
   @@map("recurso")
 }
@@ -122,6 +128,8 @@ model Cliente {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   autorizacionClientes AutorizacionCliente[]
+  eventos              Evento[]
+  presupuestos         Presupuesto[] // Enlace a tu módulo
 }
 
 model Personal {
@@ -137,9 +145,72 @@ model Personal {
   usuarioId Int?     @unique
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
 
+  eventosAsignados EventoPersonal[]
+
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   autorizacionPersonals AutorizacionPersonal[]
+}
+
+model Evento {
+  id                 Int       @id @default(autoincrement())
+  clienteId          Int
+  cliente            Cliente   @relation(fields: [clienteId], references: [id])
+  tipoEvento         String    
+  fecha              DateTime
+  horario            String    
+  cantidadAsistentes Int
+  lugar              String
+  estado             String    @default("ORGANIZACION") // ORGANIZACION, CONFIRMADO, CANCELADO, FINALIZADO
+  observaciones      String?
+  activo             Boolean   @default(true)
+
+  personalAsignado   EventoPersonal[]
+  recursosAsignados  EventoRecurso[]
+  serviciosAsignados EventoServicio[]
+  presupuesto        Presupuesto? // Enlace a tu módulo
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  @@map("eventos")
+}
+
+model EventoPersonal {
+  eventoId    Int
+  personalId  Int
+  rolAsignado String? // Ej: "Supervisor", "Garzón"
+  
+  evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  personal    Personal @relation(fields: [personalId], references: [id], onDelete: Restrict)
+
+  @@id([eventoId, personalId]) 
+  @@map("evento_personal")
+}
+
+model EventoRecurso {
+  eventoId    Int
+  recursoId   Int
+  cantidad    Int      
+  
+  evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  recurso     Recurso  @relation(fields: [recursoId], references: [id_recurso], onDelete: Restrict)
+
+  @@id([eventoId, recursoId])
+  @@map("evento_recursos")
+}
+
+model EventoServicio {
+  eventoId    Int
+  servicioId  Int
+  precio      Float?   
+  
+  evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  servicio    Servicio @relation(fields: [servicioId], references: [id_servicio], onDelete: Restrict)
+
+  @@id([eventoId, servicioId])
+  @@map("evento_servicios")
 }
 
 model AutorizacionCliente {
@@ -160,4 +231,25 @@ model AutorizacionPersonal {
   personal Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
 
   @@id([usuarioId, personalId])
+}
+
+// ==========================================
+// MÓDULO DE PRESUPUESTOS (Tu tesoro)
+// ==========================================
+model Presupuesto {
+  id            Int      @id @default(autoincrement())
+  clienteId     Int
+  eventoId      Int      @unique
+  espacioId     Int?     // Referencia opcional al lugar/espacio físico
+  descuento     Float    @default(0)
+  totalEstimado Float
+
+  cliente       Cliente  @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  evento        Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  espacio       Espacio? @relation(fields: [espacioId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("presupuestos")
 }
