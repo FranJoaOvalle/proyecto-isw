@@ -117,6 +117,15 @@ export default function Dashboard() {
                             </p>
                         </Link>
                     )}
+                    {["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"].includes(usuario?.rol) && (
+                        <Link to="/recursos"
+                            className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+                            <h2 className="text-lg font-semibold text-gray-900">Recursos</h2>
+                            <p className="mt-2 text-sm text-gray-500">
+                                Gestionar equipos, mobiliario y vehículos, y consultar espacios y sus reservas para eventos.
+                            </p>
+                        </Link>
+                    )}
 
                 </div>
             </main>

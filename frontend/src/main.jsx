@@ -14,6 +14,7 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import Personal from "./pages/Personal.jsx";
+import Recursos from "./pages/Recursos.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
 import ServiciosCliente from "./pages/ServiciosCliente.jsx";
 
@@ -39,16 +40,12 @@ createRoot(document.getElementById("root")).render(
                     />
 
                     <Route element={<ProtectedRoute />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route element={<RoleRoute roles={["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"]} />}>
+                            <Route path="/recursos" element={<Recursos />} />
+                        </Route>
 
-                        <Route
-                            path="/dashboard"
-                            element={<Dashboard />}
-                        />
-
-                        <Route
-                            path="/servicios"
-                            element={<ServiciosCliente />}
-                        />
+                        <Route path="/servicios" element={<ServiciosCliente />} />
 
                         <Route
                             element={
