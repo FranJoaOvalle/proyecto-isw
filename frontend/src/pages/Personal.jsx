@@ -26,6 +26,7 @@ const emptyForm = {
 };
 
 function PersonalModal({
+
                            title,
                            form,
                            onChange,

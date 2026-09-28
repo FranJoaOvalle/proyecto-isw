@@ -1,4 +1,4 @@
-const { Prisma } = require("../../generated/prisma/client.ts");
+const { Prisma } = require("@prisma/client");
 
 const BadRequestException = require("../exceptions/BadRequestException");
 const ConflictException = require("../exceptions/ConflictException");
