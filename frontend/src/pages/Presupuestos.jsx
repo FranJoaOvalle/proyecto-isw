@@ -1,14 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { crearPresupuesto } from '../services/presupuesto.service';
+import axios from 'axios';
 
 export default function Presupuestos() {
+    // Estados para la gestión de datos del formulario de presupuesto
     const [clienteId, setClienteId] = useState('');
+    const [eventoId, setEventoId] = useState('');
     const [descuento, setDescuento] = useState(0);
     
+    // Estados para almacenar las listas obtenidas de los módulos de los colaboradores
+    const [clientesList, setClientesList] = useState([]);
+    const [eventosList, setEventosList] = useState([]);
+    const [serviciosCatalogo, setServiciosCatalogo] = useState([]);
+
+    // Estado para las líneas de servicios incluidos en la cotización
     const [servicios, setServicios] = useState([
         { servicioId: '', cantidad: 1, precioUnitario: 0 }
     ]);
+
+    // Efecto para sincronizar catálogos externos al montar el componente
+    useEffect(() => {
+        const cargarDatosExternos = async () => {
+            try {
+                const [resClientes, resEventos, resServicios] = await Promise.all([
+                    axios.get('http://localhost:3000/api/clientes').catch(() => ({ data: [] })),
+                    axios.get('http://localhost:3000/api/eventos').catch(() => ({ data: [] })),
+                    axios.get('http://localhost:3000/api/servicios').catch(() => ({ data: [] }))
+                ]);
+
+                setClientesList(resClientes.data);
+                setEventosList(resEventos.data);
+                setServiciosCatalogo(resServicios.data);
+            } catch (error) {
+                console.error("Error al sincronizar datos externos:", error);
+            }
+        };
+
+        cargarDatosExternos();
+    }, []);
+
+    // Manejador para autocompletar el precio unitario basado en el catálogo seleccionado
+    const handleServicioSelect = (index, servicioId) => {
+        const servicioEncontrado = serviciosCatalogo.find(
+            (s) => s.id_servicio === Number(servicioId) || s.id === Number(servicioId)
+        );
+
+        const nuevosServicios = [...servicios];
+        nuevosServicios[index].servicioId = servicioId;
+        
+        if (servicioEncontrado) {
+            nuevosServicios[index].precioUnitario = servicioEncontrado.precio_base || servicioEncontrado.precio || 0;
+        }
+
+        setServicios(nuevosServicios);
+    };
 
     const handleAddServicio = () => {
         setServicios([...servicios, { servicioId: '', cantidad: 1, precioUnitario: 0 }]);
@@ -25,6 +71,7 @@ export default function Presupuestos() {
         setServicios(nuevosServicios);
     };
 
+    // Cálculo dinámico del subtotal y aplicación del descuento global
     const calcularTotal = () => {
         const subtotal = servicios.reduce(
             (acc, curr) => acc + (Number(curr.cantidad || 0) * Number(curr.precioUnitario || 0)),
@@ -33,13 +80,16 @@ export default function Presupuestos() {
         return Math.max(0, subtotal - Number(descuento || 0));
     };
 
+    // Envío de la cotización consolidada al backend
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
             const payload = {
                 clienteId: Number(clienteId),
+                eventoId: Number(eventoId),
                 descuento: Number(descuento),
+                totalEstimado: calcularTotal(),
                 servicios: servicios.map((s) => ({
                     servicioId: Number(s.servicioId),
                     cantidad: Number(s.cantidad),
@@ -50,8 +100,9 @@ export default function Presupuestos() {
             await crearPresupuesto(payload);
             alert("Presupuesto guardado exitosamente.");
 
-            // Reiniciar formulario
+            // Restablecer el formulario a su estado inicial
             setClienteId('');
+            setEventoId('');
             setDescuento(0);
             setServicios([{ servicioId: '', cantidad: 1, precioUnitario: 0 }]);
         } catch (error) {
@@ -60,22 +111,20 @@ export default function Presupuestos() {
             if (!error.response) {
                 pista = "No hay comunicación con el servidor. Compruebe que el servicio backend se encuentre activo.";
             } else if (error.response.status === 404) {
-                pista = "El ID de cliente o alguno de los IDs de servicios no existen en el sistema. Registre primero al cliente o use identificadores válidos.";
+                pista = "Alguno de los recursos seleccionados no existe en el sistema.";
             } else if (error.response.status === 400) {
                 pista = "Existen datos numéricos incompletos o con valores no permitidos.";
             } else if (error.response.status === 401 || error.response.status === 403) {
-                pista = "Su sesión expiró o no cuenta con los permisos necesarios para realizar esta operación.";
+                pista = "Su sesión expiró o no cuenta con los permisos necesarios.";
             }
 
             const detalleError = error.response?.data?.error || error.response?.data?.message || error.message;
-
             alert(`ERROR: No se pudo guardar los datos.\n\nDetalle: ${detalleError}\nPista: ${pista}`);
         }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
-            {/* Barra de navegación superior con diseño corporativo */}
             <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
                 <span className="text-xl font-bold text-blue-600">
                     NES Eventos
@@ -88,7 +137,6 @@ export default function Presupuestos() {
                 </Link>
             </nav>
 
-            {/* Contenedor principal de la vista */}
             <main className="max-w-4xl mx-auto p-8">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-gray-900">
@@ -100,26 +148,53 @@ export default function Presupuestos() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Tarjeta de Datos Generales */}
+                    {/* Sección de Datos Generales y Asociaciones */}
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                            Datos Generales
+                            Datos Generales y Asociación
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Selector de Cliente */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    ID del Cliente
+                                    Cliente
                                 </label>
-                                <input
-                                    type="number"
-                                    min="1"
+                                <select
                                     required
-                                    placeholder="Ej: 1"
                                     value={clienteId}
                                     onChange={(e) => setClienteId(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="">Seleccione un cliente...</option>
+                                    {clientesList.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.nombre}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
+
+                            {/* Selector de Evento */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Evento Asociado
+                                </label>
+                                <select
+                                    required
+                                    value={eventoId}
+                                    onChange={(e) => setEventoId(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="">Seleccione un evento...</option>
+                                    {eventosList.map((ev) => (
+                                        <option key={ev.id} value={ev.id}>
+                                            {ev.tipoEvento} - {ev.lugar} ({new Date(ev.fecha).toLocaleDateString()})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Descuento Global */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Descuento Global ($)
@@ -135,11 +210,11 @@ export default function Presupuestos() {
                         </div>
                     </div>
 
-                    {/* Tarjeta de Detalle de Servicios */}
+                    {/* Sección de Detalle de Servicios */}
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900">
-                                Detalle de Servicios
+                                Detalle de Servicios del Catálogo
                             </h2>
                             <button
                                 type="button"
@@ -156,21 +231,27 @@ export default function Presupuestos() {
                                     key={index}
                                     className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border-b border-gray-100 pb-4"
                                 >
-                                    <div className="md:col-span-3">
+                                    {/* Selector del Servicio del Catálogo */}
+                                    <div className="md:col-span-4">
                                         <label className="block text-xs font-medium text-gray-500 mb-1">
-                                            ID Servicio
+                                            Servicio del Catálogo
                                         </label>
-                                        <input
-                                            type="number"
-                                            min="1"
+                                        <select
                                             required
-                                            placeholder="Ej: 1"
                                             value={servicio.servicioId}
-                                            onChange={(e) => handleServicioChange(index, 'servicioId', e.target.value)}
-                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
+                                            onChange={(e) => handleServicioSelect(index, e.target.value)}
+                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        >
+                                            <option value="">Seleccione servicio...</option>
+                                            {serviciosCatalogo.map((serv) => (
+                                                <option key={serv.id_servicio || serv.id} value={serv.id_servicio || serv.id}>
+                                                    {serv.nombre} (${serv.precio_base?.toLocaleString() || 0})
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
 
+                                    {/* Cantidad requerida */}
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-medium text-gray-500 mb-1">
                                             Cantidad
@@ -185,6 +266,7 @@ export default function Presupuestos() {
                                         />
                                     </div>
 
+                                    {/* Precio Unitario automatizado */}
                                     <div className="md:col-span-3">
                                         <label className="block text-xs font-medium text-gray-500 mb-1">
                                             Precio Unitario ($)
@@ -195,11 +277,12 @@ export default function Presupuestos() {
                                             required
                                             value={servicio.precioUnitario}
                                             onChange={(e) => handleServicioChange(index, 'precioUnitario', e.target.value)}
-                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                                         />
                                     </div>
 
-                                    <div className="md:col-span-3">
+                                    {/* Subtotal calculado por línea */}
+                                    <div className="md:col-span-2">
                                         <label className="block text-xs font-medium text-gray-500 mb-1">
                                             Subtotal
                                         </label>
@@ -208,6 +291,7 @@ export default function Presupuestos() {
                                         </div>
                                     </div>
 
+                                    {/* Botón de eliminación de ítem */}
                                     <div className="md:col-span-1 flex justify-center">
                                         {servicios.length > 1 && (
                                             <button
@@ -225,7 +309,7 @@ export default function Presupuestos() {
                         </div>
                     </div>
 
-                    {/* Resumen Total y Botón de Envío */}
+                    {/* Resumen Final de Costos y Envío */}
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm flex items-center justify-between">
                         <div>
                             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 block">
