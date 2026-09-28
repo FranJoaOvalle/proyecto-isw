@@ -1,0 +1,14 @@
+const router = require("express").Router();
+const controller = require("../controllers/espacio.controller");
+const validate = require("../middleware/validate.middleware");
+const authorize = require("../middleware/role.middleware");
+const schema = require("../schemas/espacio.schema");
+router.use(authorize("ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"));
+router.get("/", controller.getAll);
+router.get("/disponibilidad", validate(schema.disponibilidadSchema), controller.disponibilidad);
+router.post("/", validate(schema.createEspacioSchema), controller.create);
+router.put("/:id", validate(schema.updateEspacioSchema), controller.update);
+router.get("/:id/reservas", validate(schema.espacioIdSchema), controller.reservas);
+router.post("/:id/reservas", validate(schema.reservaSchema), controller.reservar);
+router.patch("/reservas/:id/cancelar", validate(schema.espacioIdSchema), controller.cancelar);
+module.exports = router;

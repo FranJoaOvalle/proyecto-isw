@@ -5,8 +5,62 @@ generator client {
   importFileExtension = "ts"
 }
 
+model Espacio {
+  id Int @id @default(autoincrement())
+  nombre String @db.VarChar(100)
+  direccion String @db.VarChar(250)
+  capacidad Int
+  habilitado Boolean @default(true)
+  observaciones String? @db.Text
+  reservas ReservaEspacio[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReservaEspacio {
+  id Int @id @default(autoincrement())
+  espacioId Int
+  espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  referencia String @db.VarChar(150)
+  inicio DateTime @db.Timestamptz(3)
+  fin DateTime @db.Timestamptz(3)
+  cancelada Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([espacioId, inicio, fin])
+}
+
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Categoria {
+  id_categoria Int       @id @default(autoincrement())
+  nombre       String    @unique @db.VarChar(80)
+  descripcion  String?   @db.Text
+  estado       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  servicios    Servicio[]
+
+  @@map("categoria")
+}
+
+model Servicio {
+  id_servicio  Int       @id @default(autoincrement())
+  nombre       String    @db.VarChar(100)
+  descripcion  String?   @db.Text
+  precio_base  Float
+  imagen_url   String?   @db.Text
+  estado       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  id_categoria Int
+  categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Restrict)
+
+  @@map("servicio")
 }
 
 enum RolUsuario {
@@ -14,6 +68,27 @@ enum RolUsuario {
   PRODUCCION
   COMERCIAL
   ADMIN
+  OPERACIONES_LOGISTICA
+  BODEGA
+}
+
+enum EstadoRecurso {
+  DISPONIBLE
+  EN_REPARACION
+  RETIRADO
+}
+
+model Recurso {
+  id_recurso    Int           @id @default(autoincrement())
+  tipo          String        @db.VarChar(80)
+  nombre        String        @db.VarChar(100)
+  cantidad      Int
+  estado        EstadoRecurso @default(DISPONIBLE)
+  observaciones String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("recurso")
 }
 
 model Usuario {
