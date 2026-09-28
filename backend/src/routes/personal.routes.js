@@ -1,0 +1,81 @@
+const express = require("express");
+
+const personalController = require("../controllers/personal.controller");
+const authMiddleware = require("../middleware/auth.middleware");
+const authorize = require("../middleware/role.middleware");
+const validate = require("../middleware/validate.middleware");
+
+const {
+    createPersonalSchema,
+    updatePersonalSchema,
+    personalIdSchema,
+    createPersonalUsuarioSchema,
+    getPersonalSchema,
+    personalAutorizacionSchema
+} = require("../schemas/personal.schema");
+
+const router = express.Router();
+
+router.use(authMiddleware);
+
+router.get("/",
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(getPersonalSchema),
+    personalController.getAll
+);
+
+router.get("/:id/autorizaciones",
+    authorize("ADMIN"),
+    validate(personalIdSchema),
+    personalController.getAutorizaciones
+);
+
+router.post("/:id/usuario",
+    authorize("ADMIN"),
+    validate(createPersonalUsuarioSchema),
+    personalController.createUsuario
+);
+
+router.get("/:id",
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(personalIdSchema),
+    personalController.getById
+);
+
+router.post("/",
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(createPersonalSchema),
+    personalController.create
+);
+
+router.put("/:id",
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(updatePersonalSchema),
+    personalController.update
+);
+
+router.delete("/:id",
+    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+    validate(personalIdSchema),
+    personalController.remove
+);
+
+router.patch("/:id/reactivar",
+    authorize("ADMIN"),
+    validate(personalIdSchema),
+    personalController.reactivate
+);
+
+router.post("/:id/autorizaciones/:usuarioId",
+    authorize("ADMIN"),
+    validate(personalAutorizacionSchema),
+    personalController.asignarAutorizacion
+);
+
+router.delete("/:id/autorizaciones/:usuarioId",
+    authorize("ADMIN"),
+    validate(personalAutorizacionSchema),
+    personalController.quitarAutorizacion
+);
+
+module.exports = router;

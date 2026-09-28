@@ -1,7 +1,4 @@
-const {
-    PrismaClientKnownRequestError,
-    PrismaClientValidationError
-} = require("@prisma/client");
+const { Prisma } = require("../../generated/prisma/client.ts");
 
 const BadRequestException = require("../exceptions/BadRequestException");
 const ConflictException = require("../exceptions/ConflictException");
@@ -40,7 +37,7 @@ function prismaExceptionHandler(error) {
     /*
      * Errores conocidos de Prisma.
      */
-    if (error instanceof PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
 
         switch (error.code) {
 
@@ -87,7 +84,7 @@ function prismaExceptionHandler(error) {
     /*
      * Errores de validación generados directamente por Prisma.
      */
-    if (error instanceof PrismaClientValidationError) {
+    if (error instanceof Prisma.PrismaClientValidationError) {
         return new BadRequestException(
             "Los datos proporcionados no cumplen con el formato requerido para realizar esta operación."
         );

@@ -1,8 +1,88 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = "ts"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum RolUsuario {
+  CLIENTE
+  PRODUCCION
+  COMERCIAL
+  ADMIN
+}
+
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+
+  cliente  Cliente?
+  personal Personal?
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  autorizacionClientes  AutorizacionCliente[]
+  autorizacionPersonals AutorizacionPersonal[]
+}
+
+model Cliente {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  email     String?
+  telefono  String?
+  direccion String?
+  notas     String?
+  activo    Boolean @default(true)
+
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  autorizacionClientes AutorizacionCliente[]
+}
+
+model Personal {
+  id           Int     @id @default(autoincrement())
+  nombre       String
+  email        String?
+  telefono     String?
+  tipo         String?
+  especialidad String?
+  notas        String?
+  activo       Boolean @default(true)
+
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  autorizacionPersonals AutorizacionPersonal[]
+}
+
+model AutorizacionCliente {
+  usuarioId Int
+  clienteId Int
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, clienteId])
+}
+
+model AutorizacionPersonal {
+  usuarioId  Int
+  personalId Int
+
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  personal Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, personalId])
 }
