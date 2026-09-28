@@ -36,11 +36,13 @@ class RecursoService {
     }
 
     async create(data) {
+        require("../utils/validarTarifa")({ origen: "SIN_DEFINIR", ...data });
         return prisma.recurso.create({ data });
     }
 
     async update(id, data) {
-        await this.getById(id);
+        const actual = await this.getById(id);
+        require("../utils/validarTarifa")({ ...actual, ...data });
 
         return prisma.recurso.update({
             where: { id_recurso: Number(id) },
