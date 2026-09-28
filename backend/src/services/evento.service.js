@@ -19,9 +19,16 @@ const createEvento = async (data) => {
   });
 };
 
-const getAllEventos = async () => {
+const getAllEventos = async (usuarioActual) => {
+  const whereClause = { activo: true };
+
+  if (usuarioActual && usuarioActual.rol === 'CLIENTE') {
+      whereClause.cliente = {
+          usuarioId: usuarioActual.id
+      };
+  }
   return await prisma.evento.findMany({
-    where: { activo: true },
+    where: whereClause,
     include: { 
       cliente: true,
       personalAsignado: { include: { personal: true } },
@@ -48,14 +55,6 @@ const getEventoById = async (id) => {
   return evento;
 };
 
-const updateEvento = async (id, data) => {
-  await getEventoById(id); 
-  return await prisma.evento.update({
-    where: { id },
-    data
-  });
-};
-
 const cancelarEvento = async (id) => {
   const evento = await getEventoById(id);
   
@@ -69,10 +68,33 @@ const cancelarEvento = async (id) => {
   });
 };
 
+const updateEvento = async (id, updateData) => {
+  const eventoExistente = await prisma.evento.findUnique({
+      where: { id: Number(id) }
+  });
+
+  if (!eventoExistente) {
+      throw new NotFoundException("El evento especificado no existe.");
+  }
+
+  const dataToUpdate = { ...updateData };
+  if (dataToUpdate.fecha) {
+      dataToUpdate.fecha = new Date(dataToUpdate.fecha);
+  }
+
+  return await prisma.evento.update({
+      where: { id: Number(id) },
+      data: dataToUpdate,
+      include: { 
+          cliente: true 
+      }
+  });
+};
+
 module.exports = {
   createEvento,
   getAllEventos,
   getEventoById,
   updateEvento,
-  cancelarEvento
+  cancelarEvento,
 };
