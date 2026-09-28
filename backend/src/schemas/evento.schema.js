@@ -1,5 +1,7 @@
 const { z } = require("zod");
 
+const ESTADOS_EVENTO = ["ORGANIZACION", "CONFIRMADO", "FINALIZADO", "CANCELADO"];
+
 const eventoBaseSchema = z.object({
     clienteId: z.number().int().positive("El ID del cliente debe ser un número entero positivo."),
     tipoEvento: z.string().trim().min(2, "El tipo de evento debe tener al menos 2 caracteres.").max(100),
@@ -36,8 +38,17 @@ const updateEventoSchema = z.object({
         )
 });
 
+const updateEstadoEventoSchema = z.object({
+    body: z.object({
+        estado: z.enum(["ORGANIZACION", "CONFIRMADO", "FINALIZADO", "CANCELADO"], {
+            errorMap: () => ({ message: "Estado de evento inválido." })
+        })
+    })
+});
+
 module.exports = {
     createEventoSchema,
     updateEventoSchema,
-    eventoIdSchema
+    eventoIdSchema,
+    updateEstadoEventoSchema
 };
