@@ -26,11 +26,15 @@ class EspacioService {
         })));
     }
 
-    async create(data) { return prisma.espacio.create({ data }); }
+    async create(data) {
+        require("../utils/validarTarifa")(data);
+        return prisma.espacio.create({ data });
+    }
 
     async update(id, data) {
         return prisma.$transaction(async tx => {
-            await this.lock(tx, id);
+            const actual = await this.lock(tx, id);
+            require("../utils/validarTarifa")({ ...actual, ...data });
             return tx.espacio.update({ where: { id }, data });
         });
     }
