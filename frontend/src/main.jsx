@@ -9,6 +9,7 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import Personal from "./pages/Personal.jsx";
+import Presupuestos from "./pages/Presupuestos.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
@@ -34,6 +35,10 @@ createRoot(document.getElementById("root")).render(
                         >
                             <Route path="/clientes" element={<Clientes />} />
                             <Route path="/personal" element={<Personal />} />
+                            
+                            {/* 👇 AQUÍ ESTÁ TU PASO 2: LA RUTA DEL TESORO 👇 */}
+                            <Route path="/presupuestos" element={<Presupuestos />} />
+                            
                         </Route>
                     </Route>
                 </Routes>
