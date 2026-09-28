@@ -26,16 +26,17 @@ const emptyForm = {
 };
 
 function PersonalModal({
-                            title,
-                            form,
-                            onChange,
-                            onClose,
-                            onSubmit,
-                            saving,
-                            disabled = false,
-                            footer,
-                            extra
-                        }) {
+
+                           title,
+                           form,
+                           onChange,
+                           onClose,
+                           onSubmit,
+                           saving,
+                           disabled = false,
+                           footer,
+                           extra
+                       }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
             <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
