@@ -100,7 +100,7 @@ export default function Dashboard() {
                             {/* EVENTOS */}
                             <Link
                                 to="/eventos"
-                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
                             >
                                 <h2 className="text-lg font-semibold text-gray-900">
                                     Gestión de Eventos
