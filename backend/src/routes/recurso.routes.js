@@ -12,6 +12,7 @@ const {
 const router = express.Router();
 
 router.use(authMiddleware);
+router.use("/espacios", require("./espacio.routes"));
 
 router.get("/",
     authorize("ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"),

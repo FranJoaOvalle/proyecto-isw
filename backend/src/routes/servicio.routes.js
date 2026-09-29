@@ -16,37 +16,65 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get("/",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+router.get(
+    "/",
+    authorize(
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL",
+        "CLIENTE"
+    ),
     validate(getServicesSchema),
     servicioController.getAll
 );
 
-router.get("/:id",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+router.get(
+    "/:id",
+    authorize(
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL",
+        "CLIENTE"
+    ),
     validate(serviceIdSchema),
     servicioController.getById
 );
 
-router.post("/",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+router.post(
+    "/",
+    authorize(
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL"
+    ),
     validate(createServiceSchema),
     servicioController.create
 );
 
-router.put("/:id",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+router.put(
+    "/:id",
+    authorize(
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL"
+    ),
     validate(updateServiceSchema),
     servicioController.update
 );
 
-router.delete("/:id",
-    authorize("ADMIN", "PRODUCCION", "COMERCIAL"),
+router.delete(
+    "/:id",
+    authorize(
+        "ADMIN",
+        "PRODUCCION",
+        "COMERCIAL"
+    ),
     validate(serviceIdSchema),
     servicioController.remove
 );
 
-router.patch("/:id/reactivar",
+router.patch(
+    "/:id/reactivar",
     authorize("ADMIN"),
     validate(serviceIdSchema),
     servicioController.reactivate
