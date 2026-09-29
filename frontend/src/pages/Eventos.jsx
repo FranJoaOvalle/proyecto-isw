@@ -206,15 +206,13 @@ const Eventos = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* BARRA DE NAVEGACIÓN UNIFICADA */}
+            {/* BARRA DE NAVEGACIÓN */}
             <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4">
                 <div className="flex items-center gap-4">
                     <Link to="/dashboard" className="text-xl font-bold text-blue-600 hover:text-blue-700 transition">
                         NES Eventos
                     </Link>
-                    <span className="text-gray-400">/</span>
                     <span className="text-gray-600 font-medium">
-                        {esCliente ? "Mis Eventos" : "Gestión de Eventos"}
                     </span>
                 </div>
 
