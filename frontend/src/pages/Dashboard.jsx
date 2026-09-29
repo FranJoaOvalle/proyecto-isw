@@ -96,6 +96,19 @@ export default function Dashboard() {
                                     Consultar y gestionar el catálogo.
                                 </p>
                             </Link>
+
+                            {/* EVENTOS */}
+                            <Link
+                                to="/eventos"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Gestión de Eventos
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Administrar, agendar y supervisar los eventos de los clientes.
+                                </p>
+                            </Link>
                         </>
                     )}
 
@@ -104,19 +117,32 @@ export default function Dashboard() {
                     {/* =============================== */}
 
                     {usuario?.rol === "CLIENTE" && (
-                        <Link
-                            to="/servicios"
-                            className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                        >
-                            <h2 className="text-lg font-semibold text-gray-900">
-                                Catálogo de servicios
-                            </h2>
+                        <>
+                            <Link
+                                to="/servicios"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Catálogo de servicios
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Consulta los servicios disponibles.
+                                </p>
+                            </Link>
 
-                            <p className="mt-2 text-sm text-gray-500">
-                                Consulta los servicios disponibles.
-                            </p>
-                        </Link>
-                    )}
+                            <Link to="/eventos"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Mis Eventos
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Consulta el estado y los detalles de tus eventos programados.
+                                </p>
+                            </Link>
+                        </>
+                    )}  
+
                     {["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"].includes(usuario?.rol) && (
                         <Link to="/recursos"
                             className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md">
@@ -132,4 +158,3 @@ export default function Dashboard() {
         </div>
     );
 }
-

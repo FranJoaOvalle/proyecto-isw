@@ -1,4 +1,3 @@
-
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -15,6 +14,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import Personal from "./pages/Personal.jsx";
 import Recursos from "./pages/Recursos.jsx";
+import Eventos from './pages/Eventos.jsx';
 import Catalogo from "./pages/Catalogo.jsx";
 import ServiciosCliente from "./pages/ServiciosCliente.jsx";
 
@@ -29,51 +29,26 @@ createRoot(document.getElementById("root")).render(
             <AuthProvider>
                 <Routes>
 
-                    <Route
-                        path="/"
-                        element={<App />}
-                    />
-
-                    <Route
-                        path="/login"
-                        element={<Login />}
-                    />
+                    <Route path="/" element={<App />} />
+                    <Route path="/login" element={<Login />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
+                        
                         <Route element={<RoleRoute roles={["ADMIN", "OPERACIONES_LOGISTICA", "BODEGA"]} />}>
                             <Route path="/recursos" element={<Recursos />} />
                         </Route>
 
                         <Route path="/servicios" element={<ServiciosCliente />} />
 
-                        <Route
-                            element={
-                                <RoleRoute
-                                    roles={[
-                                        "ADMIN",
-                                        "PRODUCCION",
-                                        "COMERCIAL"
-                                    ]}
-                                />
-                            }
-                        >
+                        <Route element={<RoleRoute roles={["ADMIN", "PRODUCCION", "COMERCIAL"]} />}>
+                            <Route path="/clientes" element={<Clientes />} />
+                            <Route path="/personal" element={<Personal />} />
+                            <Route path="/catalogo" element={<Catalogo />} />
+                        </Route>
 
-                            <Route
-                                path="/clientes"
-                                element={<Clientes />}
-                            />
-
-                            <Route
-                                path="/personal"
-                                element={<Personal />}
-                            />
-
-                            <Route
-                                path="/catalogo"
-                                element={<Catalogo />}
-                            />
-
+                        <Route element={<RoleRoute roles={["ADMIN", "PRODUCCION", "COMERCIAL", "CLIENTE"]} />}>
+                            <Route path="/eventos" element={<Eventos />} />
                         </Route>
 
                     </Route>
