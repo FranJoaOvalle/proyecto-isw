@@ -1,6 +1,8 @@
 const { z } = require("zod");
 
 const recursoBaseSchema = z.object({
+    ...require("./tarifa.schema"),
+    origen: z.enum(["PROPIO", "ARRENDADO", "SIN_DEFINIR"]).optional(),
     tipo: z.string().trim().min(2).max(80),
     nombre: z.string().trim().min(2).max(100),
     cantidad: z.number().int().min(0).max(2147483647),

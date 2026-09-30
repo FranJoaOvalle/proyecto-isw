@@ -191,7 +191,7 @@ model EventoPersonal {
 model EventoRecurso {
   eventoId    Int
   recursoId   Int
-  cantidad    Int      
+  cantidad    Int       
   
   evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   recurso     Recurso  @relation(fields: [recursoId], references: [id_recurso], onDelete: Restrict)

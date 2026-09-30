@@ -12,7 +12,7 @@ import Presupuestos from "./pages/Presupuestos.jsx";
 import Recursos from "./pages/Recursos.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
 import ServiciosCliente from "./pages/ServiciosCliente.jsx";
-import Eventos from './pages/Eventos.jsx'; 
+import Eventos from "./pages/Eventos.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
@@ -42,7 +42,6 @@ createRoot(document.getElementById("root")).render(
                             <Route path="/presupuestos" element={<Presupuestos />} />
                         </Route>
 
-                        
                         <Route element={<RoleRoute roles={["ADMIN", "PRODUCCION", "COMERCIAL", "CLIENTE"]} />}>
                             <Route path="/eventos" element={<Eventos />} />
                         </Route>

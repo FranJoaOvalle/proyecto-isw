@@ -3,6 +3,7 @@ const params = z.object({ id: z.coerce.number().int().positive().max(2147483647)
 const fecha = z.iso.datetime({ offset: true }).transform(value => new Date(value));
 const intervalo = { inicio: fecha, fin: fecha };
 const base = z.object({
+    ...require("./tarifa.schema"),
     nombre: z.string().trim().min(2).max(100),
     direccion: z.string().trim().min(2).max(250),
     capacidad: z.number().int().positive().max(2147483647),

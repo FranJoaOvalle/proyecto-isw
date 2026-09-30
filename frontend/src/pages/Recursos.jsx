@@ -1,10 +1,12 @@
+import TarifaArriendo from "../components/TarifaArriendo";
+import { datosTarifa, textoTarifa } from "../services/tarifa";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Espacios from "./Espacios";
 import { getRecursos, createRecurso, updateRecurso } from "../services/recurso.service";
 
 const formularioInicial = {
-    nombre: "", tipo: "", cantidad: "", estado: "DISPONIBLE", observaciones: ""
+    origen: "SIN_DEFINIR", costoArriendo: "", unidadArriendo: "", nombre: "", tipo: "", cantidad: "", estado: "DISPONIBLE", observaciones: ""
 };
 
 const estados = {
@@ -44,7 +46,7 @@ const Recursos = () => {
     const abrirEditar = recurso => {
         setSelectedRecurso(recurso);
         setFormData({
-            nombre: recurso.nombre,
+            origen: recurso.origen ?? "SIN_DEFINIR", costoArriendo: recurso.costoArriendo ?? "", unidadArriendo: recurso.unidadArriendo ?? "", nombre: recurso.nombre,
             tipo: recurso.tipo,
             cantidad: String(recurso.cantidad),
             estado: recurso.estado,
@@ -77,7 +79,7 @@ const Recursos = () => {
             setSaving(true);
             setFormError("");
             const data = {
-                ...formData,
+                ...formData, ...datosTarifa(formData),
                 nombre: formData.nombre.trim(),
                 tipo: formData.tipo.trim(),
                 cantidad,
@@ -183,7 +185,7 @@ const Recursos = () => {
                 {showForm && (
                     <form onSubmit={handleSubmit} className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         <h2 className="text-xl font-semibold text-gray-900">{selectedRecurso ? "Editar recurso" : "Registrar recurso"}</h2>
-                        <fieldset disabled={saving} className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <fieldset disabled={saving} className="mt-4 grid gap-4 sm:grid-cols-2"><TarifaArriendo equipo form={formData} onChange={setFormData} />
                             <div>
                                 <label htmlFor="recurso-nombre" className="block text-sm font-medium text-gray-700">Nombre</label>
                                 <input id="recurso-nombre" name="nombre" required minLength={2} maxLength={100}
@@ -269,7 +271,7 @@ const Recursos = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {recursosFiltrados.map(recurso => (
                                     <tr key={recurso.id_recurso}>
-                                        <td className="px-4 py-3 font-medium text-gray-900">{recurso.nombre}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-900">{recurso.nombre}<p className="mt-1 text-xs font-normal text-gray-500">{textoTarifa(recurso)}</p></td>
                                         <td className="px-4 py-3">{recurso.tipo}</td>
                                         <td className="px-4 py-3">{recurso.cantidad}</td>
                                         <td className="px-4 py-3">

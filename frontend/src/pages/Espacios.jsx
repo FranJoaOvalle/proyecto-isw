@@ -1,8 +1,10 @@
+import TarifaArriendo from "../components/TarifaArriendo";
+import { datosTarifa, textoTarifa } from "../services/tarifa";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getEspacios, saveEspacio, getReservas, reservarEspacio, cancelarReserva } from "../services/espacio.service";
 
-const inicial = { nombre: "", direccion: "", capacidad: "", habilitado: true, observaciones: "" };
+const inicial = { costoArriendo: "", unidadArriendo: "", nombre: "", direccion: "", capacidad: "", habilitado: true, observaciones: "" };
 const input = "mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 const boton = "rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50";
 const fecha = valor => new Date(valor).toLocaleString();
@@ -41,7 +43,7 @@ export default function Espacios() {
     const guardar = event => {
         event.preventDefault();
         ejecutar(async () => {
-            await saveEspacio(form.id, { nombre: form.nombre.trim(), direccion: form.direccion.trim(), capacidad: Number(form.capacidad), habilitado: form.habilitado, observaciones: form.observaciones.trim() || null });
+            await saveEspacio(form.id, { ...datosTarifa(form), nombre: form.nombre.trim(), direccion: form.direccion.trim(), capacidad: Number(form.capacidad), habilitado: form.habilitado, observaciones: form.observaciones.trim() || null });
             setForm(null); setMensaje("Espacio guardado."); await cargar();
         });
     };
@@ -58,7 +60,7 @@ export default function Espacios() {
             <button disabled={busy || !!form} className={`${boton} mt-5`} onClick={() => setForm({ ...inicial })}>+ Agregar espacio</button>
             {form && <form onSubmit={guardar} className="my-5 rounded-xl border bg-white p-5">
                 <h2 className="text-xl font-semibold">{form.id ? "Editar espacio" : "Nuevo espacio"}</h2>
-                <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
+                <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2"><TarifaArriendo form={form} onChange={setForm} />
                     <label>Nombre del espacio<input required minLength={2} maxLength={100} className={input} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} /></label>
                     <label>Dirección<input required minLength={2} maxLength={250} className={input} value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} /></label>
                     <label>Capacidad<input required type="number" min={1} max={2147483647} step={1} className={input} value={form.capacidad} onChange={e => setForm({ ...form, capacidad: e.target.value })} /></label>
@@ -78,7 +80,7 @@ export default function Espacios() {
             {loading ? <p role="status">Cargando espacios...</p> : <div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full text-left text-sm">
                 <thead className="bg-gray-50"><tr>{["Espacio", "Capacidad", "Estado", "Horario consultado", "Reserva actual o próxima", "Acciones"].map(t => <th className="p-3" key={t}>{t}</th>)}</tr></thead>
                 <tbody>{espacios.map(espacio => <tr key={espacio.id} className="border-t border-gray-200 transition hover:bg-gray-50">
-                    <td className="p-3"><strong>{espacio.nombre}</strong><p>{espacio.direccion}</p><p className="text-gray-500">{espacio.observaciones}</p></td><td className="p-3">{espacio.capacidad} personas</td>
+                    <td className="p-3"><strong>{espacio.nombre}</strong><p className="text-blue-700">{textoTarifa(espacio)}</p><p>{espacio.direccion}</p><p className="text-gray-500">{espacio.observaciones}</p></td><td className="p-3">{espacio.capacidad} personas</td>
                     <td className="p-3">{espacio.habilitado ? "Habilitado" : "Deshabilitado"}</td>
                     <td className="p-3">{!consulta ? "Selecciona fechas" : !espacio.habilitado ? "No habilitado" : espacio.disponible ? "Disponible" : "Reservado"}</td>
                     <td className="p-3">{espacio.proximaReserva ? `${fecha(espacio.proximaReserva.inicio)} — ${fecha(espacio.proximaReserva.fin)}` : "Sin reservas próximas"}</td>
