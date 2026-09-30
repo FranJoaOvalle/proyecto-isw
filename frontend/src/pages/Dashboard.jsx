@@ -109,6 +109,18 @@ export default function Dashboard() {
                                     Administrar, agendar y supervisar los eventos de los clientes.
                                 </p>
                             </Link>
+
+                            <Link
+                                to="/presupuestos"
+                                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                            >
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Presupuestos
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-500">
+                                    Cotizar e integrar eventos, servicios y recursos.
+                                </p>
+                            </Link>
                         </>
                     )}
 
@@ -125,6 +137,7 @@ export default function Dashboard() {
                                 <h2 className="text-lg font-semibold text-gray-900">
                                     Catálogo de servicios
                                 </h2>
+
                                 <p className="mt-2 text-sm text-gray-500">
                                     Consulta los servicios disponibles.
                                 </p>
