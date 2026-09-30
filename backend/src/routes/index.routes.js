@@ -10,6 +10,7 @@ const recursoRoutes = require("./recurso.routes");
 const eventoRoutes = require('./evento.routes.js');
 
 const router = express.Router();
+router.use('/presupuestos', require('./presupuesto.routes'));
 
 router.use("/auth", authRoutes);
 router.use("/clientes", clienteRoutes);

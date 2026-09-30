@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const controller = require('../controllers/presupuesto.controller');
+const validate = require('../middleware/validate.middleware');
+const schema = require('../schemas/presupuesto.schema');
+router.use(require('../middleware/auth.middleware'));
+router.use(require('../middleware/role.middleware')('ADMIN', 'PRODUCCION', 'COMERCIAL'));
+router.get('/', controller.getAll);
+router.get('/:id', validate(schema.idSchema), controller.getById);
+router.post('/', validate(schema.createSchema), controller.create);
+router.put('/:id', validate(schema.updateSchema), controller.update);
+router.patch('/:id/estado', validate(schema.estadoSchema), controller.estado);
+router.delete('/:id', validate(schema.idSchema), controller.remove);
+module.exports = router;
