@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Espacio {
@@ -23,7 +22,7 @@ model Espacio {
   updatedAt DateTime @updatedAt
 
   reservas ReservaEspacio[]
-  presupuestos Presupuesto[] // Enlace a tu módulo
+  presupuestos Presupuesto[]
 }
 
 model ReservaEspacio {
@@ -39,12 +38,12 @@ model ReservaEspacio {
 }
 
 model Categoria {
-  id_categoria Int       @id @default(autoincrement())
-  nombre       String    @unique @db.VarChar(80)
-  descripcion  String?   @db.Text
-  estado       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id_categoria Int        @id @default(autoincrement())
+  nombre       String     @unique @db.VarChar(80)
+  descripcion  String?    @db.Text
+  estado       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   servicios    Servicio[]
 
@@ -52,14 +51,14 @@ model Categoria {
 }
 
 model Servicio {
-  id_servicio  Int       @id @default(autoincrement())
-  nombre       String    @db.VarChar(100)
-  descripcion  String?   @db.Text
+  id_servicio  Int        @id @default(autoincrement())
+  nombre       String     @db.VarChar(100)
+  descripcion  String?    @db.Text
   precio_base  Float
-  imagen_url   String?   @db.Text
-  estado       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  imagen_url   String?    @db.Text
+  estado       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   id_categoria Int
   categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Restrict)
@@ -89,14 +88,14 @@ model Recurso {
   origen String @default("SIN_DEFINIR") @db.VarChar(15)
   costoArriendo Decimal? @db.Decimal(12, 0)
   unidadArriendo String? @db.VarChar(10)
-  id_recurso    Int           @id @default(autoincrement())
-  tipo          String        @db.VarChar(80)
-  nombre        String        @db.VarChar(100)
+  id_recurso    Int            @id @default(autoincrement())
+  tipo          String         @db.VarChar(80)
+  nombre        String         @db.VarChar(100)
   cantidad      Int
   estado        EstadoRecurso @default(DISPONIBLE)
-  observaciones String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  observaciones String?        @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   eventosAsignados EventoRecurso[]
 
@@ -113,8 +112,8 @@ model Usuario {
   cliente  Cliente?
   personal Personal?
 
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   autorizacionClientes  AutorizacionCliente[]
   autorizacionPersonals AutorizacionPersonal[]
 }
@@ -131,15 +130,15 @@ model Cliente {
   usuarioId Int?     @unique
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
 
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   autorizacionClientes AutorizacionCliente[]
   eventos              Evento[]
-  presupuestos         Presupuesto[] // Enlace a tu módulo
+  presupuestos         Presupuesto[]
 }
 
 model Personal {
-  id           Int     @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   nombre       String
   email        String?
   telefono     String?
@@ -153,8 +152,8 @@ model Personal {
 
   eventosAsignados EventoPersonal[]
 
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   autorizacionPersonals AutorizacionPersonal[]
 }
 
@@ -167,14 +166,14 @@ model Evento {
   horario            String    
   cantidadAsistentes Int
   lugar              String
-  estado             String    @default("ORGANIZACION") // ORGANIZACION, CONFIRMADO, CANCELADO, FINALIZADO
+  estado             String    @default("ORGANIZACION")
   observaciones      String?
   activo             Boolean   @default(true)
 
   personalAsignado   EventoPersonal[]
   recursosAsignados  EventoRecurso[]
   serviciosAsignados EventoServicio[]
-  presupuesto        Presupuesto? // Enlace a tu módulo
+  presupuesto        Presupuesto?
 
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -186,7 +185,7 @@ model Evento {
 model EventoPersonal {
   eventoId    Int
   personalId  Int
-  rolAsignado String? // Ej: "Supervisor", "Garzón"
+  rolAsignado String?
   
   evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   personal    Personal @relation(fields: [personalId], references: [id], onDelete: Restrict)
@@ -233,20 +232,17 @@ model AutorizacionPersonal {
   usuarioId  Int
   personalId Int
 
-  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   personal Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
 
   @@id([usuarioId, personalId])
 }
 
-// ==========================================
-// MÓDULO DE PRESUPUESTOS (Tu tesoro)
-// ==========================================
 model Presupuesto {
-  id            Int      @id @default(autoincrement())
+  id            Int     @id @default(autoincrement())
   clienteId     Int
-  eventoId      Int      @unique
-  espacioId     Int?     // Referencia opcional al lugar/espacio físico
+  eventoId      Int     @unique
+  espacioId     Int?    
   descuento     Decimal @default(0) @db.Decimal(14, 2)
   subtotal      Decimal @db.Decimal(14, 2)
   totalEstimado Decimal @db.Decimal(14, 2)

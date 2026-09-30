@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('../../../generated/prisma');
 const prisma = new PrismaClient();
 
 // Crea un presupuesto calculando subtotales y guardando cabecera y detalle simultáneamente
