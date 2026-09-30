@@ -65,6 +65,7 @@ model Servicio {
   categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Restrict)
 
   eventosAsignados EventoServicio[]
+  detallesPresupuesto PresupuestoServicio[]
   
   @@map("servicio")
 }
@@ -246,8 +247,12 @@ model Presupuesto {
   clienteId     Int
   eventoId      Int      @unique
   espacioId     Int?     // Referencia opcional al lugar/espacio físico
-  descuento     Float    @default(0)
-  totalEstimado Float
+  descuento     Decimal @default(0) @db.Decimal(14, 2)
+  subtotal      Decimal @db.Decimal(14, 2)
+  totalEstimado Decimal @db.Decimal(14, 2)
+  estado        String @default("PENDIENTE") @db.VarChar(15)
+  observaciones String? @db.Text
+  servicios     PresupuestoServicio[]
 
   cliente       Cliente  @relation(fields: [clienteId], references: [id], onDelete: Restrict)
   evento        Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
@@ -257,4 +262,18 @@ model Presupuesto {
   updatedAt     DateTime @updatedAt
 
   @@map("presupuestos")
+}
+
+model PresupuestoServicio {
+  id Int @id @default(autoincrement())
+  presupuestoId Int
+  servicioId Int
+  nombre String @db.VarChar(100)
+  cantidad Int
+  precioUnitario Decimal @db.Decimal(14, 2)
+  subtotal Decimal @db.Decimal(14, 2)
+  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Restrict)
+  servicio Servicio @relation(fields: [servicioId], references: [id_servicio], onDelete: Restrict)
+  @@unique([presupuestoId, servicioId])
+  @@map("presupuesto_servicios")
 }

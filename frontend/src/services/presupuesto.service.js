@@ -1,13 +1,6 @@
 import api from './api';
-
-const API_URL = '/presupuestos';
-
-export const crearPresupuesto = async (datos) => {
-    const response = await api.post(API_URL, datos);
-    return response.data;
-};
-
-export const obtenerPresupuestos = async () => {
-    const response = await api.get(API_URL);
-    return response.data;
-};
+export const crearPresupuesto = async datos => (await api.post('/presupuestos', datos)).data;
+export const obtenerPresupuestos = async () => (await api.get('/presupuestos')).data;
+export const actualizarPresupuesto = async (id, datos) => (await api.put(`/presupuestos/${id}`, datos)).data;
+export const cambiarEstadoPresupuesto = async (id, estado) => (await api.patch(`/presupuestos/${id}/estado`, { estado })).data;
+export const archivarPresupuesto = async id => (await api.delete(`/presupuestos/${id}`)).data;
