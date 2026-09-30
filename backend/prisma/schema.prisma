@@ -1,8 +1,260 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  moduleFormat    = "cjs"
+  importFileExtension = "ts"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Espacio {
+  costoArriendo Decimal? @db.Decimal(12, 0)
+  unidadArriendo String? @db.VarChar(10)
+  id Int @id @default(autoincrement())
+  nombre String @db.VarChar(100)
+  direccion String @db.VarChar(250)
+  capacidad Int
+  habilitado Boolean @default(true)
+  observaciones String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservas ReservaEspacio[]
+  presupuestos Presupuesto[] // Enlace a tu módulo
+}
+
+model ReservaEspacio {
+  id Int @id @default(autoincrement())
+  espacioId Int
+  espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  referencia String @db.VarChar(150)
+  inicio DateTime @db.Timestamptz(3)
+  fin DateTime @db.Timestamptz(3)
+  cancelada Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([espacioId, inicio, fin])
+}
+
+model Categoria {
+  id_categoria Int       @id @default(autoincrement())
+  nombre       String    @unique @db.VarChar(80)
+  descripcion  String?   @db.Text
+  estado       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  servicios    Servicio[]
+
+  @@map("categoria")
+}
+
+model Servicio {
+  id_servicio  Int       @id @default(autoincrement())
+  nombre       String    @db.VarChar(100)
+  descripcion  String?   @db.Text
+  precio_base  Float
+  imagen_url   String?   @db.Text
+  estado       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  id_categoria Int
+  categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria], onDelete: Restrict)
+
+  eventosAsignados EventoServicio[]
+  
+  @@map("servicio")
+}
+
+enum RolUsuario {
+  CLIENTE
+  PRODUCCION
+  COMERCIAL
+  ADMIN
+  OPERACIONES_LOGISTICA
+  BODEGA
+}
+
+enum EstadoRecurso {
+  DISPONIBLE
+  EN_REPARACION
+  RETIRADO
+}
+
+model Recurso {
+  origen String @default("SIN_DEFINIR") @db.VarChar(15)
+  costoArriendo Decimal? @db.Decimal(12, 0)
+  unidadArriendo String? @db.VarChar(10)
+  id_recurso    Int           @id @default(autoincrement())
+  tipo          String        @db.VarChar(80)
+  nombre        String        @db.VarChar(100)
+  cantidad      Int
+  estado        EstadoRecurso @default(DISPONIBLE)
+  observaciones String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  eventosAsignados EventoRecurso[]
+
+  @@map("recurso")
+}
+
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+
+  cliente  Cliente?
+  personal Personal?
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  autorizacionClientes  AutorizacionCliente[]
+  autorizacionPersonals AutorizacionPersonal[]
+}
+
+model Cliente {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  email     String?
+  telefono  String?
+  direccion String?
+  notas     String?
+  activo    Boolean @default(true)
+
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  autorizacionClientes AutorizacionCliente[]
+  eventos              Evento[]
+  presupuestos         Presupuesto[] // Enlace a tu módulo
+}
+
+model Personal {
+  id           Int     @id @default(autoincrement())
+  nombre       String
+  email        String?
+  telefono     String?
+  tipo         String?
+  especialidad String?
+  notas        String?
+  activo       Boolean @default(true)
+
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  eventosAsignados EventoPersonal[]
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  autorizacionPersonals AutorizacionPersonal[]
+}
+
+model Evento {
+  id                 Int       @id @default(autoincrement())
+  clienteId          Int
+  cliente            Cliente   @relation(fields: [clienteId], references: [id])
+  tipoEvento         String    
+  fecha              DateTime
+  horario            String    
+  cantidadAsistentes Int
+  lugar              String
+  estado             String    @default("ORGANIZACION") // ORGANIZACION, CONFIRMADO, CANCELADO, FINALIZADO
+  observaciones      String?
+  activo             Boolean   @default(true)
+
+  personalAsignado   EventoPersonal[]
+  recursosAsignados  EventoRecurso[]
+  serviciosAsignados EventoServicio[]
+  presupuesto        Presupuesto? // Enlace a tu módulo
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  @@map("eventos")
+}
+
+model EventoPersonal {
+  eventoId    Int
+  personalId  Int
+  rolAsignado String? // Ej: "Supervisor", "Garzón"
+  
+  evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  personal    Personal @relation(fields: [personalId], references: [id], onDelete: Restrict)
+
+  @@id([eventoId, personalId]) 
+  @@map("evento_personal")
+}
+
+model EventoRecurso {
+  eventoId    Int
+  recursoId   Int
+  cantidad    Int       
+  
+  evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  recurso     Recurso  @relation(fields: [recursoId], references: [id_recurso], onDelete: Restrict)
+
+  @@id([eventoId, recursoId])
+  @@map("evento_recursos")
+}
+
+model EventoServicio {
+  eventoId    Int
+  servicioId  Int
+  precio      Float?   
+  
+  evento      Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  servicio    Servicio @relation(fields: [servicioId], references: [id_servicio], onDelete: Restrict)
+
+  @@id([eventoId, servicioId])
+  @@map("evento_servicios")
+}
+
+model AutorizacionCliente {
+  usuarioId Int
+  clienteId Int
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, clienteId])
+}
+
+model AutorizacionPersonal {
+  usuarioId  Int
+  personalId Int
+
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  personal Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, personalId])
+}
+
+// ==========================================
+// MÓDULO DE PRESUPUESTOS (Tu tesoro)
+// ==========================================
+model Presupuesto {
+  id            Int      @id @default(autoincrement())
+  clienteId     Int
+  eventoId      Int      @unique
+  espacioId     Int?     // Referencia opcional al lugar/espacio físico
+  descuento     Float    @default(0)
+  totalEstimado Float
+
+  cliente       Cliente  @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  evento        Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  espacio       Espacio? @relation(fields: [espacioId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("presupuestos")
 }

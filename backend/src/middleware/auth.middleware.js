@@ -53,15 +53,12 @@ const authMiddleware = (req, res, next) => {
             );
         }
 
-        const [bearer, token] = authHeader.split(" ");
+        const parts = authHeader.split(" ");
 
-        if (bearer !== "Bearer" || !token) {
-            return next(
-                new UnauthorizedException(
-                    "Formato de token inválido."
-                )
-            );
-        }
+        if (parts.length !== 2 || parts[0] !== "Bearer" || !parts[1])
+            return next(new UnauthorizedException("Formato de token inválido."));
+
+        const token = parts[1];
 
         const payload = jwt.verify(
             token,
