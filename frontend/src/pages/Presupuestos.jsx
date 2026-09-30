@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { crearPresupuesto } from '../services/presupuesto.service';
-import axios from 'axios';
+import { getClientes } from '../services/cliente.service';
+import { getEventos } from '../services/evento.service';
+import { getServicios } from '../services/servicio.service';
 
 export default function Presupuestos() {
     // Estados para la gestión de datos del formulario de presupuesto
@@ -13,6 +15,8 @@ export default function Presupuestos() {
     const [clientesList, setClientesList] = useState([]);
     const [eventosList, setEventosList] = useState([]);
     const [serviciosCatalogo, setServiciosCatalogo] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    const [errorCarga, setErrorCarga] = useState('');
 
     // Estado para las líneas de servicios incluidos en la cotización
     const [servicios, setServicios] = useState([
@@ -24,16 +28,18 @@ export default function Presupuestos() {
         const cargarDatosExternos = async () => {
             try {
                 const [resClientes, resEventos, resServicios] = await Promise.all([
-                    axios.get('http://localhost:3000/api/clientes').catch(() => ({ data: [] })),
-                    axios.get('http://localhost:3000/api/eventos').catch(() => ({ data: [] })),
-                    axios.get('http://localhost:3000/api/servicios').catch(() => ({ data: [] }))
+                    getClientes(),
+                    getEventos(),
+                    getServicios()
                 ]);
 
-                setClientesList(resClientes.data);
+                setClientesList(resClientes);
                 setEventosList(resEventos.data);
-                setServiciosCatalogo(resServicios.data);
+                setServiciosCatalogo(resServicios);
             } catch (error) {
-                console.error("Error al sincronizar datos externos:", error);
+                setErrorCarga(error.response?.data?.error?.message || 'No fue posible cargar clientes, eventos y servicios. Recarga la página para reintentar.');
+            } finally {
+                setCargando(false);
             }
         };
 
@@ -147,7 +153,10 @@ export default function Presupuestos() {
                     </p>
                 </div>
 
+                {errorCarga && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-4 text-red-700">{errorCarga}</p>}
+                {cargando && <p role="status" className="mb-4 text-gray-600">Cargando clientes, eventos y servicios...</p>}
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <fieldset disabled={cargando || Boolean(errorCarga)} className="space-y-6">
                     {/* Sección de Datos Generales y Asociaciones */}
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -326,6 +335,7 @@ export default function Presupuestos() {
                             Guardar Presupuesto
                         </button>
                     </div>
+                    </fieldset>
                 </form>
             </main>
         </div>
