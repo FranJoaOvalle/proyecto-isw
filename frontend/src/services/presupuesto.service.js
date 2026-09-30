@@ -1,13 +1,13 @@
-import axios from 'axios';
+import api from './api';
 
-const API_URL = `${import.meta.env.VITE_API_URL}/presupuestos`;
+const API_URL = '/presupuestos';
 
 export const crearPresupuesto = async (datos) => {
-    const response = await axios.post(API_URL, datos);
+    const response = await api.post(API_URL, datos);
     return response.data;
 };
 
 export const obtenerPresupuestos = async () => {
-    const response = await axios.get(API_URL);
+    const response = await api.get(API_URL);
     return response.data;
 };
