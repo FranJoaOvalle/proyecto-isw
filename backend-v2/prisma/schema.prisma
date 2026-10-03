@@ -1,0 +1,329 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RolUsuario {
+  ADMIN
+  PRODUCTOR
+  CLIENTE
+}
+
+enum TipoCliente {
+  PERSONA
+  EMPRESA
+}
+
+enum TipoRecurso {
+  HUMANO
+  MATERIAL
+}
+
+enum OrigenRecursoHumano {
+  INTERNO
+  EXTERNO
+}
+
+enum EstadoEvento {
+  CONFIRMADO
+  POSPUESTO
+  EN_CURSO
+  COMPLETADO
+  CANCELADO
+}
+
+enum TipoPago {
+  ANTICIPO
+  SALDO
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  FALLIDO
+  REEMBOLSADO
+}
+
+enum EstadoPresupuesto {
+  BORRADOR
+  PENDIENTE_PAGO
+  ACEPTADO
+  CANCELADO
+  VENCIDO
+}
+
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+
+  cliente   Cliente?
+  productor Productor?
+
+  cambiosEvento EventoCambio[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Cliente {
+  id        Int         @id @default(autoincrement())
+  usuarioId Int         @unique
+  tipo      TipoCliente
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  persona      ClientePersona?
+  empresa      ClienteEmpresa?
+  eventos      Evento[]
+  presupuestos Presupuesto[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClientePersona {
+  clienteId Int @id
+
+  rut       String  @unique
+  nombres   String
+  apellidos String
+  telefono  String?
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+}
+
+model ClienteEmpresa {
+  clienteId Int @id
+
+  rutEmpresa  String  @unique
+  razonSocial String
+  casaMatriz  String
+  telefono    String?
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+}
+
+model Productor {
+  id        Int @id @default(autoincrement())
+  usuarioId Int @unique
+
+  nombres   String
+  apellidos String
+  telefono  String?
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  eventos Evento[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TipoEvento {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique
+  descripcion String
+  precioBase  Decimal @db.Decimal(12, 2)
+  activo      Boolean @default(true)
+
+  eventos      Evento[]
+  presupuestos Presupuesto[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Recurso {
+  id          Int         @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  tipo        TipoRecurso
+
+  precioUnitario Decimal @db.Decimal(12, 2)
+  stockTotal     Int
+  activo         Boolean @default(true)
+
+  material RecursoMaterial?
+  humano   RecursoHumano?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventos      EventoRecurso[]
+  presupuestos PresupuestoRecurso[]
+
+  @@unique([nombre, tipo])
+}
+
+model RecursoMaterial {
+  recursoId Int @id
+
+  unidad String?
+
+  recurso Recurso @relation(fields: [recursoId], references: [id])
+}
+
+model RecursoHumano {
+  recursoId Int @id
+
+  origen OrigenRecursoHumano
+
+  recurso Recurso @relation(fields: [recursoId], references: [id])
+}
+
+model Evento {
+  id           Int @id @default(autoincrement())
+  clienteId    Int
+  productorId  Int
+  tipoEventoId Int
+
+  inicio        DateTime
+  fin           DateTime
+  lugar         String
+  asistentes    Int
+  estado        EstadoEvento  @default(CONFIRMADO)
+  observaciones String?
+  calificacion  Calificacion?
+
+  cliente    Cliente        @relation(fields: [clienteId], references: [id])
+  productor  Productor      @relation(fields: [productorId], references: [id])
+  tipoEvento TipoEvento     @relation(fields: [tipoEventoId], references: [id])
+  cambios    EventoCambio[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  recursos      EventoRecurso[]
+  presupuestoId Int             @unique
+  presupuesto   Presupuesto     @relation(fields: [presupuestoId], references: [id])
+
+  @@index([clienteId])
+  @@index([productorId])
+  @@index([tipoEventoId])
+  @@index([inicio, fin])
+}
+
+model EventoRecurso {
+  eventoId  Int
+  recursoId Int
+  cantidad  Int
+
+  evento  Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  recurso Recurso @relation(fields: [recursoId], references: [id])
+
+  @@id([eventoId, recursoId])
+  @@index([recursoId])
+}
+
+model Presupuesto {
+  id           Int @id @default(autoincrement())
+  clienteId    Int
+  tipoEventoId Int
+
+  inicio     DateTime
+  fin        DateTime
+  lugar      String
+  asistentes Int
+  venceAt    DateTime?
+
+  // Snapshot del catálogo al momento de cotizar
+  nombreTipoEvento     String
+  precioBaseTipoEvento Decimal @db.Decimal(12, 2)
+
+  subtotal       Decimal @db.Decimal(12, 2)
+  recargoCliente Decimal @db.Decimal(12, 2)
+  total          Decimal @db.Decimal(12, 2)
+
+  porcentajeAnticipo Decimal @db.Decimal(5, 2)
+  montoAnticipo      Decimal @db.Decimal(12, 2)
+
+  estado   EstadoPresupuesto    @default(BORRADOR)
+  recursos PresupuestoRecurso[]
+  pagos    Pago[]
+  evento   Evento?
+
+  cliente    Cliente    @relation(fields: [clienteId], references: [id])
+  tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([tipoEventoId])
+}
+
+model PresupuestoRecurso {
+  presupuestoId Int
+  recursoId     Int
+
+  nombreRecurso String
+  tipoRecurso   TipoRecurso
+  cantidad      Int
+
+  precioUnitario Decimal @db.Decimal(12, 2)
+  subtotal       Decimal @db.Decimal(12, 2)
+
+  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id])
+  recurso     Recurso     @relation(fields: [recursoId], references: [id])
+
+  @@id([presupuestoId, recursoId])
+  @@index([recursoId])
+}
+
+model Pago {
+  id            Int @id @default(autoincrement())
+  presupuestoId Int
+
+  tipo   TipoPago
+  monto  Decimal    @db.Decimal(12, 2)
+  estado EstadoPago @default(PENDIENTE)
+
+  fechaPago  DateTime?
+  referencia String?
+
+  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([presupuestoId])
+}
+
+model Calificacion {
+  id       Int @id @default(autoincrement())
+  eventoId Int @unique
+
+  puntuacion Int
+  comentario String?
+
+  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventoCambio {
+  id        Int @id @default(autoincrement())
+  eventoId  Int
+  usuarioId Int
+
+  campo         String
+  valorAnterior String?
+  valorNuevo    String?
+
+  evento  Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([eventoId])
+  @@index([usuarioId])
+}
