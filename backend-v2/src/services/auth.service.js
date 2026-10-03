@@ -93,7 +93,8 @@ const registrarCliente = async (data) => {
             };
         });
     } catch (error) {
-        prismaExceptionHandler(error);
+        const prismaError = prismaExceptionHandler(error);
+        if (prismaError) throw prismaError;
         throw error;
     }
 };

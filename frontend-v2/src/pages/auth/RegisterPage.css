@@ -1,0 +1,87 @@
+.register-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+}
+
+.register-panel {
+    width: 45%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    z-index: 2;
+}
+
+.register-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 2rem 0;
+}
+
+.register-image {
+    position: sticky;
+    top: 0;
+    width: 55%;
+    height: 100vh;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.register-image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.register-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 992px) {
+    .register-page {
+        display: block;
+    }
+
+    .register-image {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        min-height: 100vh;
+    }
+
+    .register-overlay {
+        display: block;
+    }
+
+    .register-panel {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        padding: 1.5rem;
+        background: transparent;
+    }
+
+    .register-card {
+        max-width: 520px;
+        padding: 2rem;
+        border-radius: 1rem;
+        background: color-mix(
+                in srgb,
+                var(--bs-body-bg) 96%,
+                transparent
+        );
+        color: var(--bs-body-color);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(8px);
+    }
+}
