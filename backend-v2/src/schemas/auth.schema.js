@@ -64,7 +64,31 @@ const loginSchema = z.object({
     }).strict()
 });
 
+const forgotPasswordSchema = z.object({
+    body: z.object({
+        email: z
+            .email("El correo electrónico no es válido.")
+            .transform((value) => value.toLowerCase().trim()),
+    }),
+});
+
+const resetPasswordSchema = z.object({
+    body: z.object({
+        token: z
+            .string()
+            .min(1, "El token es obligatorio."),
+
+        password: z
+            .string()
+            .min(8, "La contraseña debe tener al menos 8 caracteres."),
+    }),
+});
+
+console.log(z.email().safeParse("productor@nes.cl"));
+
 module.exports = {
     registroSchema,
-    loginSchema
+    loginSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema
 };

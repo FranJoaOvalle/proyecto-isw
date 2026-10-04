@@ -66,6 +66,9 @@ model Usuario {
   rol          RolUsuario
   activo       Boolean    @default(true)
 
+  resetPasswordTokenHash String?
+  resetPasswordExpiresAt DateTime?
+
   cliente   Cliente?
   productor Productor?
 

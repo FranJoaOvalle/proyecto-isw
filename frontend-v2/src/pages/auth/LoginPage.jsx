@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Spinner } from "react-bootstrap";
+import {Alert, Spinner} from "react-bootstrap";
 
 import { login, getCurrentUser } from "../../services/auth.service";
 import { useAuth } from "../../contexts/AuthContext";
@@ -82,6 +82,12 @@ export default function LoginPage() {
                         </div>
                     )}
 
+                    {location.state?.passwordReset && (
+                        <Alert variant="success">
+                            Tu contraseña fue restablecida correctamente. Ya puedes iniciar sesión.
+                        </Alert>
+                    )}
+
                     {error && (
                         <div className="alert alert-danger" role="alert">
                             {error}
@@ -131,6 +137,14 @@ export default function LoginPage() {
                                 disabled={loading}
                                 className="form-control form-control-lg"
                             />
+                            <div className="text-end mb-3">
+                                <Link
+                                    to="/forgot-password"
+                                    className="small text-decoration-none"
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </Link>
+                            </div>
                         </div>
 
                         <button

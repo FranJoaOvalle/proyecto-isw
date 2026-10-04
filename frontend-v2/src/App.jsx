@@ -12,6 +12,8 @@ import ProfilePage from "./pages/ProfilePage";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import AdminPage from "./pages/admin/AdminPage";
 import ClientesPage from "./pages/admin/ClientesPage";
@@ -51,6 +53,8 @@ export default function App() {
             <Route element={<PublicOnlyRoute />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

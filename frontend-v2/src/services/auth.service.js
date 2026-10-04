@@ -22,3 +22,18 @@ export const getCurrentUser = async () => {
     const response = await api.get("/usuarios/me");
     return response.data.usuario;
 };
+
+export const forgotPassword = async (email) => {
+    const response = await api.post("/auth/forgot-password", {
+        email
+    });
+    return response.data;
+};
+
+export const resetPassword = async (token, password) => {
+    const response = await api.post("/auth/reset-password", {
+        token,
+        password
+    });
+    return response.data;
+};
