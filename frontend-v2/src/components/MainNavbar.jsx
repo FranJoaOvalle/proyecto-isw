@@ -86,6 +86,17 @@ export default function MainNavbar() {
                             Catálogo
                         </Nav.Link>
 
+                        {usuario?.rol === "CLIENTE" && (
+                            <Nav.Link
+                                as={Link}
+                                to="/cliente/compra"
+                                className="d-flex align-items-center"
+                            >
+                                <i className="bi bi-cart3 me-2" />
+                                Compra / Contrato
+                            </Nav.Link>
+                        )}
+
                         <button
                             type="button"
                             onClick={toggleTheme}

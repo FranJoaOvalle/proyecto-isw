@@ -76,6 +76,27 @@ export default function ClientePage() {
                         </Card.Body>
                     </Card>
                 </Col>
+
+                <Col md={6}>
+                    <Card className="h-100 shadow-sm">
+                        <Card.Body className="p-4">
+                            <Card.Title className="fw-bold">
+                                Compra / Contrato
+                            </Card.Title>
+
+                            <Card.Text className="text-secondary">
+                                Inicia el proceso de compra o contratación de un evento.
+                            </Card.Text>
+
+                            <Button
+                                as={Link}
+                                to="/cliente/compra"
+                            >
+                                Ir a Compra / Contrato
+                            </Button>
+                        </Card.Body>
+                    </Card>
+                </Col>
             </Row>
         </Container>
     );

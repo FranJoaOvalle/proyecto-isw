@@ -20,7 +20,9 @@ import ClientesPage from "./pages/admin/ClientesPage";
 import ProductoresPage from "./pages/admin/ProductoresPage";
 
 import ProductorPage from "./pages/productor/ProductorPage";
+
 import ClientePage from "./pages/cliente/ClientePage";
+import CompraContratoPage from "./pages/cliente/CompraContratoPage";
 
 export default function App() {
     return (
@@ -47,6 +49,7 @@ export default function App() {
 
                 <Route element={<ProtectedRoute roles={["CLIENTE"]} />}>
                     <Route path="/cliente" element={<ClientePage />} />
+                    <Route path="/cliente/compra" element={<CompraContratoPage />} />
                 </Route>
             </Route>
 
