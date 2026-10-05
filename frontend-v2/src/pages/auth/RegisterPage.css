@@ -6,7 +6,7 @@
 }
 
 .register-panel {
-    width: 45%;
+    width: 40%;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -19,14 +19,14 @@
 
 .register-card {
     width: 100%;
-    max-width: 520px;
+    max-width: 460px;
     padding: 2rem 0;
 }
 
 .register-image {
     position: sticky;
     top: 0;
-    width: 55%;
+    width: 60%;
     height: 100vh;
     flex-shrink: 0;
     overflow: hidden;
@@ -72,7 +72,7 @@
     }
 
     .register-card {
-        max-width: 520px;
+        max-width: 460px;
         padding: 2rem;
         border-radius: 1rem;
         background: color-mix(

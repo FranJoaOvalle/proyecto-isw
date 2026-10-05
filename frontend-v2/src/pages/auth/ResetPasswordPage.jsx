@@ -2,7 +2,9 @@ import { useState } from "react";
 import {
     Alert,
     Button,
+    Fade,
     Form,
+    InputGroup,
     Spinner
 } from "react-bootstrap";
 import {
@@ -24,21 +26,40 @@ export default function ResetPasswordPage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [validated, setValidated] = useState(false);
+
+    const handlePasswordChange = (e) => {
+        setPassword(e.target.value);
+        setError("");
+    };
+
+    const handleConfirmPasswordChange = (e) => {
+        setConfirmPassword(e.target.value);
+        setError("");
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
 
-        if (!token) {
-            setError("El enlace de recuperación no es válido.");
+        const formElement = e.currentTarget;
+
+        if (!token)
+            return;
+
+        if (!formElement.checkValidity()) {
+            e.stopPropagation();
+            setValidated(true);
             return;
         }
 
         if (password !== confirmPassword) {
-            setError("Las contraseñas no coinciden.");
+            setValidated(true);
             return;
         }
 
+        setValidated(true);
         setLoading(true);
 
         try {
@@ -74,53 +95,162 @@ export default function ResetPasswordPage() {
                         </p>
                     </div>
 
-                    {!token && (
-                        <Alert variant="danger">
-                            El enlace de recuperación no es válido.
-                        </Alert>
-                    )}
+                    <Fade
+                        in={!token}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="danger"
+                                className="py-2 px-3 mb-3"
+                            >
+                                El enlace de recuperación no es válido.
+                            </Alert>
+                        </div>
+                    </Fade>
 
-                    {error && (
-                        <Alert variant="danger">
-                            {error}
-                        </Alert>
-                    )}
+                    <Fade
+                        in={!!error}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="danger"
+                                className="py-2 px-3 mb-3"
+                            >
+                                {error}
+                            </Alert>
+                        </div>
+                    </Fade>
 
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-3">
-                            <Form.Label>
+                    <Form
+                        noValidate
+                        validated={validated}
+                        onSubmit={handleSubmit}
+                    >
+                        <Form.Group className="mb-3 position-relative">
+                            <Form.Label htmlFor="password">
                                 Nueva contraseña
                             </Form.Label>
 
-                            <Form.Control
-                                type="password"
-                                value={password}
-                                onChange={(e) =>
-                                    setPassword(e.target.value)
-                                }
-                                autoComplete="new-password"
-                                minLength={8}
-                                required
-                                disabled={!token}
-                            />
+                            <InputGroup hasValidation>
+                                <Form.Control
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={handlePasswordChange}
+                                    placeholder="••••••••••"
+                                    autoComplete="new-password"
+                                    minLength={8}
+                                    required
+                                    disabled={!token || loading}
+                                />
+
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() =>
+                                        setShowPassword((current) => !current)
+                                    }
+                                    disabled={!token || loading}
+                                    aria-label={
+                                        showPassword
+                                            ? "Ocultar contraseña"
+                                            : "Mostrar contraseña"
+                                    }
+                                    title={
+                                        showPassword
+                                            ? "Ocultar contraseña"
+                                            : "Mostrar contraseña"
+                                    }
+                                >
+                                    <i
+                                        className={
+                                            showPassword
+                                                ? "bi bi-eye-slash"
+                                                : "bi bi-eye"
+                                        }
+                                    />
+                                </button>
+
+                                <Form.Control.Feedback
+                                    type="invalid"
+                                    tooltip
+                                >
+                                    La contraseña debe tener al menos 8 caracteres.
+                                </Form.Control.Feedback>
+                            </InputGroup>
                         </Form.Group>
 
-                        <Form.Group className="mb-4">
-                            <Form.Label>
+                        <Form.Group className="mb-4 position-relative">
+                            <Form.Label htmlFor="confirmPassword">
                                 Confirmar contraseña
                             </Form.Label>
 
-                            <Form.Control
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) =>
-                                    setConfirmPassword(e.target.value)
-                                }
-                                autoComplete="new-password"
-                                minLength={8}
-                                required
-                                disabled={!token}
-                            />
+                            <InputGroup hasValidation>
+                                <Form.Control
+                                    id="confirmPassword"
+                                    type={
+                                        showConfirmPassword
+                                            ? "text"
+                                            : "password"
+                                    }
+                                    value={confirmPassword}
+                                    onChange={handleConfirmPasswordChange}
+                                    placeholder="••••••••••"
+                                    autoComplete="new-password"
+                                    minLength={8}
+                                    required
+                                    disabled={!token || loading}
+                                    isInvalid={
+                                        validated &&
+                                        (
+                                            confirmPassword.length < 8 ||
+                                            confirmPassword !== password
+                                        )
+                                    }
+                                />
+
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() =>
+                                        setShowConfirmPassword(
+                                            (current) => !current
+                                        )
+                                    }
+                                    disabled={!token || loading}
+                                    aria-label={
+                                        showConfirmPassword
+                                            ? "Ocultar contraseña"
+                                            : "Mostrar contraseña"
+                                    }
+                                    title={
+                                        showConfirmPassword
+                                            ? "Ocultar contraseña"
+                                            : "Mostrar contraseña"
+                                    }
+                                >
+                                    <i
+                                        className={
+                                            showConfirmPassword
+                                                ? "bi bi-eye-slash"
+                                                : "bi bi-eye"
+                                        }
+                                    />
+                                </button>
+
+                                <Form.Control.Feedback
+                                    type="invalid"
+                                    tooltip
+                                >
+                                    {confirmPassword.length < 8
+                                        ? "Repite una contraseña de al menos 8 caracteres."
+                                        : "Las contraseñas no coinciden."}
+                                </Form.Control.Feedback>
+                            </InputGroup>
                         </Form.Group>
 
                         <Button
@@ -133,6 +263,7 @@ export default function ResetPasswordPage() {
                                     <Spinner
                                         size="sm"
                                         className="me-2"
+                                        aria-hidden="true"
                                     />
                                     Guardando...
                                 </>

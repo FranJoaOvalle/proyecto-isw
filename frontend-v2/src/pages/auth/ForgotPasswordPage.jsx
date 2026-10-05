@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
     Alert,
     Button,
+    Fade,
     Form,
     Spinner
 } from "react-bootstrap";
@@ -15,18 +16,37 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [validated, setValidated] = useState(false);
+
+    const handleChange = (e) => {
+        setEmail(e.target.value);
+
+        // El feedback anterior deja de ser relevante al modificar el correo.
+        setError("");
+        setSuccess("");
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        setError("");
-        setSuccess("");
+        const formElement = e.currentTarget;
+
+        if (!formElement.checkValidity()) {
+            e.stopPropagation();
+            setValidated(true);
+            return;
+        }
+
+        setValidated(true);
         setLoading(true);
 
         try {
             const data = await forgotPassword(email);
+
+            setError("");
             setSuccess(data.message);
         } catch (error) {
+            setSuccess("");
             setError(
                 error.response?.data?.error?.message ??
                 "No fue posible procesar la solicitud."
@@ -51,30 +71,64 @@ export default function ForgotPasswordPage() {
                         </p>
                     </div>
 
-                    {success && (
-                        <Alert variant="success">
-                            {success}
-                        </Alert>
-                    )}
+                    <Fade
+                        in={!!success}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="success"
+                                className="py-2 px-3 mb-3"
+                            >
+                                {success}
+                            </Alert>
+                        </div>
+                    </Fade>
 
-                    {error && (
-                        <Alert variant="danger">
-                            {error}
-                        </Alert>
-                    )}
+                    <Fade
+                        in={!!error}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="danger"
+                                className="py-2 px-3 mb-3"
+                            >
+                                {error}
+                            </Alert>
+                        </div>
+                    </Fade>
 
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-4">
-                            <Form.Label>Correo electrónico</Form.Label>
+                    <Form
+                        noValidate
+                        validated={validated}
+                        onSubmit={handleSubmit}
+                    >
+                        <Form.Group className="mb-4 position-relative">
+                            <Form.Label htmlFor="email">
+                                Correo electrónico
+                            </Form.Label>
 
                             <Form.Control
+                                id="email"
+                                name="email"
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={handleChange}
                                 placeholder="correo@ejemplo.cl"
                                 autoComplete="email"
                                 required
+                                disabled={loading}
                             />
+
+                            <Form.Control.Feedback
+                                type="invalid"
+                                tooltip
+                            >
+                                Ingresa un correo electrónico válido.
+                            </Form.Control.Feedback>
                         </Form.Group>
 
                         <Button
@@ -87,6 +141,7 @@ export default function ForgotPasswordPage() {
                                     <Spinner
                                         size="sm"
                                         className="me-2"
+                                        aria-hidden="true"
                                     />
                                     Enviando...
                                 </>

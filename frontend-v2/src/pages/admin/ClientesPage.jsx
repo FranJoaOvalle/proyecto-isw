@@ -5,7 +5,8 @@ import {
     Button,
     Container,
     Spinner,
-    Table
+    Table,
+    Form
 } from "react-bootstrap";
 
 import {
@@ -14,12 +15,16 @@ import {
 } from "../../services/cliente.service";
 
 import UserAvatar from "../../components/UserAvatar";
+import TableToolbar from "../../components/admin/TableToolbar";
 
 export default function ClientesPage() {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [changingId, setChangingId] = useState(null);
     const [error, setError] = useState("");
+    const [search, setSearch] = useState("");
+    const [estado, setEstado] = useState("TODOS");
+    const [tipo, setTipo] = useState("TODOS");
 
     useEffect(() => {
         const loadClientes = async () => {
@@ -78,6 +83,30 @@ export default function ClientesPage() {
         return cliente.empresa?.rutEmpresa ?? "-";
     };
 
+    const clientesFiltrados = clientes.filter((cliente) => {
+        const nombre = getNombre(cliente).toLowerCase();
+        const rut = getRut(cliente).toLowerCase();
+        const email = cliente.usuario.email.toLowerCase();
+        const termino = search.toLowerCase().trim();
+
+        const coincideBusqueda =
+            !termino ||
+            nombre.includes(termino) ||
+            rut.includes(termino) ||
+            email.includes(termino);
+
+        const coincideEstado =
+            estado === "TODOS" ||
+            (estado === "ACTIVOS" && cliente.usuario.activo) ||
+            (estado === "INACTIVOS" && !cliente.usuario.activo);
+
+        const coincideTipo =
+            tipo === "TODOS" ||
+            cliente.tipo === tipo;
+
+        return coincideBusqueda && coincideEstado && coincideTipo;
+    });
+
     if (loading) {
         return (
             <div className="d-flex justify-content-center py-5">
@@ -101,6 +130,24 @@ export default function ClientesPage() {
                 </Alert>
             )}
 
+            <TableToolbar
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Buscar por nombre, correo o RUT..."
+                estado={estado}
+                onEstadoChange={setEstado}
+            >
+                <Form.Select
+                    value={tipo}
+                    onChange={(e) => setTipo(e.target.value)}
+                    style={{ maxWidth: 180 }}
+                >
+                    <option value="TODOS">Todos los tipos</option>
+                    <option value="PERSONA">Persona</option>
+                    <option value="EMPRESA">Empresa</option>
+                </Form.Select>
+            </TableToolbar>
+
             <div className="table-responsive">
                 <Table hover className="align-middle">
                     <thead>
@@ -114,7 +161,7 @@ export default function ClientesPage() {
                     </thead>
 
                     <tbody>
-                    {clientes.map((cliente) => {
+                    {clientesFiltrados.map((cliente) => {
                         const nombre = getNombre(cliente);
 
                         return (
@@ -190,13 +237,13 @@ export default function ClientesPage() {
                         );
                     })}
 
-                    {clientes.length === 0 && (
+                    {clientesFiltrados.length === 0 && (
                         <tr>
                             <td
                                 colSpan={5}
                                 className="text-center text-secondary py-4"
                             >
-                                No hay clientes registrados.
+                                No se encontraron clientes.
                             </td>
                         </tr>
                     )}

@@ -1,8 +1,12 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Spinner } from "react-bootstrap";
+import {useState} from "react";
+import {Link, useNavigate} from "react-router-dom";
+import {
+    Form,
+    InputGroup,
+    Spinner
+} from "react-bootstrap";
 
-import { register } from "../../services/auth.service";
+import {register} from "../../services/auth.service";
 
 import "./RegisterPage.css";
 
@@ -24,9 +28,13 @@ export default function RegisterPage() {
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [validated, setValidated] = useState(false);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
 
         setForm((current) => ({
             ...current,
@@ -37,6 +45,21 @@ export default function RegisterPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+
+        const formElement = e.currentTarget;
+
+        if (!formElement.checkValidity()) {
+            e.stopPropagation();
+            setValidated(true);
+            return;
+        }
+
+        if (form.password !== confirmPassword) {
+            setValidated(true);
+            return;
+        }
+
+        setValidated(true);
         setLoading(true);
 
         try {
@@ -48,7 +71,7 @@ export default function RegisterPage() {
                     rut: form.rut,
                     nombres: form.nombres,
                     apellidos: form.apellidos,
-                    ...(form.telefono && { telefono: form.telefono })
+                    ...(form.telefono && {telefono: form.telefono})
                 }
                 : {
                     tipo,
@@ -57,7 +80,7 @@ export default function RegisterPage() {
                     rutEmpresa: form.rutEmpresa,
                     razonSocial: form.razonSocial,
                     casaMatriz: form.casaMatriz,
-                    ...(form.telefono && { telefono: form.telefono })
+                    ...(form.telefono && {telefono: form.telefono})
                 };
 
             await register(data);
@@ -84,7 +107,7 @@ export default function RegisterPage() {
                 <div className="register-card">
                     <div className="mb-4">
                         <span className="fs-4 fw-bold text-primary">
-                            Organizadora de eventos
+                            NES Eventos
                         </span>
 
                         <h1 className="fw-bold mt-4 mb-2">
@@ -110,7 +133,10 @@ export default function RegisterPage() {
                             className="btn btn-outline-primary"
                             htmlFor="persona"
                         >
-                            Persona
+                            <span className="d-inline-flex align-items-center gap-2">
+                                <i className="bi bi-person"/>
+                                Persona
+                            </span>
                         </label>
 
                         <input
@@ -126,7 +152,10 @@ export default function RegisterPage() {
                             className="btn btn-outline-primary"
                             htmlFor="empresa"
                         >
-                            Empresa
+                            <span className="d-inline-flex align-items-center gap-2">
+                                <i className="bi bi-building"/>
+                                Empresa
+                            </span>
                         </label>
                     </div>
 
@@ -136,175 +165,289 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
+                    <Form
+                        noValidate
+                        validated={validated}
+                        onSubmit={handleSubmit}
+                    >
                         <div className="row g-3">
-                            <div className="col-12">
-                                <label htmlFor="email" className="form-label">
+                            <div className="col-12 position-relative">
+                                <Form.Label htmlFor="email">
                                     Correo
-                                </label>
+                                </Form.Label>
 
-                                <input
+                                <Form.Control
                                     id="email"
                                     name="email"
                                     type="email"
+                                    placeholder="correo@ejemplo.cl"
                                     value={form.email}
                                     onChange={handleChange}
-                                    className="form-control"
                                     autoComplete="email"
                                     required
                                     disabled={loading}
                                 />
+
+                                <Form.Control.Feedback type="invalid" tooltip>
+                                    Ingresa un correo electrónico válido.
+                                </Form.Control.Feedback>
                             </div>
 
-                            <div className="col-12">
-                                <label htmlFor="password" className="form-label">
+                            <div className="col-12 position-relative">
+                                <Form.Label htmlFor="password">
                                     Contraseña
-                                </label>
+                                </Form.Label>
 
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    className="form-control"
-                                    autoComplete="new-password"
-                                    minLength={8}
-                                    required
-                                    disabled={loading}
-                                />
+                                <InputGroup hasValidation>
+                                    <Form.Control
+                                        id="password"
+                                        name="password"
+                                        placeholder="••••••••••"
+                                        type={showPassword ? "text" : "password"}
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        autoComplete="new-password"
+                                        minLength={8}
+                                        required
+                                        disabled={loading}
+                                    />
 
-                                <div className="form-text">
-                                    Mínimo 8 caracteres.
-                                </div>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={() =>
+                                            setShowPassword((current) => !current)
+                                        }
+                                        disabled={loading}
+                                        aria-label={
+                                            showPassword
+                                                ? "Ocultar contraseña"
+                                                : "Mostrar contraseña"
+                                        }
+                                    >
+                                        <i
+                                            className={
+                                                showPassword
+                                                    ? "bi bi-eye-slash"
+                                                    : "bi bi-eye"
+                                            }
+                                        />
+                                    </button>
+
+                                    <Form.Control.Feedback type="invalid" tooltip>
+                                        La contraseña debe tener al menos 8 caracteres.
+                                    </Form.Control.Feedback>
+                                </InputGroup>
+                            </div>
+
+                            <div className="col-12 position-relative">
+                                <Form.Label htmlFor="confirmPassword">
+                                    Repetir contraseña
+                                </Form.Label>
+
+                                <InputGroup hasValidation>
+                                    <Form.Control
+                                        id="confirmPassword"
+                                        placeholder="••••••••••"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        autoComplete="new-password"
+                                        minLength={8}
+                                        required
+                                        disabled={loading}
+                                        isInvalid={
+                                            validated &&
+                                            (
+                                                confirmPassword.length < 8 ||
+                                                confirmPassword !== form.password
+                                            )
+                                        }
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={() =>
+                                            setShowConfirmPassword((current) => !current)
+                                        }
+                                        disabled={loading}
+                                        aria-label={
+                                            showConfirmPassword
+                                                ? "Ocultar contraseña"
+                                                : "Mostrar contraseña"
+                                        }
+                                    >
+                                        <i
+                                            className={
+                                                showConfirmPassword
+                                                    ? "bi bi-eye-slash"
+                                                    : "bi bi-eye"
+                                            }
+                                        />
+                                    </button>
+
+                                    <Form.Control.Feedback type="invalid" tooltip>
+                                        {confirmPassword.length < 8
+                                            ? "Repite una contraseña de al menos 8 caracteres."
+                                            : "Las contraseñas no coinciden."}
+                                    </Form.Control.Feedback>
+                                </InputGroup>
                             </div>
 
                             {tipo === "PERSONA" ? (
                                 <>
-                                    <div className="col-12">
-                                        <label htmlFor="rut" className="form-label">
+                                    <div className="col-12 position-relative">
+                                        <Form.Label htmlFor="rut">
                                             RUT
-                                        </label>
+                                        </Form.Label>
 
-                                        <input
+                                        <Form.Control
                                             id="rut"
                                             name="rut"
                                             value={form.rut}
                                             onChange={handleChange}
-                                            className="form-control"
                                             placeholder="12345678-5"
+                                            pattern="[0-9]{7,8}-[0-9Kk]"
                                             required
                                             disabled={loading}
                                         />
+
+                                        <Form.Control.Feedback type="invalid" tooltip>
+                                            Ingresa un RUT válido. Ejemplo: 12345678-5.
+                                        </Form.Control.Feedback>
                                     </div>
 
-                                    <div className="col-md-6">
-                                        <label htmlFor="nombres" className="form-label">
+                                    <div className="col-md-6 position-relative">
+                                        <Form.Label htmlFor="nombres">
                                             Nombres
-                                        </label>
+                                        </Form.Label>
 
-                                        <input
+                                        <Form.Control
                                             id="nombres"
                                             name="nombres"
                                             value={form.nombres}
                                             onChange={handleChange}
-                                            className="form-control"
+                                            minLength={2}
                                             required
                                             disabled={loading}
                                         />
+
+                                        <Form.Control.Feedback type="invalid" tooltip>
+                                            Ingresa tus nombres.
+                                        </Form.Control.Feedback>
                                     </div>
 
-                                    <div className="col-md-6">
-                                        <label htmlFor="apellidos" className="form-label">
+                                    <div className="col-md-6 position-relative">
+                                        <Form.Label htmlFor="apellidos">
                                             Apellidos
-                                        </label>
+                                        </Form.Label>
 
-                                        <input
+                                        <Form.Control
                                             id="apellidos"
                                             name="apellidos"
                                             value={form.apellidos}
                                             onChange={handleChange}
-                                            className="form-control"
+                                            minLength={2}
                                             required
                                             disabled={loading}
                                         />
+
+                                        <Form.Control.Feedback type="invalid" tooltip>
+                                            Ingresa tus apellidos.
+                                        </Form.Control.Feedback>
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <div className="col-12">
-                                        <label htmlFor="rutEmpresa" className="form-label">
+                                    <div className="col-12 position-relative">
+                                        <Form.Label htmlFor="rutEmpresa">
                                             RUT de la empresa
-                                        </label>
+                                        </Form.Label>
 
-                                        <input
+                                        <Form.Control
                                             id="rutEmpresa"
                                             name="rutEmpresa"
                                             value={form.rutEmpresa}
                                             onChange={handleChange}
-                                            className="form-control"
                                             placeholder="76543210-K"
+                                            pattern="[0-9]{7,8}-[0-9Kk]"
                                             required
                                             disabled={loading}
                                         />
+
+                                        <Form.Control.Feedback type="invalid" tooltip>
+                                            Ingresa un RUT de empresa válido.
+                                        </Form.Control.Feedback>
                                     </div>
 
-                                    <div className="col-12">
-                                        <label htmlFor="razonSocial" className="form-label">
+                                    <div className="col-12 position-relative">
+                                        <Form.Label htmlFor="razonSocial">
                                             Razón social
-                                        </label>
+                                        </Form.Label>
 
-                                        <input
+                                        <Form.Control
                                             id="razonSocial"
                                             name="razonSocial"
                                             value={form.razonSocial}
                                             onChange={handleChange}
-                                            className="form-control"
+                                            minLength={2}
                                             required
                                             disabled={loading}
                                         />
+
+                                        <Form.Control.Feedback type="invalid" tooltip>
+                                            Ingresa la razón social de la empresa.
+                                        </Form.Control.Feedback>
                                     </div>
 
-                                    <div className="col-12">
-                                        <label htmlFor="casaMatriz" className="form-label">
+                                    <div className="col-12 position-relative">
+                                        <Form.Label htmlFor="casaMatriz">
                                             Casa matriz
-                                        </label>
+                                        </Form.Label>
 
-                                        <input
+                                        <Form.Control
                                             id="casaMatriz"
                                             name="casaMatriz"
                                             value={form.casaMatriz}
                                             onChange={handleChange}
-                                            className="form-control"
                                             required
                                             disabled={loading}
                                         />
+
+                                        <Form.Control.Feedback type="invalid" tooltip>
+                                            Ingresa la dirección de la casa matriz.
+                                        </Form.Control.Feedback>
                                     </div>
                                 </>
                             )}
 
-                            <div className="col-12">
-                                <label htmlFor="telefono" className="form-label">
+                            <div className="col-12 position-relative">
+                                <Form.Label htmlFor="telefono">
                                     Teléfono
                                     <span className="text-secondary"> (opcional)</span>
-                                </label>
+                                </Form.Label>
 
-                                <input
+                                <Form.Control
                                     id="telefono"
                                     name="telefono"
                                     type="tel"
                                     value={form.telefono}
                                     onChange={handleChange}
-                                    className="form-control"
                                     placeholder="+56912345678"
+                                    pattern="\+?[0-9]{8,15}"
                                     disabled={loading}
                                 />
+
+                                <Form.Control.Feedback type="invalid" tooltip>
+                                    Ingresa un teléfono válido. Ejemplo: +56912345678.
+                                </Form.Control.Feedback>
                             </div>
 
                             <div className="col-12 mt-4">
                                 <button
                                     type="submit"
-                                    className="btn btn-primary btn-lg w-100 fw-semibold"
+                                    className="btn btn-primary w-100 fw-semibold"
                                     disabled={loading}
                                 >
                                     {loading ? (
@@ -322,7 +465,7 @@ export default function RegisterPage() {
                                 </button>
                             </div>
                         </div>
-                    </form>
+                    </Form>
 
                     <div className="text-center text-secondary mt-4">
                         ¿Ya tienes una cuenta?{" "}
@@ -349,7 +492,7 @@ export default function RegisterPage() {
                     src="/assets/img/login.webp"
                     alt="Evento"
                 />
-                <div className="register-overlay" />
+                <div className="register-overlay"/>
             </div>
         </div>
     );

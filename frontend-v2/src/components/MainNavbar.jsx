@@ -59,9 +59,16 @@ export default function MainNavbar() {
                 <Navbar.Brand
                     as={Link}
                     to="/"
-                    className="fw-bold text-primary"
+                    className="d-flex align-items-center"
                 >
-                    NES Eventos
+                    <img
+                        src="/assets/img/nes_logo.png"
+                        alt="NES Eventos"
+                        style={{
+                            maxHeight: 36,
+                            width: "auto"
+                        }}
+                    />
                 </Navbar.Brand>
 
                 <Navbar.Toggle aria-controls="main-navbar"/>

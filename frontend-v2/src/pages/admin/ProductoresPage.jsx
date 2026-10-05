@@ -16,7 +16,9 @@ import {
     updateProductor,
     cambiarEstadoProductor
 } from "../../services/productor.service";
+
 import UserAvatar from "../../components/UserAvatar";
+import TableToolbar from "../../components/admin/TableToolbar";
 
 const initialForm = {
     email: "",
@@ -36,6 +38,8 @@ export default function ProductoresPage() {
     const [saving, setSaving] = useState(false);
     const [changingId, setChangingId] = useState(null);
     const [error, setError] = useState("");
+    const [search, setSearch] = useState("");
+    const [estado, setEstado] = useState("TODOS");
 
     const loadProductores = async () => {
         try {
@@ -138,6 +142,28 @@ export default function ProductoresPage() {
         }
     };
 
+    const productoresFiltrados = productores.filter((productor) => {
+        const nombre =
+            `${productor.nombres} ${productor.apellidos}`.toLowerCase();
+
+        const email = productor.usuario.email.toLowerCase();
+        const telefono = (productor.telefono ?? "").toLowerCase();
+        const termino = search.toLowerCase().trim();
+
+        const coincideBusqueda =
+            !termino ||
+            nombre.includes(termino) ||
+            email.includes(termino) ||
+            telefono.includes(termino);
+
+        const coincideEstado =
+            estado === "TODOS" ||
+            (estado === "ACTIVOS" && productor.usuario.activo) ||
+            (estado === "INACTIVOS" && !productor.usuario.activo);
+
+        return coincideBusqueda && coincideEstado;
+    });
+
     if (loading) {
         return (
             <div className="d-flex justify-content-center py-5">
@@ -168,6 +194,14 @@ export default function ProductoresPage() {
                 </Alert>
             )}
 
+            <TableToolbar
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Buscar por nombre, correo o teléfono..."
+                estado={estado}
+                onEstadoChange={setEstado}
+            />
+
             <div className="table-responsive">
                 <Table hover className="align-middle">
                     <thead>
@@ -180,7 +214,7 @@ export default function ProductoresPage() {
                     </thead>
 
                     <tbody>
-                    {productores.map((productor) => {
+                    {productoresFiltrados.map((productor) => {
                         const nombre = `${productor.nombres} ${productor.apellidos}`;
 
                         return (
@@ -262,13 +296,13 @@ export default function ProductoresPage() {
                         );
                     })}
 
-                    {productores.length === 0 && (
+                    {productoresFiltrados.length === 0 && (
                         <tr>
                             <td
                                 colSpan={4}
                                 className="text-center text-secondary py-4"
                             >
-                                No hay productores registrados.
+                                No se encontraron productores.
                             </td>
                         </tr>
                     )}

@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {Alert, Spinner} from "react-bootstrap";
+import {
+    Alert,
+    Fade,
+    Form,
+    InputGroup,
+    Spinner
+} from "react-bootstrap";
 
 import { login, getCurrentUser } from "../../services/auth.service";
 import { useAuth } from "../../contexts/AuthContext";
@@ -29,13 +35,23 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [validated, setValidated] = useState(false);
 
     const from = location.state?.from?.pathname;
     const registroExitoso = location.state?.registroExitoso;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
+
+        const formElement = e.currentTarget;
+
+        if (!formElement.checkValidity()) {
+            e.stopPropagation();
+            setValidated(true);
+            return;
+        }
+        setValidated(true);
         setLoading(true);
 
         try {
@@ -63,7 +79,7 @@ export default function LoginPage() {
                     <div className="mb-5">
                         <div className="mb-4">
                             <span className="fs-4 fw-bold text-primary">
-                                Organizadora de eventos
+                                NES Eventos
                             </span>
                         </div>
 
@@ -76,68 +92,142 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    {registroExitoso && (
-                        <div className="alert alert-success" role="alert">
-                            Cuenta creada correctamente. Ya puedes iniciar sesión.
+                    <Fade
+                        in={!!registroExitoso}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="success"
+                                className="py-2 px-3 mb-3"
+                            >
+                                Cuenta creada correctamente. Ya puedes iniciar sesión.
+                            </Alert>
                         </div>
-                    )}
+                    </Fade>
 
-                    {location.state?.passwordReset && (
-                        <Alert variant="success">
-                            Tu contraseña fue restablecida correctamente. Ya puedes iniciar sesión.
-                        </Alert>
-                    )}
-
-                    {error && (
-                        <div className="alert alert-danger" role="alert">
-                            {error}
+                    <Fade
+                        in={!!location.state?.passwordReset}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="success"
+                                className="py-2 px-3 mb-3"
+                            >
+                                Tu contraseña fue restablecida correctamente.
+                                Ya puedes iniciar sesión.
+                            </Alert>
                         </div>
-                    )}
+                    </Fade>
 
-                    <form onSubmit={handleSubmit}>
-                        <div className="mb-4">
-                            <label
+                    <Fade
+                        in={!!error}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <div>
+                            <Alert
+                                variant="danger"
+                                className="py-2 px-3 mb-3"
+                            >
+                                {error}
+                            </Alert>
+                        </div>
+                    </Fade>
+
+                    <Form
+                        noValidate
+                        validated={validated}
+                        onSubmit={handleSubmit}
+                    >
+                        <div className="mb-4 position-relative">
+                            <Form.Label
                                 htmlFor="email"
-                                className="form-label fw-medium"
+                                className="fw-medium"
                             >
                                 Correo
-                            </label>
+                            </Form.Label>
 
-                            <input
+                            <Form.Control
                                 id="email"
                                 name="email"
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    setError("");
+                                }}
                                 placeholder="correo@ejemplo.com"
                                 autoComplete="email"
                                 required
                                 disabled={loading}
-                                className="form-control form-control-lg"
                             />
+
+                            <Form.Control.Feedback type="invalid" tooltip>
+                                Ingresa un correo electrónico válido.
+                            </Form.Control.Feedback>
                         </div>
 
-                        <div className="mb-4">
-                            <label
+                        <div className="mb-4 position-relative">
+                            <Form.Label
                                 htmlFor="password"
-                                className="form-label fw-medium"
+                                className="fw-medium"
                             >
                                 Contraseña
-                            </label>
+                            </Form.Label>
 
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••••"
-                                autoComplete="current-password"
-                                required
-                                disabled={loading}
-                                className="form-control form-control-lg"
-                            />
-                            <div className="text-end mb-3">
+                            <InputGroup hasValidation>
+                                <Form.Control
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        setError("");
+                                    }}
+                                    placeholder="••••••••••"
+                                    autoComplete="current-password"
+                                    required
+                                    disabled={loading}
+                                />
+
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary"
+                                    onClick={() =>
+                                        setShowPassword((current) => !current)
+                                    }
+                                    disabled={loading}
+                                    aria-label={
+                                        showPassword
+                                            ? "Ocultar contraseña"
+                                            : "Mostrar contraseña"
+                                    }
+                                    title={
+                                        showPassword
+                                            ? "Ocultar contraseña"
+                                            : "Mostrar contraseña"
+                                    }
+                                >
+                                    <i
+                                        className={
+                                            showPassword
+                                                ? "bi bi-eye-slash"
+                                                : "bi bi-eye"
+                                        }
+                                    />
+                                </button>
+
+                                <Form.Control.Feedback type="invalid" tooltip>
+                                    Ingresa tu contraseña.
+                                </Form.Control.Feedback>
+                            </InputGroup>
+
+                            <div className="text-end mt-1 mb-3">
                                 <Link
                                     to="/forgot-password"
                                     className="small text-decoration-none"
@@ -150,7 +240,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="btn btn-primary btn-lg w-100 fw-semibold"
+                            className="btn btn-primary w-100 fw-semibold"
                         >
                             {loading ? (
                                 <>
@@ -183,7 +273,7 @@ export default function LoginPage() {
                         >
                             ← Volver
                         </button>
-                    </form>
+                    </Form>
                 </div>
             </div>
 
