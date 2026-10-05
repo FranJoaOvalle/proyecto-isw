@@ -34,8 +34,8 @@ export default function ProductorPage() {
                                 que tengas asignados.
                             </Card.Text>
 
-                            <Button disabled>
-                                Próximamente
+                            <Button as={Link} to="/productor/eventos">
+                                Ver eventos asignados
                             </Button>
                         </Card.Body>
                     </Card>

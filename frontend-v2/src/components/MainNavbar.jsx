@@ -89,7 +89,7 @@ export default function MainNavbar() {
                             to="/catalogo"
                             className="d-flex align-items-center"
                         >
-                            <i className="bi bi-grid me-2"/>
+                            <i className="bi bi-shop-window me-2"/>
                             Catálogo
                         </Nav.Link>
 

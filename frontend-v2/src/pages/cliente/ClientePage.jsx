@@ -97,6 +97,28 @@ export default function ClientePage() {
                         </Card.Body>
                     </Card>
                 </Col>
+
+                <Col md={6}>
+                    <Card className="h-100 shadow-sm">
+                        <Card.Body className="p-4">
+                            <Card.Title className="fw-bold">
+                                Historial del eventos
+                            </Card.Title>
+
+                            <Card.Text className="text-secondary">
+                                Revisa los eventos que has contratado y su estado actual.
+                            </Card.Text>
+
+                            <Button
+                                as={Link}
+                                to="/cliente/eventos"
+                                variant="outline-primary"
+                            >
+                                Ver mis eventos
+                            </Button>
+                        </Card.Body>
+                    </Card>
+                </Col>
             </Row>
         </Container>
     );
