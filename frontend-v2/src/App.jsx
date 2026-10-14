@@ -31,6 +31,10 @@ import ClientePage from "./pages/cliente/ClientePage";
 import CompraContratoPage from "./pages/cliente/CompraContratoPage";
 import MisEventosPage from "./pages/cliente/MisEventosPage.jsx";
 
+import EventoDetallePage from "./pages/admin/EventoDetallePage.jsx";
+import EventoProductorDetallePage from "./pages/productor/EventoProductorDetallePage.jsx";
+import EventoClienteDetallePage from "./pages/cliente/EventoClienteDetallePage.jsx";
+
 export default function App() {
     return (
         <Routes>
@@ -44,6 +48,7 @@ export default function App() {
 
                 <Route element={<ProtectedRoute roles={["ADMIN"]}/>}>
                     <Route element={<AdminLayout/>}>
+                        <Route path="/admin/eventos/:id" element={<EventoDetallePage />} />
                         <Route path="/admin" element={<AdminPage/>}/>
                         <Route path="/admin/clientes" element={<ClientesPage/>}/>
                         <Route path="/admin/productores" element={<ProductoresPage/>}/>
@@ -56,11 +61,13 @@ export default function App() {
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["PRODUCTOR"]}/>}>
+                    <Route path="/productor/eventos/:id" element={<EventoProductorDetallePage />}/>
                     <Route path="/productor" element={<ProductorPage/>}/>
                     <Route path="/productor/eventos" element={<EventosProductorPage/>}/>
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["CLIENTE"]}/>}>
+                    <Route path="/cliente/eventos/:id" element={<EventoClienteDetallePage />}/>
                     <Route path="/cliente" element={<ClientePage/>}/>
                     <Route path="/cliente/compra" element={<CompraContratoPage/>}/>
                     <Route path="/cliente/eventos" element={<MisEventosPage/>}/>
