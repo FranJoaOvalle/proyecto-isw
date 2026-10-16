@@ -132,17 +132,19 @@ model Productor {
 }
 
 model TipoEvento {
-  id          Int     @id @default(autoincrement())
-  nombre      String  @unique
-  descripcion String
-  precioBase  Decimal @db.Decimal(12, 2)
-  activo      Boolean @default(true)
+  id                    Int      @id @default(autoincrement())
+  nombre                String   @unique
+  descripcion           String
+  precioBase            Decimal  @db.Decimal(12, 2)
+  imagen_url            String?  @db.Text
+  cantidadPersonasBase  Int
+  activo                Boolean  @default(true)
 
-  eventos      Evento[]
-  presupuestos Presupuesto[]
+  eventos               Evento[]
+  presupuestos          Presupuesto[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model Recurso {
