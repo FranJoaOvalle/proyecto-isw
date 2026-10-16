@@ -48,6 +48,7 @@ const updateTipoEventoSchema = z.object({
             .positive("ID inválido.")
     }),
     body: tipoEventoBaseSchema
+        .omit({ activo: true })
         .partial()
         .refine(
             data => Object.keys(data).length > 0,
@@ -71,9 +72,18 @@ const getTiposEventoSchema = z.object({
     })
 });
 
+const estadoTipoEventoSchema = z.object({
+    body: z.object({
+        activo: z.boolean({
+            required_error: "El estado del tipo de evento es obligatorio."
+        })
+    })
+});
+
 module.exports = {
     createTipoEventoSchema,
     updateTipoEventoSchema,
     tipoEventoIdSchema,
-    getTiposEventoSchema
+    getTiposEventoSchema,
+    estadoTipoEventoSchema
 };

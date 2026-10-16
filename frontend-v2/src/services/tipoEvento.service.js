@@ -8,10 +8,14 @@ const extraerLista = (data) =>
 export const getTiposEvento = async (
     incluirInactivos = false
 ) => {
-    const response = await api.get("/tipos-evento", {
-        params: {
-            incluirInactivos
-        }
+    const ruta = incluirInactivos
+        ? "/tipos-evento/admin"
+        : "/tipos-evento";
+
+    const response = await api.get(ruta, {
+        params: incluirInactivos
+            ? { incluirInactivos: true }
+            : {}
     });
 
     return extraerLista(response.data);

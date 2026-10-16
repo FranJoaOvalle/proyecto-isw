@@ -2,11 +2,22 @@ const TipoEventoService = require("../services/tipoEvento.service");
 
 const getAll = async (req, res, next) => {
     try {
+        const tipoEventos = await TipoEventoService.getAll(false);
+
+        return res.status(200).json(tipoEventos);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAllAdmin = async (req, res, next) => {
+    try {
         const incluirInactivos =
-            req.usuario.rol === "ADMIN" &&
             req.validated.query?.incluirInactivos === true;
 
-        const tipoEventos = await TipoEventoService.getAll(incluirInactivos);
+        const tipoEventos = await TipoEventoService.getAll(
+            incluirInactivos
+        );
 
         return res.status(200).json(tipoEventos);
     } catch (error) {
@@ -28,7 +39,10 @@ const getById = async (req, res, next) => {
 
 const create = async (req, res, next) => {
     try {
-        const tipoEvento = await TipoEventoService.create(req.body);
+        const tipoEvento = await TipoEventoService.create(
+            req.validated.body
+        );
+
         return res.status(201).json(tipoEvento);
     } catch (error) {
         next(error);
@@ -39,7 +53,7 @@ const update = async (req, res, next) => {
     try {
         const tipoEvento = await TipoEventoService.update(
             req.validated.params.id,
-            req.body
+            req.validated.body
         );
 
         return res.status(200).json(tipoEvento);
@@ -48,40 +62,16 @@ const update = async (req, res, next) => {
     }
 };
 
-const remove = async (req, res, next) => {
+const cambiarEstado = async (req, res, next) => {
     try {
-        const tipoEvento = await TipoEventoService.remove(
-            req.validated.params.id
-        );
+        const { id } = req.validated.params;
+        const { activo } = req.validated.body;
+
+        const tipoEvento = activo
+            ? await TipoEventoService.reactivate(id)
+            : await TipoEventoService.remove(id);
 
         return res.status(200).json(tipoEvento);
-    } catch (error) {
-        next(error);
-    }
-};
-
-const reactivate = async (req, res, next) => {
-    try {
-        const tipoEvento = await TipoEventoService.reactivate(
-            req.validated.params.id
-        );
-
-        return res.status(200).json(tipoEvento);
-    } catch (error) {
-        next(error);
-    }
-};
-
-const removePhysical = async (req, res, next) => {
-    try {
-        const tipoEvento = await TipoEventoService.removePhysical(
-            req.validated.params.id
-        );
-
-        return res.status(200).json({
-            mensaje: "Tipo de evento eliminado físicamente.",
-            tipoEvento
-        });
     } catch (error) {
         next(error);
     }
@@ -89,10 +79,9 @@ const removePhysical = async (req, res, next) => {
 
 module.exports = {
     getAll,
+    getAllAdmin,
     getById,
     create,
     update,
-    remove,
-    reactivate,
-    removePhysical
+    cambiarEstado
 };
