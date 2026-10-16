@@ -358,6 +358,7 @@ const main = async () => {
             nombre: "Matrimonio",
             descripcion: "Celebración de matrimonio con coordinación integral, montaje y producción del evento.",
             precioBase: "1200000.00",
+            cantidadPersonasBase: 120,
             activo: true
         }
     });
@@ -367,6 +368,7 @@ const main = async () => {
             nombre: "Cumpleaños",
             descripcion: "Celebración de cumpleaños adaptable a distintos tamaños, edades y formatos.",
             precioBase: "450000.00",
+            cantidadPersonasBase: 50,
             activo: true
         }
     });
@@ -376,6 +378,7 @@ const main = async () => {
             nombre: "Evento corporativo",
             descripcion: "Producción de aniversarios, lanzamientos, jornadas internas y celebraciones de empresa.",
             precioBase: "850000.00",
+            cantidadPersonasBase: 90,
             activo: true
         }
     });
@@ -385,6 +388,7 @@ const main = async () => {
             nombre: "Graduación",
             descripcion: "Ceremonias y celebraciones de licenciatura o graduación para instituciones educacionales.",
             precioBase: "700000.00",
+            cantidadPersonasBase: 150,
             activo: true
         }
     });
@@ -394,6 +398,7 @@ const main = async () => {
             nombre: "Seminario y conferencia",
             descripcion: "Producción técnica y logística para seminarios, charlas, congresos y conferencias.",
             precioBase: "650000.00",
+            cantidadPersonasBase: 80,
             activo: true
         }
     });
@@ -403,6 +408,7 @@ const main = async () => {
             nombre: "Gala institucional",
             descripcion: "Formato formal de gran escala para cenas, premiaciones y ceremonias institucionales.",
             precioBase: "1500000.00",
+            cantidadPersonasBase: 100,
             activo: false
         }
     });
