@@ -1,4 +1,4 @@
-const prisma = require("../db/prisma");
+const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 
