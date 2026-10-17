@@ -59,6 +59,18 @@ enum EstadoPresupuesto {
   VENCIDO
 }
 
+enum TipoActividad {
+  REUNION
+  VISITA_RECINTO
+  TAREA
+}
+
+enum EstadoActividad {
+  PENDIENTE
+  COMPLETADA
+  CANCELADA
+}
+
 model Usuario {
   id           Int        @id @default(autoincrement())
   email        String     @unique
@@ -73,8 +85,9 @@ model Usuario {
   productor Productor?
 
   cambiosEvento EventoCambio[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Cliente {
@@ -125,26 +138,27 @@ model Productor {
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
-  eventos Evento[]
+  eventos     Evento[]
+  actividades ActividadProductor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TipoEvento {
-  id                    Int      @id @default(autoincrement())
-  nombre                String   @unique
-  descripcion           String
-  precioBase            Decimal  @db.Decimal(12, 2)
-  imagen_url            String?  @db.Text
-  cantidadPersonasBase  Int
-  activo                Boolean  @default(true)
+  id                   Int     @id @default(autoincrement())
+  nombre               String  @unique
+  descripcion          String
+  precioBase           Decimal @db.Decimal(12, 2)
+  imagen_url           String? @db.Text
+  cantidadPersonasBase Int
+  activo               Boolean @default(true)
 
-  eventos               Evento[]
-  presupuestos          Presupuesto[]
+  eventos      Evento[]
+  presupuestos Presupuesto[]
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Recurso {
@@ -186,29 +200,32 @@ model RecursoHumano {
 }
 
 model Evento {
-  id           Int @id @default(autoincrement())
-  clienteId    Int
-  productorId  Int
-  tipoEventoId Int
-
+  id            Int          @id @default(autoincrement())
+  clienteId     Int
+  productorId   Int
+  tipoEventoId  Int
   inicio        DateTime
   fin           DateTime
   lugar         String
   asistentes    Int
-  estado        EstadoEvento  @default(CONFIRMADO)
+  estado        EstadoEvento @default(CONFIRMADO)
   observaciones String?
-  calificacion  Calificacion?
 
-  cliente    Cliente        @relation(fields: [clienteId], references: [id])
-  productor  Productor      @relation(fields: [productorId], references: [id])
-  tipoEvento TipoEvento     @relation(fields: [tipoEventoId], references: [id])
-  cambios    EventoCambio[]
+  calificacion Calificacion?
 
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  recursos      EventoRecurso[]
-  presupuestoId Int             @unique
-  presupuesto   Presupuesto     @relation(fields: [presupuestoId], references: [id])
+  cliente   Cliente   @relation(fields: [clienteId], references: [id])
+  productor Productor @relation(fields: [productorId], references: [id])
+  tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id])
+
+  cambios     EventoCambio[]
+  recursos    EventoRecurso[]
+  actividades Actividad[]
+
+  presupuestoId Int         @unique
+  presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([clienteId])
   @@index([productorId])
@@ -331,4 +348,39 @@ model EventoCambio {
 
   @@index([eventoId])
   @@index([usuarioId])
+}
+
+model Actividad {
+  id          Int             @id @default(autoincrement())
+  titulo      String          @db.VarChar(100)
+  descripcion String?         @db.Text
+  tipo        TipoActividad
+  inicio      DateTime
+  fin         DateTime
+  lugar       String?         @db.VarChar(200)
+  estado      EstadoActividad @default(PENDIENTE)
+
+  productores ActividadProductor[]
+
+  eventoId Int?
+  evento   Evento? @relation(fields: [eventoId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([inicio, fin])
+  @@index([eventoId])
+}
+
+model ActividadProductor {
+  actividadId Int
+  productorId Int
+  esResponsable Boolean @default(false)
+
+  actividad Actividad @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+  productor Productor @relation(fields: [productorId], references: [id], onDelete: Cascade)
+
+  @@id([actividadId, productorId])
+  @@index([productorId])
+  @@index([actividadId, esResponsable])
 }
