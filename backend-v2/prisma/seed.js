@@ -359,6 +359,7 @@ const main = async () => {
             descripcion: "Celebración de matrimonio con coordinación integral, montaje y producción del evento.",
             precioBase: "1200000.00",
             cantidadPersonasBase: 120,
+            imagen_url: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
         }
     });
@@ -369,6 +370,7 @@ const main = async () => {
             descripcion: "Celebración de cumpleaños adaptable a distintos tamaños, edades y formatos.",
             precioBase: "450000.00",
             cantidadPersonasBase: 50,
+            imagen_url: "https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=1200",
             activo: true
         }
     });
@@ -379,6 +381,7 @@ const main = async () => {
             descripcion: "Producción de aniversarios, lanzamientos, jornadas internas y celebraciones de empresa.",
             precioBase: "850000.00",
             cantidadPersonasBase: 90,
+            imagen_url: "https://images.unsplash.com/photo-1561489396-888724a1543d?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
         }
     });
@@ -389,6 +392,7 @@ const main = async () => {
             descripcion: "Ceremonias y celebraciones de licenciatura o graduación para instituciones educacionales.",
             precioBase: "700000.00",
             cantidadPersonasBase: 150,
+            imagen_url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
         }
     });
@@ -399,7 +403,8 @@ const main = async () => {
             descripcion: "Producción técnica y logística para seminarios, charlas, congresos y conferencias.",
             precioBase: "650000.00",
             cantidadPersonasBase: 80,
-            activo: true
+            imagen_url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
+            activo: false
         }
     });
 
@@ -409,7 +414,8 @@ const main = async () => {
             descripcion: "Formato formal de gran escala para cenas, premiaciones y ceremonias institucionales.",
             precioBase: "1500000.00",
             cantidadPersonasBase: 100,
-            activo: false
+            imagen_url: "https://images.unsplash.com/photo-1516997121675-4c2d1684aa3e?q=80&w=1172&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
+            activo: true
         }
     });
 
