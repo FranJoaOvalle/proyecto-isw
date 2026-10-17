@@ -27,7 +27,9 @@ import {
 const initialFormData = {
     nombre: "",
     descripcion: "",
-    precioBase: ""
+    precioBase: "",
+    cantidadPersonasBase: "",
+    imagen_url: ""
 };
 
 export default function CatalogoAdminPage() {
@@ -129,10 +131,11 @@ export default function CatalogoAdminPage() {
 
         setFormData({
             nombre: tipoEvento.nombre ?? "",
-            descripcion:
-                tipoEvento.descripcion ?? "",
-            precioBase:
-                tipoEvento.precioBase ?? ""
+            descripcion: tipoEvento.descripcion ?? "",
+            precioBase: tipoEvento.precioBase ?? "",
+            cantidadPersonasBase:
+                tipoEvento.cantidadPersonasBase ?? "",
+            imagen_url: tipoEvento.imagen_url ?? ""
         });
 
         setValidated(false);
@@ -174,15 +177,16 @@ export default function CatalogoAdminPage() {
 
         try {
             const data = {
-                nombre:
-                    formData.nombre.trim(),
-
-                descripcion:
-                    formData.descripcion.trim() || null,
-
-                precioBase:
-                    Number(formData.precioBase)
+                nombre: formData.nombre.trim(),
+                descripcion: formData.descripcion.trim(),
+                precioBase: Number(formData.precioBase),
+                cantidadPersonasBase: Number(formData.cantidadPersonasBase),
+                imagen_url: formData.imagen_url.trim() || null
             };
+
+            if (!selectedTipoEvento) {
+                data.activo = true;
+            }
 
             if (selectedTipoEvento) {
                 await updateTipoEvento(
@@ -366,16 +370,12 @@ export default function CatalogoAdminPage() {
                                 placeholder="Ej. Matrimonio"
                             />
 
-                            <Form.Control.Feedback
-                                type="invalid"
-                                tooltip
-                            >
-                                Ingresa un nombre de al menos
-                                2 caracteres.
+                            <Form.Control.Feedback type="invalid" tooltip>
+                                Ingresa un nombre de al menos 2 caracteres.
                             </Form.Control.Feedback>
                         </Form.Group>
 
-                        <Form.Group className="mb-3 position-relative">
+                        <Form.Group className="mb-3">
                             <Form.Label htmlFor="descripcion">
                                 Descripción
                             </Form.Label>
@@ -387,13 +387,19 @@ export default function CatalogoAdminPage() {
                                 value={formData.descripcion}
                                 onChange={handleChange}
                                 rows={4}
+                                minLength={10}
                                 maxLength={500}
+                                required
                                 disabled={saving}
                                 placeholder="Descripción del tipo de evento..."
                             />
+
+                            <Form.Control.Feedback type="invalid">
+                                Ingresa una descripción de al menos 10 caracteres.
+                            </Form.Control.Feedback>
                         </Form.Group>
 
-                        <Form.Group className="position-relative">
+                        <Form.Group className="mb-3">
                             <Form.Label htmlFor="precioBase">
                                 Precio base
                             </Form.Label>
@@ -404,20 +410,87 @@ export default function CatalogoAdminPage() {
                                 type="number"
                                 value={formData.precioBase}
                                 onChange={handleChange}
-                                min={0}
-                                step={1}
+                                min={0.01}
+                                step="any"
                                 required
                                 disabled={saving}
                                 placeholder="500000"
                             />
 
-                            <Form.Control.Feedback
-                                type="invalid"
-                                tooltip
-                            >
-                                Ingresa un precio base válido.
+                            <Form.Control.Feedback type="invalid">
+                                Ingresa un precio mayor que cero.
                             </Form.Control.Feedback>
                         </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label htmlFor="cantidadPersonasBase">
+                                Cantidad de personas base
+                            </Form.Label>
+
+                            <Form.Control
+                                id="cantidadPersonasBase"
+                                name="cantidadPersonasBase"
+                                type="number"
+                                value={formData.cantidadPersonasBase}
+                                onChange={handleChange}
+                                min={1}
+                                step={1}
+                                required
+                                disabled={saving}
+                                placeholder="Ej. 50"
+                            />
+
+                            <Form.Control.Feedback type="invalid">
+                                Ingresa una cantidad entera mayor que cero.
+                            </Form.Control.Feedback>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label htmlFor="imagen_url">
+                                URL de la imagen
+                            </Form.Label>
+
+                            <Form.Control
+                                id="imagen_url"
+                                name="imagen_url"
+                                type="url"
+                                value={formData.imagen_url}
+                                onChange={handleChange}
+                                disabled={saving}
+                                placeholder="https://ejemplo.com/imagen.jpg"
+                            />
+
+                            <Form.Text className="text-muted">
+                                Pega un enlace directo a una imagen.
+                            </Form.Text>
+                        </Form.Group>
+
+                        {formData.imagen_url.trim() && (
+                            <div className="mt-3">
+                                <Form.Label>Vista previa</Form.Label>
+
+                                <div
+                                    className="border rounded overflow-hidden"
+                                    style={{ height: "220px" }}
+                                >
+                                    <img
+                                        src={formData.imagen_url.trim()}
+                                        alt="Vista previa del tipo de evento"
+                                        className="w-100 h-100"
+                                        style={{
+                                            objectFit: "cover",
+                                            display: "block"
+                                        }}
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = "none";
+                                        }}
+                                        onLoad={(e) => {
+                                            e.currentTarget.style.display = "block";
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </Modal.Body>
 
                     <Modal.Footer>
