@@ -2,9 +2,10 @@ const ActividadService = require("../services/actividad.service");
 
 const getAll = async (req, res, next) => {
     try {
-        const filtros = req.validated.query || {};
-
-        const actividades = await ActividadService.getAll(filtros);
+        const actividades = await ActividadService.getAll(
+            req.validated.query || {},
+            req.usuario
+        );
 
         return res.status(200).json(actividades);
     } catch (error) {
@@ -15,7 +16,8 @@ const getAll = async (req, res, next) => {
 const getById = async (req, res, next) => {
     try {
         const actividad = await ActividadService.getById(
-            req.validated.params.id
+            req.validated.params.id,
+            req.usuario
         );
 
         return res.status(200).json(actividad);
@@ -27,7 +29,8 @@ const getById = async (req, res, next) => {
 const create = async (req, res, next) => {
     try {
         const actividad = await ActividadService.create(
-            req.validated.body
+            req.validated.body,
+            req.usuario
         );
 
         return res.status(201).json(actividad);
@@ -40,7 +43,8 @@ const update = async (req, res, next) => {
     try {
         const actividad = await ActividadService.update(
             req.validated.params.id,
-            req.validated.body
+            req.validated.body,
+            req.usuario
         );
 
         return res.status(200).json(actividad);
@@ -51,12 +55,10 @@ const update = async (req, res, next) => {
 
 const cambiarEstado = async (req, res, next) => {
     try {
-        const { id } = req.validated.params;
-        const { estado } = req.validated.body;
-
         const actividad = await ActividadService.changeStatus(
-            id,
-            estado
+            req.validated.params.id,
+            req.validated.body.estado,
+            req.usuario
         );
 
         return res.status(200).json(actividad);
@@ -68,7 +70,8 @@ const cambiarEstado = async (req, res, next) => {
 const remove = async (req, res, next) => {
     try {
         const actividad = await ActividadService.remove(
-            req.validated.params.id
+            req.validated.params.id,
+            req.usuario
         );
 
         return res.status(200).json(actividad);
@@ -91,9 +94,10 @@ const removePhysical = async (req, res, next) => {
 
 const getAgenda = async (req, res, next) => {
     try {
-        const filtros = req.validated.query || {};
-
-        const agenda = await ActividadService.getAgenda(filtros);
+        const agenda = await ActividadService.getAgenda(
+            req.validated.query || {},
+            req.usuario
+        );
 
         return res.status(200).json(agenda);
     } catch (error) {
