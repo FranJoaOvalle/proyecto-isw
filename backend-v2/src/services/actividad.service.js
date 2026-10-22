@@ -1,25 +1,134 @@
 const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
+const ForbiddenException = require("../exceptions/ForbiddenException");
 
 class ActividadService {
 
-    async getAll(filtros = {}) {
+    // Comprueba que el usuario tenga acceso al módulo de agenda.
+    async validarUsuarioAgenda(usuario) {
+        if (!usuario) {
+            throw new ForbiddenException(
+                "No se pudo identificar al usuario autenticado."
+            );
+        }
+
+        if (!["ADMIN", "PRODUCTOR"].includes(usuario.rol)) {
+            throw new ForbiddenException(
+                "No tienes permisos para acceder a la agenda."
+            );
+        }
+    }
+
+    // Obtiene el perfil del productor autenticado.
+    // Para ADMIN devuelve null, porque no necesita un perfil de productor.
+    async obtenerProductorAutenticado(usuario) {
+        await this.validarUsuarioAgenda(usuario);
+
+        if (usuario.rol === "ADMIN") {
+            return null;
+        }
+
+        const productor = await prisma.productor.findUnique({
+            where: {
+                usuarioId: usuario.id
+            },
+            select: {
+                id: true
+            }
+        });
+
+        if (!productor) {
+            throw new NotFoundException(
+                "No existe un perfil de productor asociado al usuario."
+            );
+        }
+
+        return productor.id;
+    }
+
+    // Comprueba que el productor esté asignado a la actividad.
+    async verificarAccesoActividad(id, usuario) {
+        const productorId =
+            await this.obtenerProductorAutenticado(usuario);
+
+        if (productorId === null) {
+            return;
+        }
+
+        const asignacion = await prisma.actividadProductor.findUnique({
+            where: {
+                actividadId_productorId: {
+                    actividadId: Number(id),
+                    productorId
+                }
+            },
+            select: {
+                actividadId: true
+            }
+        });
+
+        if (!asignacion) {
+            throw new NotFoundException(
+                "Actividad no encontrada."
+            );
+        }
+    }
+
+    // Comprueba que el evento exista y pertenezca al productor.
+    async validarEventoProductor(eventoId, productorId) {
+        if (eventoId === undefined || eventoId === null) {
+            return;
+        }
+
+        const evento = await prisma.evento.findUnique({
+            where: {
+                id: Number(eventoId)
+            },
+            select: {
+                id: true,
+                productorId: true
+            }
+        });
+
+        if (!evento || evento.productorId !== productorId) {
+            throw new NotFoundException(
+                "Evento no encontrado."
+            );
+        }
+    }
+
+    // Lista actividades aplicando filtros y restricciones de acceso.
+    async getAll(filtros = {}, usuario) {
+        await this.validarUsuarioAgenda(usuario);
+
         const where = {};
 
         if (filtros.tipo) {
             where.tipo = filtros.tipo;
         }
 
-        if (filtros.estado) {
-            where.estado = filtros.estado;
+        const estadoActividad =
+            filtros.estadoActividad ?? filtros.estado;
+
+        if (estadoActividad) {
+            where.estado = estadoActividad;
         }
 
         if (filtros.eventoId !== undefined && filtros.eventoId !== null) {
             where.eventoId = Number(filtros.eventoId);
         }
 
-        if (filtros.productorId) {
+        if (usuario.rol === "PRODUCTOR") {
+            const productorId =
+                await this.obtenerProductorAutenticado(usuario);
+
+            where.productores = {
+                some: {
+                    productorId
+                }
+            };
+        } else if (filtros.productorId) {
             where.productores = {
                 some: {
                     productorId: Number(filtros.productorId)
@@ -32,13 +141,17 @@ class ActividadService {
 
             if (filtros.fin) {
                 where.AND.push({
-                    inicio: { lt: new Date(filtros.fin) }
+                    inicio: {
+                        lt: new Date(filtros.fin)
+                    }
                 });
             }
 
             if (filtros.inicio) {
                 where.AND.push({
-                    fin: { gt: new Date(filtros.inicio) }
+                    fin: {
+                        gt: new Date(filtros.inicio)
+                    }
                 });
             }
         }
@@ -57,21 +170,27 @@ class ActividadService {
                     }
                 }
             },
-            orderBy: { inicio: "asc" }
+            orderBy: {
+                inicio: "asc"
+            }
         });
     }
 
-    async getById(id) {
+    // Obtiene una actividad sin devolver el usuario completo del productor.
+    async getById(id, usuario) {
+        if (usuario) {
+            await this.validarUsuarioAgenda(usuario);
+            await this.verificarAccesoActividad(id, usuario);
+        }
+
         const actividad = await prisma.actividad.findUnique({
-            where: { id: Number(id) },
+            where: {
+                id: Number(id)
+            },
             include: {
                 productores: {
                     include: {
-                        productor: {
-                            include: {
-                                usuario: true
-                            }
-                        }
+                        productor: true
                     }
                 },
                 evento: {
@@ -85,16 +204,24 @@ class ActividadService {
         });
 
         if (!actividad) {
-            throw new NotFoundException("Actividad no encontrada.");
+            throw new NotFoundException(
+                "Actividad no encontrada."
+            );
         }
 
         return actividad;
     }
 
+    // Valida el evento asociado y las asignaciones de productores.
     async validarRelaciones({ eventoId, productores }) {
         if (eventoId !== undefined && eventoId !== null) {
             const evento = await prisma.evento.findUnique({
-                where: { id: Number(eventoId) }
+                where: {
+                    id: Number(eventoId)
+                },
+                select: {
+                    id: true
+                }
             });
 
             if (!evento) {
@@ -104,46 +231,61 @@ class ActividadService {
             }
         }
 
-        if (productores !== undefined) {
-            if (!Array.isArray(productores) || productores.length === 0) {
-                throw new ConflictException(
-                    "Debe asignar al menos un productor."
-                );
-            }
+        if (productores === undefined) {
+            return;
+        }
 
-            const ids = productores.map(p => Number(p.productorId));
-
-            if (new Set(ids).size !== ids.length) {
-                throw new ConflictException(
-                    "No se puede asignar el mismo productor más de una vez."
-                );
-            }
-
-            const responsables = productores.filter(
-                p => p.esResponsable === true
+        if (!Array.isArray(productores) || productores.length === 0) {
+            throw new ConflictException(
+                "Debe asignar al menos un productor."
             );
+        }
 
-            if (responsables.length !== 1) {
-                throw new ConflictException(
-                    "Debe asignar exactamente un productor responsable."
-                );
+        const ids = productores.map(
+            productor => Number(productor.productorId)
+        );
+
+        if (ids.some(id => !Number.isInteger(id) || id <= 0)) {
+            throw new ConflictException(
+                "Los identificadores de productores no son válidos."
+            );
+        }
+
+        if (new Set(ids).size !== ids.length) {
+            throw new ConflictException(
+                "No se puede asignar el mismo productor más de una vez."
+            );
+        }
+
+        const responsables = productores.filter(
+            productor => productor.esResponsable === true
+        );
+
+        if (responsables.length !== 1) {
+            throw new ConflictException(
+                "Debe asignar exactamente un productor responsable."
+            );
+        }
+
+        const productoresExistentes = await prisma.productor.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            },
+            select: {
+                id: true
             }
+        });
 
-            const productoresExistentes = await prisma.productor.findMany({
-                where: {
-                    id: { in: ids }
-                },
-                select: { id: true }
-            });
-
-            if (productoresExistentes.length !== ids.length) {
-                throw new NotFoundException(
-                    "Uno o más productores asignados no existen."
-                );
-            }
+        if (productoresExistentes.length !== ids.length) {
+            throw new NotFoundException(
+                "Uno o más productores asignados no existen."
+            );
         }
     }
 
+    // Evita solapamientos de horario entre actividades y eventos.
     async validarConflictos(
         { inicio, fin, lugar, productores, eventoId },
         actividadIdExcluir = null
@@ -167,29 +309,43 @@ class ActividadService {
         }
 
         const productorIds = [
-            ...new Set((productores || []).map(
-                p => Number(p.productorId)
-            ))
+            ...new Set(
+                (productores || []).map(
+                    productor => Number(productor.productorId)
+                )
+            )
         ];
 
         if (productorIds.length > 0) {
             const actividadConflicto = await prisma.actividad.findFirst({
                 where: {
-                    estado: { not: "CANCELADA" },
-                    inicio: { lt: fechaFin },
-                    fin: { gt: fechaInicio },
-
+                    estado: {
+                        not: "CANCELADA"
+                    },
+                    inicio: {
+                        lt: fechaFin
+                    },
+                    fin: {
+                        gt: fechaInicio
+                    },
                     productores: {
                         some: {
-                            productorId: { in: productorIds }
+                            productorId: {
+                                in: productorIds
+                            }
                         }
                     },
-
                     ...(actividadIdExcluir !== null
-                        ? { id: { not: Number(actividadIdExcluir) } }
+                        ? {
+                            id: {
+                                not: Number(actividadIdExcluir)
+                            }
+                        }
                         : {})
                 },
-                select: { id: true }
+                select: {
+                    id: true
+                }
             });
 
             if (actividadConflicto) {
@@ -198,14 +354,33 @@ class ActividadService {
                 );
             }
 
-            const eventoConflicto = await prisma.evento.findFirst({
-                where: {
-                    estado: { not: "CANCELADO" },
-                    inicio: { lt: fechaFin },
-                    fin: { gt: fechaInicio },
-                    productorId: { in: productorIds }
+            const condicionesEvento = {
+                estado: {
+                    not: "CANCELADO"
                 },
-                select: { id: true }
+                inicio: {
+                    lt: fechaFin
+                },
+                fin: {
+                    gt: fechaInicio
+                },
+                productorId: {
+                    in: productorIds
+                }
+            };
+
+            // No se considera conflicto el propio evento asociado.
+            if (eventoId !== undefined && eventoId !== null) {
+                condicionesEvento.id = {
+                    not: Number(eventoId)
+                };
+            }
+
+            const eventoConflicto = await prisma.evento.findFirst({
+                where: condicionesEvento,
+                select: {
+                    id: true
+                }
             });
 
             if (eventoConflicto) {
@@ -221,19 +396,30 @@ class ActividadService {
         if (lugarNormalizado) {
             const actividadEnLugar = await prisma.actividad.findFirst({
                 where: {
-                    estado: { not: "CANCELADA" },
-                    inicio: { lt: fechaFin },
-                    fin: { gt: fechaInicio },
+                    estado: {
+                        not: "CANCELADA"
+                    },
+                    inicio: {
+                        lt: fechaFin
+                    },
+                    fin: {
+                        gt: fechaInicio
+                    },
                     lugar: {
                         equals: lugarNormalizado,
                         mode: "insensitive"
                     },
-
                     ...(actividadIdExcluir !== null
-                        ? { id: { not: Number(actividadIdExcluir) } }
+                        ? {
+                            id: {
+                                not: Number(actividadIdExcluir)
+                            }
+                        }
                         : {})
                 },
-                select: { id: true }
+                select: {
+                    id: true
+                }
             });
 
             if (actividadEnLugar) {
@@ -243,9 +429,15 @@ class ActividadService {
             }
 
             const condicionesEventoLugar = {
-                estado: { not: "CANCELADO" },
-                inicio: { lt: fechaFin },
-                fin: { gt: fechaInicio },
+                estado: {
+                    not: "CANCELADO"
+                },
+                inicio: {
+                    lt: fechaFin
+                },
+                fin: {
+                    gt: fechaInicio
+                },
                 lugar: {
                     equals: lugarNormalizado,
                     mode: "insensitive"
@@ -260,7 +452,9 @@ class ActividadService {
 
             const eventoEnLugar = await prisma.evento.findFirst({
                 where: condicionesEventoLugar,
-                select: { id: true }
+                select: {
+                    id: true
+                }
             });
 
             if (eventoEnLugar) {
@@ -271,13 +465,48 @@ class ActividadService {
         }
     }
 
-    async create(data) {
-        const { productores, ...datosActividad } = data;
+    // Crea actividades: ADMIN asigna productores y PRODUCTOR se asigna a sí mismo.
+    async create(data, usuario) {
+        await this.validarUsuarioAgenda(usuario);
 
-        await this.validarRelaciones({
-            eventoId: datosActividad.eventoId,
-            productores
-        });
+        const {
+            productores: productoresSolicitados,
+            ...datosActividad
+        } = data;
+
+        const productorAutenticado =
+            await this.obtenerProductorAutenticado(usuario);
+
+        let productores;
+
+        if (usuario.rol === "PRODUCTOR") {
+            productores = [{
+                productorId: productorAutenticado,
+                esResponsable: true
+            }];
+
+            await this.validarEventoProductor(
+                datosActividad.eventoId,
+                productorAutenticado
+            );
+        } else {
+            // Evita ejecutar .map() con undefined y devolver un error 500.
+            if (
+                !Array.isArray(productoresSolicitados) ||
+                productoresSolicitados.length === 0
+            ) {
+                throw new ConflictException(
+                    "Debe asignar al menos un productor."
+                );
+            }
+
+            productores = productoresSolicitados;
+
+            await this.validarRelaciones({
+                eventoId: datosActividad.eventoId,
+                productores
+            });
+        }
 
         await this.validarConflictos({
             ...datosActividad,
@@ -305,8 +534,11 @@ class ActividadService {
         });
     }
 
-    async update(id, data) {
-        const actividadActual = await this.getById(id);
+    // Actualiza una actividad respetando las asignaciones y permisos.
+    async update(id, data, usuario) {
+        await this.validarUsuarioAgenda(usuario);
+
+        const actividadActual = await this.getById(id, usuario);
 
         if (actividadActual.estado === "CANCELADA") {
             throw new ConflictException(
@@ -318,6 +550,14 @@ class ActividadService {
             productores: productoresNuevos,
             ...datosNuevos
         } = data;
+
+        const esProductor = usuario.rol === "PRODUCTOR";
+
+        if (esProductor && productoresNuevos !== undefined) {
+            throw new ForbiddenException(
+                "No puedes modificar las asignaciones de productores."
+            );
+        }
 
         const productoresActuales = actividadActual.productores.map(p => ({
             productorId: p.productorId,
@@ -341,18 +581,29 @@ class ActividadService {
             productores: productoresFinales
         };
 
-        await this.validarRelaciones({
-            eventoId: datosFinales.eventoId,
-            productores: productoresFinales
-        });
+        if (esProductor) {
+            const productorId =
+                await this.obtenerProductorAutenticado(usuario);
+
+            await this.validarEventoProductor(
+                datosFinales.eventoId,
+                productorId
+            );
+        } else {
+            await this.validarRelaciones({
+                eventoId: datosFinales.eventoId,
+                productores: productoresFinales
+            });
+        }
 
         await this.validarConflictos(datosFinales, id);
 
         return prisma.actividad.update({
-            where: { id: Number(id) },
+            where: {
+                id: Number(id)
+            },
             data: {
                 ...datosNuevos,
-
                 ...(productoresNuevos !== undefined
                     ? {
                         productores: {
@@ -377,8 +628,11 @@ class ActividadService {
         });
     }
 
-    async changeStatus(id, estado) {
-        const actividad = await this.getById(id);
+    // Cambia el estado y valida los conflictos al reactivar.
+    async changeStatus(id, estado, usuario) {
+        await this.validarUsuarioAgenda(usuario);
+
+        const actividad = await this.getById(id, usuario);
 
         if (actividad.estado === estado) {
             throw new ConflictException(
@@ -390,6 +644,12 @@ class ActividadService {
             actividad.estado === "CANCELADA" &&
             estado !== "CANCELADA"
         ) {
+            if (usuario.rol !== "ADMIN") {
+                throw new ForbiddenException(
+                    "Solo un administrador puede reactivar una actividad cancelada."
+                );
+            }
+
             const productores = actividad.productores.map(p => ({
                 productorId: p.productorId,
                 esResponsable: p.esResponsable
@@ -405,8 +665,12 @@ class ActividadService {
         }
 
         return prisma.actividad.update({
-            where: { id: Number(id) },
-            data: { estado },
+            where: {
+                id: Number(id)
+            },
+            data: {
+                estado
+            },
             include: {
                 productores: {
                     include: {
@@ -418,8 +682,11 @@ class ActividadService {
         });
     }
 
-    async remove(id) {
-        const actividad = await this.getById(id);
+    // Cancela lógicamente una actividad.
+    async remove(id, usuario) {
+        await this.validarUsuarioAgenda(usuario);
+
+        const actividad = await this.getById(id, usuario);
 
         if (actividad.estado === "CANCELADA") {
             throw new ConflictException(
@@ -428,17 +695,30 @@ class ActividadService {
         }
 
         return prisma.actividad.update({
-            where: { id: Number(id) },
-            data: { estado: "CANCELADA" }
+            where: {
+                id: Number(id)
+            },
+            data: {
+                estado: "CANCELADA"
+            }
         });
     }
 
-    async removePhysical(id) {
+    // Solo ADMIN puede eliminar físicamente.
+    async removePhysical(id, usuario) {
+        if (!usuario || usuario.rol !== "ADMIN") {
+            throw new ForbiddenException(
+                "Solo un administrador puede eliminar físicamente una actividad."
+            );
+        }
+
         await this.getById(id);
 
         try {
             return await prisma.actividad.delete({
-                where: { id: Number(id) }
+                where: {
+                    id: Number(id)
+                }
             });
         } catch (error) {
             if (error.code === "P2003" || error.code === "P2014") {
@@ -451,27 +731,75 @@ class ActividadService {
         }
     }
 
-    async getAgenda(filtros = {}) {
+    // Combina actividades y eventos en una única agenda.
+    async getAgenda(filtros = {}, usuario) {
+        await this.validarUsuarioAgenda(usuario);
+
         const whereActividad = {};
         const whereEvento = {};
 
         if (filtros.inicio) {
             const inicio = new Date(filtros.inicio);
-            whereActividad.fin = { gt: inicio };
-            whereEvento.fin = { gt: inicio };
+
+            whereActividad.fin = {
+                gt: inicio
+            };
+
+            whereEvento.fin = {
+                gt: inicio
+            };
         }
 
         if (filtros.fin) {
             const fin = new Date(filtros.fin);
-            whereActividad.inicio = { lt: fin };
-            whereEvento.inicio = { lt: fin };
+
+            whereActividad.inicio = {
+                lt: fin
+            };
+
+            whereEvento.inicio = {
+                lt: fin
+            };
         }
 
-        if (filtros.productorId) {
+        if (filtros.tipo) {
+            whereActividad.tipo = filtros.tipo;
+        }
+
+        if (filtros.estadoActividad ?? filtros.estado) {
+            whereActividad.estado =
+                filtros.estadoActividad ?? filtros.estado;
+        } else {
+            whereActividad.estado = {
+                not: "CANCELADA"
+            };
+        }
+
+        if (filtros.eventoId !== undefined && filtros.eventoId !== null) {
+            const eventoId = Number(filtros.eventoId);
+
+            whereActividad.eventoId = eventoId;
+            whereEvento.id = eventoId;
+        }
+
+        if (usuario.rol === "PRODUCTOR") {
+            const productorId =
+                await this.obtenerProductorAutenticado(usuario);
+
+            whereActividad.productores = {
+                some: {
+                    productorId
+                }
+            };
+
+            whereEvento.productorId = productorId;
+        } else if (filtros.productorId) {
             const productorId = Number(filtros.productorId);
 
             whereActividad.productores = {
-                some: { productorId }
+                some: {
+                    productorId
+                }
             };
 
             whereEvento.productorId = productorId;
@@ -479,41 +807,41 @@ class ActividadService {
 
         if (filtros.estadoEvento) {
             whereEvento.estado = filtros.estadoEvento;
-        }
-
-        if (filtros.estadoActividad) {
-            whereActividad.estado = filtros.estadoActividad;
         } else {
-            whereActividad.estado = { not: "CANCELADA" };
+            whereEvento.estado = {
+                not: "CANCELADO"
+            };
         }
 
-        const [actividades, eventos] = await Promise.all([
-            prisma.actividad.findMany({
-                where: whereActividad,
-                include: {
-                    productores: {
-                        include: {
-                            productor: true
-                        }
-                    },
-                    evento: true
-                }
-            }),
-
-            prisma.evento.findMany({
-                where: whereEvento,
-                include: {
-                    tipoEvento: true,
-                    cliente: true,
-                    productor: true
-                }
-            })
-        ]);
+        const actividades = await prisma.actividad.findMany({
+            where: whereActividad,
+            include: {
+                productores: {
+                    include: { productor: true }
+                },
+                evento: true
+            }
+        });
 
         const actividadesAgenda = actividades.map(actividad => ({
             ...actividad,
             tipoRegistro: "ACTIVIDAD"
         }));
+
+        if (filtros.tipo) {
+            return actividadesAgenda.sort(
+                (a, b) => new Date(a.inicio) - new Date(b.inicio)
+            );
+        }
+
+        const eventos = await prisma.evento.findMany({
+            where: whereEvento,
+            include: {
+                tipoEvento: true,
+                cliente: true,
+                productor: true
+            }
+        });
 
         const eventosAgenda = eventos.map(evento => ({
             ...evento,

@@ -1,3 +1,4 @@
+
 const { z } = require("zod");
 
 const tiposActividad = [
@@ -12,6 +13,14 @@ const estadosActividad = [
     "CANCELADA"
 ];
 
+const estadosEvento = [
+    "CONFIRMADO",
+    "POSPUESTO",
+    "EN_CURSO",
+    "COMPLETADO",
+    "CANCELADO"
+];
+
 const productorActividadSchema = z.object({
     productorId: z.coerce.number()
         .int("El ID del productor debe ser un número entero.")
@@ -19,6 +28,25 @@ const productorActividadSchema = z.object({
 
     esResponsable: z.boolean().optional().default(false)
 });
+
+const productoresActividadSchema = z.array(productorActividadSchema)
+    .min(1, "Debe asignar al menos un productor.")
+    .refine(
+        productores => {
+            const ids = productores.map(
+                productor => productor.productorId
+            );
+
+            return new Set(ids).size === ids.length;
+        },
+        "No se puede asignar el mismo productor más de una vez."
+    )
+    .refine(
+        productores => productores.filter(
+            productor => productor.esResponsable
+        ).length === 1,
+        "Debe asignar exactamente un productor responsable."
+    );
 
 const actividadBaseSchema = z.object({
     titulo: z.string({
@@ -65,46 +93,22 @@ const actividadBaseSchema = z.object({
         .optional()
         .nullable(),
 
-    productores: z.array(productorActividadSchema)
-        .min(1, "Debe asignar al menos un productor.")
-        .refine(
-            productores => {
-                const ids = productores.map(productor => productor.productorId);
-                return new Set(ids).size === ids.length;
-            },
-            "No se puede asignar el mismo productor más de una vez."
-        )
-        .refine(
-            productores => productores.filter(productor => productor.esResponsable).length === 1,
-            "Debe asignar exactamente un productor responsable."
-        )
-        .optional()
-})
-    .refine(
-        data => data.fin > data.inicio,
-        {
-            message: "La fecha de término debe ser posterior a la fecha de inicio.",
-            path: ["fin"]
-        }
-    );
+    productores: productoresActividadSchema.optional()
+});
 
 const createActividadSchema = z.object({
     body: actividadBaseSchema
-        .omit({ estado: true })
-        .extend({
-            productores: z.array(productorActividadSchema)
-                .min(1, "Debe asignar al menos un productor.")
-                .refine(
-                    productores => {
-                        const ids = productores.map(productor => productor.productorId);
-                        return new Set(ids).size === ids.length;
-                    },
-                    "No se puede asignar el mismo productor más de una vez."
-                )
-                .refine(
-                    productores => productores.filter(productor => productor.esResponsable).length === 1,
-                    "Debe asignar exactamente un productor responsable."
-                )
+        .omit({
+            estado: true
+        })
+        .superRefine((data, ctx) => {
+            if (data.fin <= data.inicio) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "La fecha de término debe ser posterior a la fecha de inicio.",
+                    path: ["fin"]
+                });
+            }
         })
 });
 
@@ -114,12 +118,24 @@ const updateActividadSchema = z.object({
             .int()
             .positive("ID inválido.")
     }),
+
     body: actividadBaseSchema
-        .omit({ estado: true })
+        .omit({
+            estado: true
+        })
         .partial()
         .refine(
             data => Object.keys(data).length > 0,
             "Debe proporcionar al menos un campo para modificar."
+        )
+        .refine(
+            data => data.inicio === undefined ||
+                data.fin === undefined ||
+                data.fin > data.inicio,
+            {
+                message: "La fecha de término debe ser posterior a la fecha de inicio.",
+                path: ["fin"]
+            }
         )
 });
 
@@ -136,6 +152,10 @@ const getActividadesSchema = z.object({
         tipo: z.enum(tiposActividad).optional(),
 
         estado: z.enum(estadosActividad).optional(),
+
+        estadoActividad: z.enum(estadosActividad).optional(),
+
+        estadoEvento: z.enum(estadosEvento).optional(),
 
         eventoId: z.coerce.number()
             .int()
@@ -159,6 +179,7 @@ const estadoActividadSchema = z.object({
             .int()
             .positive("ID inválido.")
     }),
+
     body: z.object({
         estado: z.enum(estadosActividad, {
             required_error: "El estado de la actividad es obligatorio.",

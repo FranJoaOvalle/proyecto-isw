@@ -83,7 +83,8 @@ const remove = async (req, res, next) => {
 const removePhysical = async (req, res, next) => {
     try {
         const actividad = await ActividadService.removePhysical(
-            req.validated.params.id
+            req.validated.params.id,
+            req.usuario
         );
 
         return res.status(200).json(actividad);
