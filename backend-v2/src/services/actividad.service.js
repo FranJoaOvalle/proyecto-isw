@@ -527,9 +527,12 @@ class ActividadService {
 
         const actividadActual = await this.getById(id, usuario);
 
-        if (actividadActual.estado === "CANCELADA") {
+        if (
+            actividadActual.estado === "CANCELADA" &&
+            usuario.rol !== "ADMIN"
+        ) {
             throw new ConflictException(
-                "No se puede modificar una actividad cancelada."
+                "Solo un administrador puede modificar una actividad cancelada."
             );
         }
 
@@ -752,7 +755,7 @@ class ActividadService {
         if (filtros.estadoActividad ?? filtros.estado) {
             whereActividad.estado =
                 filtros.estadoActividad ?? filtros.estado;
-        } else {
+        } else if (usuario.rol !== "ADMIN") {
             whereActividad.estado = {
                 not: "CANCELADA"
             };

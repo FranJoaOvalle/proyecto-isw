@@ -7,15 +7,31 @@ import {
     Col,
     Container,
     Form,
+    Modal,
     Row,
     Spinner
 } from "react-bootstrap";
 
+import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../../components/PageHeader";
 import EmptyState from "../../components/EmptyState";
+import ConfirmModal from "../../components/ConfirmModal";
+import api from "../../services/_api";
 import { getAgenda } from "../../services/agenda.service";
+import {
+    crearActividad,
+    actualizarActividad,
+    cambiarEstadoActividad,
+    cancelarActividad
+} from "../../services/actividad.service";
 
 const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+const TIPOS_ACTIVIDAD = [
+    { value: "TAREA", label: "Tarea" },
+    { value: "REUNION", label: "Reunión" },
+    { value: "VISITA_RECINTO", label: "Visita a recinto" }
+];
 
 const obtenerFechaLocal = (fecha) => {
     const anio = fecha.getFullYear();
@@ -25,12 +41,46 @@ const obtenerFechaLocal = (fecha) => {
     return `${anio}-${mes}-${dia}`;
 };
 
+const convertirAFechaHoraLocal = (fecha) => {
+    if (!fecha) return "";
+
+    const valor = new Date(fecha);
+
+    if (Number.isNaN(valor.getTime())) return "";
+
+    const anio = valor.getFullYear();
+    const mes = String(valor.getMonth() + 1).padStart(2, "0");
+    const dia = String(valor.getDate()).padStart(2, "0");
+    const horas = String(valor.getHours()).padStart(2, "0");
+    const minutos = String(valor.getMinutes()).padStart(2, "0");
+
+    return `${anio}-${mes}-${dia}T${horas}:${minutos}`;
+};
+
 const obtenerNombre = (registro) => {
     if (registro.tipoRegistro === "ACTIVIDAD") {
         return registro.titulo || "Actividad";
     }
 
     return registro.tipoEvento?.nombre || "Evento";
+};
+
+const obtenerProductoresAsignados = (registro) => {
+    if (!Array.isArray(registro.productores)) {
+        return [];
+    }
+
+    return registro.productores.map((asignacion) => {
+        const productor = asignacion.productor;
+
+        return {
+            id: asignacion.productorId,
+            nombre: productor
+                ? `${productor.nombres} ${productor.apellidos}`.trim()
+                : "Productor sin nombre",
+            esResponsable: asignacion.esResponsable
+        };
+    });
 };
 
 const formatearFecha = (fecha) => {
@@ -97,8 +147,12 @@ const obtenerRegistrosDelDia = (registros, fecha) => {
 
 export default function AgendaPage() {
     const hoy = obtenerFechaLocal(new Date());
+    const { usuario } = useAuth();
+    const esAdmin = usuario?.rol === "ADMIN";
 
     const [registros, setRegistros] = useState([]);
+    const [productores, setProductores] = useState([]);
+    const [productoresActividad, setProductoresActividad] = useState([]);
 
     const [mesVisible, setMesVisible] = useState(() => {
         const fecha = new Date();
@@ -109,9 +163,27 @@ export default function AgendaPage() {
     const [fechaSeleccionada, setFechaSeleccionada] = useState(hoy);
     const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
     const [cargando, setCargando] = useState(true);
+    const [cargandoProductores, setCargandoProductores] = useState(false);
     const [error, setError] = useState("");
+    const [mostrarFormulario, setMostrarFormulario] = useState(false);
+    const [actividadEditando, setActividadEditando] = useState(null);
+    const [guardandoActividad, setGuardandoActividad] = useState(false);
+    const [mensaje, setMensaje] = useState("");
 
-    // Carga todos los registros para navegar libremente por el calendario.
+    // Estados para confirmar la cancelación de una actividad.
+    const [actividadCancelando, setActividadCancelando] = useState(null);
+    const [cancelandoActividad, setCancelandoActividad] = useState(false);
+
+    const [formActividad, setFormActividad] = useState({
+        titulo: "",
+        descripcion: "",
+        tipo: "TAREA",
+        inicio: `${hoy}T09:00`,
+        fin: `${hoy}T10:00`,
+        lugar: "",
+        estado: "PENDIENTE"
+    });
+
     useEffect(() => {
         let activo = true;
 
@@ -123,12 +195,13 @@ export default function AgendaPage() {
                 const datos = await getAgenda();
 
                 if (activo) {
-                    setRegistros(datos);
+                    setRegistros(Array.isArray(datos) ? datos : []);
                 }
             } catch (err) {
                 if (activo) {
                     setError(
                         err.response?.data?.error?.message ||
+                        err.response?.data?.message ||
                         "No fue posible cargar la agenda."
                     );
                 }
@@ -146,7 +219,263 @@ export default function AgendaPage() {
         };
     }, []);
 
-    // Construye las semanas del mes visible.
+    useEffect(() => {
+        let activo = true;
+
+        const cargarProductores = async () => {
+            try {
+                setCargandoProductores(true);
+
+                const response = await api.get("/productores");
+                const lista = response.data.productores || [];
+
+                if (activo) {
+                    setProductores(
+                        lista.filter((productor) => productor.usuario?.activo)
+                    );
+                }
+            } catch (err) {
+                if (activo) {
+                    setError(
+                        err.response?.data?.error?.message ||
+                        err.response?.data?.message ||
+                        "No fue posible cargar los productores."
+                    );
+                }
+            } finally {
+                if (activo) {
+                    setCargandoProductores(false);
+                }
+            }
+        };
+
+        cargarProductores();
+
+        return () => {
+            activo = false;
+        };
+    }, []);
+
+    const recargarAgenda = async () => {
+        const datos = await getAgenda();
+        setRegistros(Array.isArray(datos) ? datos : []);
+    };
+
+    const abrirNuevaActividad = () => {
+        setActividadEditando(null);
+        setProductoresActividad([]);
+
+        setFormActividad({
+            titulo: "",
+            descripcion: "",
+            tipo: "TAREA",
+            inicio: `${fechaSeleccionada}T09:00`,
+            fin: `${fechaSeleccionada}T10:00`,
+            lugar: "",
+            estado: "PENDIENTE"
+        });
+
+        setError("");
+        setMensaje("");
+        setMostrarFormulario(true);
+    };
+
+    const abrirEdicionActividad = (actividad) => {
+        setActividadEditando(actividad);
+
+        setFormActividad({
+            titulo: actividad.titulo || "",
+            descripcion: actividad.descripcion || "",
+            tipo: actividad.tipo || "TAREA",
+            inicio: convertirAFechaHoraLocal(actividad.inicio),
+            fin: convertirAFechaHoraLocal(actividad.fin),
+            lugar: actividad.lugar || "",
+            estado: actividad.estado === "CANCELADA"
+                ? "PENDIENTE"
+                : actividad.estado
+        });
+
+        setProductoresActividad(
+            (actividad.productores || []).map((asignacion) => ({
+                productorId: asignacion.productorId,
+                esResponsable: asignacion.esResponsable
+            }))
+        );
+
+        setError("");
+        setMensaje("");
+        setMostrarFormulario(true);
+    };
+
+    const cambiarProductorAsignado = (productorId, seleccionado) => {
+        setProductoresActividad((actuales) => {
+            if (seleccionado) {
+                if (
+                    actuales.some(
+                        (item) => item.productorId === productorId
+                    )
+                ) {
+                    return actuales;
+                }
+
+                return [
+                    ...actuales,
+                    {
+                        productorId,
+                        esResponsable: actuales.length === 0
+                    }
+                ];
+            }
+
+            const eliminadoEraResponsable = actuales.some(
+                (item) =>
+                    item.productorId === productorId &&
+                    item.esResponsable
+            );
+
+            const restantes = actuales.filter(
+                (item) => item.productorId !== productorId
+            );
+
+            if (eliminadoEraResponsable && restantes.length > 0) {
+                return restantes.map((item, indice) => ({
+                    ...item,
+                    esResponsable: indice === 0
+                }));
+            }
+
+            return restantes;
+        });
+    };
+
+    const cambiarResponsable = (productorId) => {
+        setProductoresActividad((actuales) =>
+            actuales.map((item) => ({
+                ...item,
+                esResponsable: item.productorId === productorId
+            }))
+        );
+    };
+
+    const guardarActividad = async (e) => {
+        e.preventDefault();
+        setError("");
+        setMensaje("");
+
+        if (
+            new Date(formActividad.fin) <=
+            new Date(formActividad.inicio)
+        ) {
+            setError(
+                "La fecha de término debe ser posterior a la fecha de inicio."
+            );
+            return;
+        }
+
+        if (!actividadEditando && productores.length === 0) {
+            setError(
+                "No hay productores activos disponibles para asignar."
+            );
+            return;
+        }
+
+        if (productoresActividad.length === 0) {
+            setError("Debes asignar al menos un productor.");
+            return;
+        }
+
+        if (
+            productoresActividad.filter((item) => item.esResponsable).length !== 1
+        ) {
+            setError(
+                "Debes seleccionar exactamente un productor responsable."
+            );
+            return;
+        }
+
+        try {
+            setGuardandoActividad(true);
+
+            const payload = {
+                titulo: formActividad.titulo.trim(),
+                descripcion: formActividad.descripcion.trim() || null,
+                tipo: formActividad.tipo,
+                inicio: new Date(formActividad.inicio).toISOString(),
+                fin: new Date(formActividad.fin).toISOString(),
+                lugar: formActividad.lugar.trim() || null
+            };
+
+            payload.productores = productoresActividad;
+
+            if (actividadEditando) {
+                await actualizarActividad(actividadEditando.id, payload);
+                console.log("Estado original:", actividadEditando.estado);
+                console.log("Estado seleccionado:", formActividad.estado);
+
+                if (formActividad.estado !== actividadEditando.estado) {
+                    await cambiarEstadoActividad(
+                        actividadEditando.id,
+                        formActividad.estado
+                    );
+                }
+
+                setMensaje("Actividad actualizada correctamente.");
+            } else {
+                await crearActividad({
+                    ...payload,
+                    estado: "PENDIENTE"
+                });
+
+                setMensaje("Actividad creada correctamente.");
+            }
+
+            await recargarAgenda();
+            setMostrarFormulario(false);
+            setRegistroSeleccionado(null);
+        } catch (err) {
+            setError(
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                "No fue posible guardar la actividad."
+            );
+        } finally {
+            setGuardandoActividad(false);
+        }
+    };
+
+    // Abre el modal de confirmación sin cancelar inmediatamente.
+    const anularActividad = (actividad) => {
+        setError("");
+        setMensaje("");
+        setActividadCancelando(actividad);
+    };
+
+    // Cancela la actividad únicamente cuando el usuario confirma.
+    const confirmarCancelacion = async () => {
+        if (!actividadCancelando || cancelandoActividad) return;
+
+        try {
+            setCancelandoActividad(true);
+            setError("");
+            setMensaje("");
+
+            await cancelarActividad(actividadCancelando.id);
+            await recargarAgenda();
+
+            setRegistroSeleccionado(null);
+            setActividadCancelando(null);
+            setMensaje("Actividad cancelada correctamente.");
+        } catch (err) {
+            setError(
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                "No fue posible cancelar la actividad."
+            );
+        } finally {
+            setCancelandoActividad(false);
+        }
+    };
+
     const diasCalendario = useMemo(() => {
         const anio = mesVisible.getFullYear();
         const mes = mesVisible.getMonth();
@@ -173,7 +502,6 @@ export default function AgendaPage() {
         });
     }, [mesVisible, hoy]);
 
-    // Organiza los registros para mostrarlos en cada día.
     const registrosPorDia = useMemo(() => {
         const mapa = {};
 
@@ -290,7 +618,7 @@ export default function AgendaPage() {
                 description="Toda la planificación de tus actividades y eventos en un solo lugar."
             />
 
-            {error && (
+            {error && !mostrarFormulario && (
                 <Alert
                     variant="danger"
                     dismissible
@@ -300,7 +628,27 @@ export default function AgendaPage() {
                 </Alert>
             )}
 
-            {/* Calendario mensual */}
+            <div className="d-flex justify-content-end mb-3">
+                <Button
+                    variant="primary"
+                    className="rounded-3"
+                    onClick={abrirNuevaActividad}
+                >
+                    <i className="bi bi-plus-lg me-2" />
+                    Nueva actividad
+                </Button>
+            </div>
+
+            {mensaje && (
+                <Alert
+                    variant="success"
+                    dismissible
+                    onClose={() => setMensaje("")}
+                >
+                    {mensaje}
+                </Alert>
+            )}
+
             <Card className="bg-body text-body border border-secondary border-opacity-25 shadow-sm rounded-4 mb-4 overflow-hidden">
                 <Card.Body className="p-0">
                     <div className="p-3 p-md-4 border-bottom">
@@ -320,11 +668,15 @@ export default function AgendaPage() {
 
                                     <div>
                                         <h2 className="h4 text-capitalize fw-bold mb-1">
-                                            {mesVisible.toLocaleDateString("es-CL", {
-                                                month: "long",
-                                                year: "numeric"
-                                            })}
+                                            {mesVisible.toLocaleDateString(
+                                                "es-CL",
+                                                {
+                                                    month: "long",
+                                                    year: "numeric"
+                                                }
+                                            )}
                                         </h2>
+
                                         <p className="small text-secondary mb-0">
                                             Vista mensual de tu planificación
                                         </p>
@@ -347,6 +699,7 @@ export default function AgendaPage() {
                                         <Form.Label className="small fw-semibold mb-1">
                                             Ir a una fecha
                                         </Form.Label>
+
                                         <Form.Control
                                             type="date"
                                             size="sm"
@@ -574,7 +927,6 @@ export default function AgendaPage() {
                 </Card.Body>
             </Card>
 
-            {/* Detalle del día */}
             <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3">
                 <div>
                     <div className="d-flex align-items-center gap-2 mb-1">
@@ -622,10 +974,9 @@ export default function AgendaPage() {
                         const esEvento =
                             registro.tipoRegistro === "EVENTO";
 
-                        const seleccionado =
-                            registroSeleccionado?.tipoRegistro ===
-                                registro.tipoRegistro &&
-                            registroSeleccionado?.id === registro.id;
+                        const productoresAsignados = esEvento
+                            ? []
+                            : obtenerProductoresAsignados(registro);
 
                         return (
                             <Col
@@ -644,7 +995,12 @@ export default function AgendaPage() {
                                             <Badge
                                                 bg={esEvento ? "primary" : "success"}
                                                 className="rounded-pill px-2 py-1 d-inline-flex align-items-center justify-content-center text-nowrap"
-                                                style={{ minHeight: 25, fontSize: "0.73rem", lineHeight: 1.1, flexShrink: 0 }}
+                                                style={{
+                                                    minHeight: 25,
+                                                    fontSize: "0.73rem",
+                                                    lineHeight: 1.1,
+                                                    flexShrink: 0
+                                                }}
                                             >
                                                 <i
                                                     className={`bi ${
@@ -659,9 +1015,22 @@ export default function AgendaPage() {
                                             <Badge
                                                 bg={obtenerVarianteEstado(registro.estado)}
                                                 className="rounded-pill px-2 py-1 d-inline-flex align-items-center justify-content-center text-nowrap"
-                                                style={{ minHeight: 25, fontSize: "0.73rem", lineHeight: 1.1, flexShrink: 0 }}
+                                                style={{
+                                                    minHeight: 25,
+                                                    fontSize: "0.73rem",
+                                                    lineHeight: 1.1,
+                                                    flexShrink: 0,
+                                                    ...(registro.estado === "PENDIENTE"
+                                                        ? {
+                                                            backgroundColor: "#f0ad00",
+                                                            color: "#ffffff"
+                                                        }
+                                                        : {})
+                                                }}
                                             >
-                                                {registro.estado ? formatearEstado(registro.estado) : "Sin estado"}
+                                                {registro.estado
+                                                    ? formatearEstado(registro.estado)
+                                                    : "Sin estado"}
                                             </Badge>
                                         </div>
 
@@ -688,9 +1057,15 @@ export default function AgendaPage() {
                                                 WebkitLineClamp: 2,
                                                 overflow: "hidden"
                                             }}
-                                            title={registro.descripcion || registro.tipoEvento?.descripcion || ""}
+                                            title={
+                                                registro.descripcion ||
+                                                registro.tipoEvento?.descripcion ||
+                                                ""
+                                            }
                                         >
-                                            {registro.descripcion || registro.tipoEvento?.descripcion || " "}
+                                            {registro.descripcion ||
+                                                registro.tipoEvento?.descripcion ||
+                                                " "}
                                         </p>
 
                                         <div className="d-flex flex-column gap-3 small">
@@ -761,34 +1136,80 @@ export default function AgendaPage() {
                                             </div>
                                         </div>
 
-                                        {(esEvento
-                                            ? registro.tipoEvento?.nombre || registro.asistentes !== undefined
-                                            : registro.tipo) && (
-                                            <div className="bg-body-tertiary text-body rounded-3 p-3 mt-4 border border-secondary border-opacity-10">
-                                                {esEvento && registro.tipoEvento?.nombre && (
-                                                    <p className="small mb-2">
-                                                        <strong>Tipo de evento:</strong>{" "}
-                                                        {registro.tipoEvento.nombre}
-                                                    </p>
-                                                )}
+                                        {!esEvento && (
+                                            <div className="bg-body-tertiary text-body rounded-3 p-3 mt-3 border border-secondary border-opacity-10">
+                                                <div className="d-flex align-items-center gap-2 mb-3">
+                                                    <i className="bi bi-people text-primary fs-5" />
 
-                                                {!esEvento && registro.tipo && (
-                                                    <p className="small mb-0">
-                                                        <strong>Tipo de actividad:</strong>{" "}
-                                                        {String(registro.tipo)
-                                                            .toLocaleLowerCase("es-CL")
-                                                            .replace(/^./u, (letra) => letra.toLocaleUpperCase("es-CL"))}
-                                                    </p>
-                                                )}
+                                                    <span className="fw-semibold">
+                                                        Productores asignados
+                                                    </span>
 
-                                                {esEvento && registro.asistentes !== undefined && (
-                                                    <p className="small mb-0">
-                                                        <strong>Asistentes:</strong>{" "}
-                                                        {registro.asistentes}
+                                                    <Badge bg="secondary" pill>
+                                                        {productoresAsignados.length}
+                                                    </Badge>
+                                                </div>
+
+                                                {productoresAsignados.length === 0 ? (
+                                                    <p className="small text-body-secondary mb-0">
+                                                        No hay productores asignados.
                                                     </p>
+                                                ) : (
+                                                    <div className="d-flex flex-column gap-2">
+                                                        {productoresAsignados.map((productor, indice) => (
+                                                            <div
+                                                                key={productor.id ?? indice}
+                                                                className="d-flex align-items-center justify-content-between gap-2"
+                                                            >
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    <i className="bi bi-person-circle text-secondary fs-5" />
+
+                                                                    <span className="small fw-medium">
+                                                                        {productor.nombre}
+                                                                    </span>
+                                                                </div>
+
+                                                                {productor.esResponsable && (
+                                                                    <Badge
+                                                                        bg="primary"
+                                                                        className="rounded-pill text-nowrap"
+                                                                    >
+                                                                        Responsable
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
+
+                                        {!esEvento &&
+                                            (registro.estado !== "CANCELADA" || esAdmin) && (
+                                                <div className="d-flex gap-2 mt-3">
+                                                    <Button
+                                                        variant="outline-primary"
+                                                        size="sm"
+                                                        className="rounded-3 flex-fill py-2"
+                                                        onClick={() => abrirEdicionActividad(registro)}
+                                                    >
+                                                        <i className="bi bi-pencil me-1" />
+                                                        Editar
+                                                    </Button>
+
+                                                    {registro.estado !== "CANCELADA" && (
+                                                        <Button
+                                                            variant="outline-danger"
+                                                            size="sm"
+                                                            className="rounded-3 flex-fill py-2"
+                                                            onClick={() => anularActividad(registro)}
+                                                        >
+                                                            <i className="bi bi-x-circle me-1" />
+                                                            Cancelar
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )}
                                     </Card.Body>
                                 </Card>
                             </Col>
@@ -796,6 +1217,274 @@ export default function AgendaPage() {
                     })}
                 </Row>
             )}
+
+            {/* Formulario para crear o editar actividades */}
+            <Modal
+                show={mostrarFormulario}
+                onHide={() => {
+                    if (!guardandoActividad) {
+                        setMostrarFormulario(false);
+                    }
+                }}
+                centered
+            >
+                <Form onSubmit={guardarActividad}>
+                    <Modal.Header closeButton={!guardandoActividad}>
+                        <Modal.Title>
+                            {actividadEditando
+                                ? "Editar actividad"
+                                : "Nueva actividad"}
+                        </Modal.Title>
+                    </Modal.Header>
+
+                    <Modal.Body>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Título *</Form.Label>
+                            <Form.Control
+                                required
+                                minLength={2}
+                                maxLength={100}
+                                value={formActividad.titulo}
+                                onChange={(e) =>
+                                    setFormActividad({
+                                        ...formActividad,
+                                        titulo: e.target.value
+                                    })
+                                }
+                                placeholder="Ej. Reunión de coordinación"
+                            />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Descripción</Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                rows={3}
+                                maxLength={2000}
+                                value={formActividad.descripcion}
+                                onChange={(e) =>
+                                    setFormActividad({
+                                        ...formActividad,
+                                        descripcion: e.target.value
+                                    })
+                                }
+                                placeholder="Describe las tareas o el objetivo de la actividad"
+                            />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Tipo de actividad *</Form.Label>
+                            <Form.Select
+                                required
+                                value={formActividad.tipo}
+                                onChange={(e) =>
+                                    setFormActividad({
+                                        ...formActividad,
+                                        tipo: e.target.value
+                                    })
+                                }
+                            >
+                                {TIPOS_ACTIVIDAD.map((tipo) => (
+                                    <option key={tipo.value} value={tipo.value}>
+                                        {tipo.label}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+
+                        {actividadEditando && (
+                            <Form.Group className="mb-3">
+                                <Form.Label>Estado de la actividad *</Form.Label>
+                                <Form.Select
+                                    value={formActividad.estado}
+                                    onChange={(e) =>
+                                        setFormActividad((anterior) => ({
+                                            ...anterior,
+                                            estado: e.target.value
+                                        }))
+                                    }
+                                >
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="COMPLETADA">Completada</option>
+                                </Form.Select>
+                            </Form.Group>
+                        )}
+
+                        <Row className="g-3">
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Inicio *</Form.Label>
+                                    <Form.Control
+                                        type="datetime-local"
+                                        required
+                                        value={formActividad.inicio}
+                                        onChange={(e) =>
+                                            setFormActividad({
+                                                ...formActividad,
+                                                inicio: e.target.value
+                                            })
+                                        }
+                                    />
+                                </Form.Group>
+                            </Col>
+
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Término *</Form.Label>
+                                    <Form.Control
+                                        type="datetime-local"
+                                        required
+                                        value={formActividad.fin}
+                                        onChange={(e) =>
+                                            setFormActividad({
+                                                ...formActividad,
+                                                fin: e.target.value
+                                            })
+                                        }
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Lugar</Form.Label>
+                            <Form.Control
+                                maxLength={200}
+                                value={formActividad.lugar}
+                                onChange={(e) =>
+                                    setFormActividad({
+                                        ...formActividad,
+                                        lugar: e.target.value
+                                    })
+                                }
+                                placeholder="Lugar donde se realizará"
+                            />
+                        </Form.Group>
+
+                            <Form.Group className="mb-3">
+                                <Form.Label>Productores asignados *</Form.Label>
+
+                                {cargandoProductores ? (
+                                    <div className="d-flex align-items-center gap-2 text-secondary py-2">
+                                        <Spinner size="sm" />
+                                        <span className="small">
+                                            Cargando productores...
+                                        </span>
+                                    </div>
+                                ) : productores.length === 0 ? (
+                                    <Alert variant="warning" className="mb-0">
+                                        No hay productores activos disponibles.
+                                    </Alert>
+                                ) : (
+                                    <div className="border rounded-3 px-3">
+                                        {productores.map((productor) => {
+                                            const asignado =
+                                                productoresActividad.find(
+                                                    (item) =>
+                                                        item.productorId === productor.id
+                                                );
+
+                                            return (
+                                                <div
+                                                    key={productor.id}
+                                                    className="d-flex flex-wrap justify-content-between align-items-center gap-2 py-3 border-bottom"
+                                                >
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        id={`productor-${productor.id}`}
+                                                        label={`${productor.nombres} ${productor.apellidos}`}
+                                                        checked={Boolean(asignado)}
+                                                        onChange={(e) =>
+                                                            cambiarProductorAsignado(
+                                                                productor.id,
+                                                                e.target.checked
+                                                            )
+                                                        }
+                                                    />
+
+                                                    {asignado && (
+                                                        <Form.Check
+                                                            type="radio"
+                                                            name="productorResponsable"
+                                                            id={`responsable-${productor.id}`}
+                                                            label="Responsable"
+                                                            checked={asignado.esResponsable}
+                                                            onChange={() =>
+                                                                cambiarResponsable(productor.id)
+                                                            }
+                                                        />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <Form.Text className="text-body-secondary">
+                                    Selecciona al menos un productor y marca
+                                    exactamente uno como responsable. El primero
+                                    seleccionado queda como responsable inicialmente.
+                                </Form.Text>
+                            </Form.Group>
+
+                        {error && (
+                            <Alert variant="danger" className="mt-3 mb-0">
+                                {error}
+                            </Alert>
+                        )}
+                    </Modal.Body>
+
+                    <Modal.Footer>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setMostrarFormulario(false)}
+                            disabled={guardandoActividad}
+                        >
+                            Cerrar
+                        </Button>
+
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            disabled={
+                                guardandoActividad ||
+                                (!actividadEditando &&
+                                    (cargandoProductores || productores.length === 0))
+                            }
+                        >
+                            {guardandoActividad ? (
+                                <>
+                                    <Spinner size="sm" className="me-2" />
+                                    Guardando...
+                                </>
+                            ) : (
+                                "Guardar actividad"
+                            )}
+                        </Button>
+                    </Modal.Footer>
+                </Form>
+            </Modal>
+
+            {/* Modal de confirmación para cancelar una actividad */}
+            <ConfirmModal
+                show={Boolean(actividadCancelando)}
+                onHide={() => {
+                    if (!cancelandoActividad) {
+                        setActividadCancelando(null);
+                    }
+                }}
+                onConfirm={confirmarCancelacion}
+                title="Cancelar actividad"
+                confirmText="Sí, cancelar"
+                variant="danger"
+                loading={cancelandoActividad}
+            >
+                ¿Estás seguro de que deseas cancelar la actividad{" "}
+                <strong>
+                    «{actividadCancelando?.titulo}»
+                </strong>
+                ?
+            </ConfirmModal>
         </Container>
     );
 }
