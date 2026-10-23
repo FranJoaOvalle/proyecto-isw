@@ -5,7 +5,6 @@ const ForbiddenException = require("../exceptions/ForbiddenException");
 
 class ActividadService {
 
-    // Comprueba que el usuario tenga acceso al módulo de agenda.
     async validarUsuarioAgenda(usuario) {
         if (!usuario) {
             throw new ForbiddenException(
@@ -20,8 +19,6 @@ class ActividadService {
         }
     }
 
-    // Obtiene el perfil del productor autenticado.
-    // Para ADMIN devuelve null, porque no necesita un perfil de productor.
     async obtenerProductorAutenticado(usuario) {
         await this.validarUsuarioAgenda(usuario);
 
@@ -47,7 +44,6 @@ class ActividadService {
         return productor.id;
     }
 
-    // Comprueba que el productor esté asignado a la actividad.
     async verificarAccesoActividad(id, usuario) {
         const productorId =
             await this.obtenerProductorAutenticado(usuario);
@@ -75,7 +71,6 @@ class ActividadService {
         }
     }
 
-    // Comprueba que el evento exista y pertenezca al productor.
     async validarEventoProductor(eventoId, productorId) {
         if (eventoId === undefined || eventoId === null) {
             return;
@@ -98,7 +93,6 @@ class ActividadService {
         }
     }
 
-    // Lista actividades aplicando filtros y restricciones de acceso.
     async getAll(filtros = {}, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
@@ -176,7 +170,6 @@ class ActividadService {
         });
     }
 
-    // Obtiene una actividad sin devolver el usuario completo del productor.
     async getById(id, usuario) {
         if (usuario) {
             await this.validarUsuarioAgenda(usuario);
@@ -212,7 +205,6 @@ class ActividadService {
         return actividad;
     }
 
-    // Valida el evento asociado y las asignaciones de productores.
     async validarRelaciones({ eventoId, productores }) {
         if (eventoId !== undefined && eventoId !== null) {
             const evento = await prisma.evento.findUnique({
@@ -285,7 +277,6 @@ class ActividadService {
         }
     }
 
-    // Evita solapamientos de horario entre actividades y eventos.
     async validarConflictos(
         { inicio, fin, lugar, productores, eventoId },
         actividadIdExcluir = null
@@ -369,7 +360,6 @@ class ActividadService {
                 }
             };
 
-            // No se considera conflicto el propio evento asociado.
             if (eventoId !== undefined && eventoId !== null) {
                 condicionesEvento.id = {
                     not: Number(eventoId)
@@ -465,7 +455,6 @@ class ActividadService {
         }
     }
 
-    // Crea actividades: ADMIN asigna productores y PRODUCTOR se asigna a sí mismo.
     async create(data, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
@@ -490,7 +479,6 @@ class ActividadService {
                 productorAutenticado
             );
         } else {
-            // Evita ejecutar .map() con undefined y devolver un error 500.
             if (
                 !Array.isArray(productoresSolicitados) ||
                 productoresSolicitados.length === 0
@@ -534,7 +522,6 @@ class ActividadService {
         });
     }
 
-    // Actualiza una actividad respetando las asignaciones y permisos.
     async update(id, data, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
@@ -628,7 +615,6 @@ class ActividadService {
         });
     }
 
-    // Cambia el estado y valida los conflictos al reactivar.
     async changeStatus(id, estado, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
@@ -682,7 +668,6 @@ class ActividadService {
         });
     }
 
-    // Cancela lógicamente una actividad.
     async remove(id, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
@@ -704,7 +689,6 @@ class ActividadService {
         });
     }
 
-    // Solo ADMIN puede eliminar físicamente.
     async removePhysical(id, usuario) {
         if (!usuario || usuario.rol !== "ADMIN") {
             throw new ForbiddenException(
@@ -731,7 +715,6 @@ class ActividadService {
         }
     }
 
-    // Combina actividades y eventos en una única agenda.
     async getAgenda(filtros = {}, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
