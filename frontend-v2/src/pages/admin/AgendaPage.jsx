@@ -685,121 +685,183 @@ export default function AgendaPage() {
                 </Alert>
             )}
 
-            <Card className="bg-body text-body border border-secondary border-opacity-25 shadow-sm rounded-4 mb-4 overflow-hidden">
-                <Card.Body className="p-0">
-                    <div className="p-3 p-md-4 border-bottom">
-                        <Row className="align-items-center g-3">
-                            <Col>
-                                <div className="d-flex align-items-center gap-3">
-                                    <div
-                                        className="d-flex align-items-center justify-content-center rounded-4 bg-primary text-white shadow-sm"
-                                        style={{
-                                            width: 52,
-                                            height: 52,
-                                            flexShrink: 0
-                                        }}
-                                    >
-                                        <i className="bi bi-calendar3 fs-3" />
+            {/* Calendario mensual */}
+            <Card className="bg-body text-body border rounded-4 mb-4 overflow-hidden shadow">
+                <div className="bg-primary" style={{ height: 5 }} />
+
+                <Card.Body className="p-3 p-lg-4">
+                    {/* Encabezado */}
+                    <Row className="align-items-center g-3 mb-4">
+                        <Col xs={12} lg>
+                            <div className="d-flex align-items-center gap-3">
+                                <div
+                                    className="d-flex align-items-center justify-content-center rounded-4 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25"
+                                    style={{ width: 54, height: 54, flexShrink: 0 }}
+                                >
+                                    <i className="bi bi-calendar3 fs-3" />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <div className="small fw-bold text-primary mb-1">
+                                        MI AGENDA
                                     </div>
 
-                                    <div>
-                                        <h2 className="h4 text-capitalize fw-bold mb-1">
-                                            {mesVisible.toLocaleDateString(
-                                                "es-CL",
-                                                {
-                                                    month: "long",
-                                                    year: "numeric"
-                                                }
-                                            )}
-                                        </h2>
+                                    <h2 className="h4 fw-bold text-capitalize mb-1">
+                                        {mesVisible.toLocaleDateString("es-CL", {
+                                            month: "long",
+                                            year: "numeric"
+                                        })}
+                                    </h2>
 
-                                        <p className="small text-secondary mb-0">
-                                            Vista mensual de tu planificación
-                                        </p>
+                                    <div className="small text-body-secondary">
+                                        Organiza y consulta tus eventos y actividades
                                     </div>
                                 </div>
-                            </Col>
+                            </div>
+                        </Col>
 
-                            <Col xs="auto">
-                                <div className="d-flex flex-wrap align-items-end justify-content-end gap-2">
+                        <Col xs={12} lg="auto">
+                            <div className="d-flex align-items-center justify-content-between justify-content-lg-end gap-2">
+                                <div className="d-flex align-items-center gap-1 p-1 rounded-3 border bg-body-tertiary">
                                     <Button
-                                        variant="outline-secondary"
-                                        className="rounded-3"
+                                        variant="light"
+                                        size="sm"
+                                        className="rounded-2 border-0 bg-transparent text-body"
                                         onClick={() => cambiarMes(-1)}
                                         aria-label="Mes anterior"
                                     >
                                         <i className="bi bi-chevron-left" />
                                     </Button>
 
-                                    <Form.Group style={{ width: 155 }}>
-                                        <Form.Label className="small fw-semibold mb-1">
-                                            Ir a una fecha
-                                        </Form.Label>
-
-                                        <Form.Control
-                                            type="date"
-                                            size="sm"
-                                            value={fechaSeleccionada}
-                                            onChange={(e) => {
-                                                if (e.target.value) {
-                                                    seleccionarDia(e.target.value);
-                                                }
-                                            }}
-                                            aria-label="Ir a una fecha"
-                                        />
-                                    </Form.Group>
-
                                     <Button
-                                        variant="outline-primary"
-                                        className="rounded-3"
-                                        onClick={irAHoy}
-                                    >
-                                        Hoy
-                                    </Button>
-
-                                    <Button
-                                        variant="outline-secondary"
-                                        className="rounded-3"
+                                        variant="light"
+                                        size="sm"
+                                        className="rounded-2 border-0 bg-transparent text-body"
                                         onClick={() => cambiarMes(1)}
                                         aria-label="Mes siguiente"
                                     >
                                         <i className="bi bi-chevron-right" />
                                     </Button>
                                 </div>
-                            </Col>
-                        </Row>
 
-                        <div className="d-flex flex-wrap align-items-center gap-3 mt-4">
-                            <span className="d-flex align-items-center gap-2 small text-secondary">
-                                <span
-                                    className="rounded-circle bg-success"
-                                    style={{ width: 9, height: 9 }}
-                                />
-                                Actividades
-                            </span>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    className="rounded-3 fw-semibold px-3 shadow-sm"
+                                    onClick={irAHoy}
+                                >
+                                    <i className="bi bi-calendar-check me-2" />
+                                    Hoy
+                                </Button>
+                            </div>
+                        </Col>
+                    </Row>
 
-                            <span className="d-flex align-items-center gap-2 small text-secondary">
-                                <span
-                                    className="rounded-circle bg-primary"
-                                    style={{ width: 9, height: 9 }}
-                                />
-                                Eventos
-                            </span>
+                    {/* Resumen mensual */}
+                    <div className="d-flex justify-content-center gap-2 mb-3">
+                        <div
+                            className="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border border-primary border-opacity-25"
+                            style={{
+                                backgroundColor: "var(--bs-primary-bg-subtle)",
+                                width: "fit-content"
+                            }}
+                        >
+                            <div
+                                className="d-flex align-items-center justify-content-center rounded-2 bg-primary text-white"
+                                style={{ width: 28, height: 28, flexShrink: 0 }}
+                            >
+                                <i className="bi bi-calendar-event small" />
+                            </div>
 
-                            <span className="d-flex align-items-center gap-2 small text-secondary">
-                                <span
-                                    className="rounded-circle border border-primary border-2"
-                                    style={{ width: 10, height: 10 }}
-                                />
-                                Día seleccionado
-                            </span>
+                            <div>
+                                <div className="small text-body-secondary">Eventos</div>
+                                <div className="fw-bold lh-1">
+                                    {
+                                        registros.filter(
+                                            (registro) => registro.tipoRegistro === "EVENTO"
+                                        ).length
+                                    }
+                                </div>
+                            </div>
+                        </div>
 
-                            <span className="ms-auto small text-secondary">
-                                {registros.length} registros
-                            </span>
+                        <div
+                            className="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border border-success border-opacity-25"
+                            style={{
+                                backgroundColor: "var(--bs-success-bg-subtle)",
+                                width: "fit-content"
+                            }}
+                        >
+                            <div
+                                className="d-flex align-items-center justify-content-center rounded-2 bg-success text-white"
+                                style={{ width: 28, height: 28, flexShrink: 0 }}
+                            >
+                                <i className="bi bi-check2-circle small" />
+                            </div>
+
+                            <div>
+                                <div className="small text-body-secondary">Actividades</div>
+                                <div className="fw-bold lh-1">
+                                    {
+                                        registros.filter(
+                                            (registro) => registro.tipoRegistro !== "EVENTO"
+                                        ).length
+                                    }
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    {/* Selector de fecha y leyenda */}
+                    <div className="border rounded-4 p-3 mb-4 bg-body-tertiary">
+                        <Row className="align-items-end g-3">
+                            <Col xs={12} md={5} lg={4}>
+                                <Form.Label className="small fw-semibold mb-2">
+                                    <i className="bi bi-calendar-event text-primary me-2" />
+                                    Ir a una fecha
+                                </Form.Label>
+
+                                <Form.Control
+                                    type="date"
+                                    size="sm"
+                                    className="rounded-3 bg-body"
+                                    value={fechaSeleccionada}
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            seleccionarDia(e.target.value);
+                                        }
+                                    }}
+                                    aria-label="Ir a una fecha"
+                                />
+                            </Col>
+
+                            <Col xs={12} md>
+                                <div className="d-flex align-items-center flex-wrap gap-3 gap-lg-4">
+                                    <span className="small fw-semibold text-body-secondary">
+                                        Referencias
+                                    </span>
+
+                                    <span className="d-inline-flex align-items-center gap-2 small">
+                                        <span
+                                            className="rounded-2 bg-primary"
+                                            style={{ width: 10, height: 10 }}
+                                        />
+                                        Eventos
+                                    </span>
+
+                                    <span className="d-inline-flex align-items-center gap-2 small">
+                                        <span
+                                            className="rounded-2 bg-success"
+                                            style={{ width: 10, height: 10 }}
+                                        />
+                                        Actividades
+                                    </span>
+                                </div>
+                            </Col>
+                        </Row>
+                    </div>
+
+                    {/* Calendario */}
                     {cargando ? (
                         <div className="d-flex flex-column align-items-center py-5">
                             <Spinner
@@ -807,34 +869,34 @@ export default function AgendaPage() {
                                 variant="primary"
                                 className="mb-3"
                             />
-                            <span className="small text-secondary">
+                            <span className="small text-body-secondary">
                                 Cargando calendario...
                             </span>
                         </div>
                     ) : (
-                        <div className="p-2 p-md-3">
+                        <>
                             <div
-                                className="border border-secondary border-opacity-25 rounded-3 overflow-hidden"
+                                className="border border-2 rounded-4 overflow-hidden"
                                 style={{
                                     display: "grid",
-                                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))"
+                                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                                    backgroundColor: "var(--bs-border-color)"
                                 }}
                             >
+                                {/* Encabezados de los días */}
                                 {DIAS_SEMANA.map((dia) => (
                                     <div
                                         key={dia}
-                                        className="text-center small fw-bold text-body-secondary bg-body-tertiary py-3 border-bottom"
+                                        className="text-center small fw-bold text-body-secondary bg-body-tertiary border-end border-bottom py-3"
                                     >
                                         {dia}
                                     </div>
                                 ))}
 
+                                {/* Días del mes */}
                                 {diasCalendario.map((dia) => {
-                                    const registrosDia =
-                                        registrosPorDia[dia.fecha] || [];
-
-                                    const seleccionado =
-                                        fechaSeleccionada === dia.fecha;
+                                    const registrosDia = registrosPorDia[dia.fecha] || [];
+                                    const seleccionado = fechaSeleccionada === dia.fecha;
 
                                     return (
                                         <button
@@ -844,39 +906,47 @@ export default function AgendaPage() {
                                             aria-label={`Seleccionar ${dia.fecha}`}
                                             aria-pressed={seleccionado}
                                             className={[
-                                                "d-flex flex-column text-start border-0 border-end border-bottom",
-                                                "p-1 p-md-2",
+                                                "d-flex flex-column align-items-stretch text-start",
+                                                "border-0 border-end border-bottom p-1 p-sm-2 p-lg-3",
                                                 seleccionado
-                                                    ? "bg-primary bg-opacity-25"
-                                                    : "bg-body",
+                                                    ? "bg-primary bg-opacity-10"
+                                                    : dia.perteneceMes
+                                                        ? "bg-body"
+                                                        : "bg-body-tertiary",
                                                 !dia.perteneceMes
-                                                    ? "text-body-secondary"
+                                                    ? "text-secondary"
                                                     : "text-body"
                                             ].join(" ")}
                                             style={{
                                                 minWidth: 0,
-                                                minHeight: "clamp(76px, 10vw, 132px)",
+                                                minHeight: "clamp(88px, 10vw, 124px)",
                                                 cursor: "pointer",
-                                                outline: seleccionado
-                                                    ? "2px solid var(--bs-primary)"
+                                                boxShadow: seleccionado
+                                                    ? "inset 0 0 0 2px var(--bs-primary)"
                                                     : "none",
-                                                outlineOffset: "-2px",
-                                                borderColor: "var(--bs-border-color)",
-                                                opacity: dia.perteneceMes ? 1 : 0.82
+                                                transition: "background-color 0.15s ease"
                                             }}
                                         >
+                                            {/* Número del día */}
                                             <div className="d-flex justify-content-between align-items-center mb-2">
                                                 <span
-                                                    className={[
-                                                        "d-inline-flex align-items-center justify-content-center rounded-circle small",
-                                                        dia.esHoy
-                                                            ? "bg-primary text-white fw-bold"
-                                                            : "fw-semibold"
-                                                    ].join(" ")}
+                                                    className="d-inline-flex align-items-center justify-content-center rounded-circle fw-semibold"
                                                     style={{
-                                                        width: 28,
-                                                        height: 28,
-                                                        flexShrink: 0
+                                                        width: 30,
+                                                        height: 30,
+                                                        flexShrink: 0,
+                                                        fontSize: 13,
+                                                        backgroundColor: dia.esHoy
+                                                            ? "var(--bs-primary)"
+                                                            : "transparent",
+                                                        color: dia.esHoy
+                                                            ? "#fff"
+                                                            : "var(--bs-body-color)",
+                                                        outline:
+                                                            seleccionado && !dia.esHoy
+                                                                ? "2px solid var(--bs-primary)"
+                                                                : "none",
+                                                        outlineOffset: -1
                                                     }}
                                                 >
                                                     {dia.numero}
@@ -884,15 +954,21 @@ export default function AgendaPage() {
 
                                                 {registrosDia.length > 0 && (
                                                     <span
-                                                        className="small text-body-secondary fw-semibold"
-                                                        style={{ fontSize: 11 }}
+                                                        className="d-inline-flex align-items-center justify-content-center rounded-pill bg-body-tertiary border text-body-secondary fw-semibold"
+                                                        style={{
+                                                            minWidth: 22,
+                                                            height: 22,
+                                                            padding: "0 5px",
+                                                            fontSize: 11
+                                                        }}
                                                     >
                                                         {registrosDia.length}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <div className="d-flex flex-column gap-1 w-100">
+                                            {/* Registros del día */}
+                                            <div className="d-flex flex-column gap-1">
                                                 {registrosDia.slice(0, 2).map((registro) => {
                                                     const esEvento =
                                                         registro.tipoRegistro === "EVENTO";
@@ -900,19 +976,16 @@ export default function AgendaPage() {
                                                     return (
                                                         <div
                                                             key={`${registro.tipoRegistro}-${registro.id}`}
-                                                            className={[
-                                                                "rounded-2 px-1 py-1 small",
-                                                                esEvento
-                                                                    ? "bg-primary bg-opacity-25 text-body fw-semibold"
-                                                                    : "bg-success bg-opacity-25 text-body fw-semibold"
-                                                            ].join(" ")}
+                                                            className="d-flex align-items-center gap-1 rounded-2 px-1 px-sm-2 py-1 fw-medium"
                                                             style={{
-                                                                fontSize: "clamp(10px, 0.85vw, 12px)",
-                                                                lineHeight: 1.35,
-                                                                overflow: "hidden",
-                                                                textOverflow: "ellipsis",
-                                                                whiteSpace: "nowrap",
-                                                                width: "100%"
+                                                                backgroundColor: esEvento
+                                                                    ? "var(--bs-primary-bg-subtle)"
+                                                                    : "var(--bs-success-bg-subtle)",
+                                                                color: esEvento
+                                                                    ? "var(--bs-primary-text-emphasis)"
+                                                                    : "var(--bs-success-text-emphasis)",
+                                                                minWidth: 0,
+                                                                borderLeft: `3px solid var(--bs-${esEvento ? "primary" : "success"})`
                                                             }}
                                                             title={obtenerNombre(registro)}
                                                         >
@@ -920,17 +993,34 @@ export default function AgendaPage() {
                                                                 className={`bi ${
                                                                     esEvento
                                                                         ? "bi-calendar-event"
-                                                                        : "bi-check2-circle"
-                                                                } me-1`}
+                                                                        : "bi-check-circle"
+                                                                }`}
+                                                                style={{
+                                                                    fontSize: 10,
+                                                                    flexShrink: 0
+                                                                }}
                                                             />
-                                                            {obtenerNombre(registro)}
+
+                                                            <span
+                                                                className="small"
+                                                                style={{
+                                                                    fontSize: "clamp(9px, 0.8vw, 12px)",
+                                                                    lineHeight: 1.4,
+                                                                    overflow: "hidden",
+                                                                    textOverflow: "ellipsis",
+                                                                    whiteSpace: "nowrap",
+                                                                    minWidth: 0
+                                                                }}
+                                                            >
+                                                                {obtenerNombre(registro)}
+                                                            </span>
                                                         </div>
                                                     );
                                                 })}
 
                                                 {registrosDia.length > 2 && (
                                                     <span
-                                                        className="small text-body-secondary fw-semibold px-1"
+                                                        className="small text-body-secondary px-1"
                                                         style={{ fontSize: 11 }}
                                                     >
                                                         +{registrosDia.length - 2} más
@@ -942,23 +1032,26 @@ export default function AgendaPage() {
                                 })}
                             </div>
 
-                            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 px-1">
-                                <span className="small text-secondary">
-                                    <i className="bi bi-info-circle me-2" />
-                                    Selecciona una fecha para ver sus actividades y eventos.
-                                </span>
+                            {/* Pie */}
+                            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mt-3 pt-3 border-top">
+                                <div className="d-flex align-items-start gap-2">
+                                    <i className="bi bi-info-circle text-primary mt-1" />
+                                    <span className="small text-body-secondary">
+                                        Selecciona un día para consultar sus registros.
+                                    </span>
+                                </div>
 
                                 <Button
-                                    variant="link"
+                                    variant="outline-primary"
                                     size="sm"
-                                    className="text-decoration-none p-0"
+                                    className="rounded-3 align-self-start align-self-sm-auto fw-semibold"
                                     onClick={irAHoy}
                                 >
+                                    <i className="bi bi-arrow-counterclockwise me-2" />
                                     Volver a hoy
-                                    <i className="bi bi-arrow-right ms-2" />
                                 </Button>
                             </div>
-                        </div>
+                        </>
                     )}
                 </Card.Body>
             </Card>
