@@ -52,19 +52,20 @@ class ActividadService {
             return;
         }
 
-        const asignacion = await prisma.actividadProductor.findUnique({
+        const actividad = await prisma.actividad.findFirst({
             where: {
-                actividadId_productorId: {
-                    actividadId: Number(id),
-                    productorId
+                id: Number(id),
+                estado: { not: "CANCELADA" },
+                productores: {
+                    some: { productorId }
                 }
             },
             select: {
-                actividadId: true
+                id: true
             }
         });
 
-        if (!asignacion) {
+        if (!actividad) {
             throw new NotFoundException(
                 "Actividad no encontrada."
             );
@@ -122,6 +123,11 @@ class ActividadService {
                     productorId
                 }
             };
+
+            where.AND = [
+                ...(where.AND || []),
+                { estado: { not: "CANCELADA" } }
+            ];
         } else if (filtros.productorId) {
             where.productores = {
                 some: {
@@ -549,6 +555,16 @@ class ActividadService {
             );
         }
 
+        if (
+            esProductor &&
+            datosNuevos.estado !== undefined &&
+            !["PENDIENTE", "COMPLETADA"].includes(datosNuevos.estado)
+        ) {
+            throw new ForbiddenException(
+                "Solo puedes cambiar el estado de tus actividades entre pendiente y completada."
+            );
+        }
+
         const productoresActuales = actividadActual.productores.map(p => ({
             productorId: p.productorId,
             esResponsable: p.esResponsable
@@ -620,6 +636,15 @@ class ActividadService {
 
     async changeStatus(id, estado, usuario) {
         await this.validarUsuarioAgenda(usuario);
+
+        if (
+            usuario.rol === "PRODUCTOR" &&
+            !["PENDIENTE", "COMPLETADA"].includes(estado)
+        ) {
+            throw new ForbiddenException(
+                "Solo puedes actualizar tus actividades entre pendiente y completada."
+            );
+        }
 
         const actividad = await this.getById(id, usuario);
 
@@ -755,10 +780,6 @@ class ActividadService {
         if (filtros.estadoActividad ?? filtros.estado) {
             whereActividad.estado =
                 filtros.estadoActividad ?? filtros.estado;
-        } else if (usuario.rol !== "ADMIN") {
-            whereActividad.estado = {
-                not: "CANCELADA"
-            };
         }
 
         if (filtros.eventoId !== undefined && filtros.eventoId !== null) {
@@ -779,6 +800,11 @@ class ActividadService {
             };
 
             whereEvento.productorId = productorId;
+
+            whereActividad.AND = [
+                ...(whereActividad.AND || []),
+                { estado: { not: "CANCELADA" } }
+            ];
         } else if (filtros.productorId) {
             const productorId = Number(filtros.productorId);
 
@@ -793,10 +819,6 @@ class ActividadService {
 
         if (filtros.estadoEvento) {
             whereEvento.estado = filtros.estadoEvento;
-        } else {
-            whereEvento.estado = {
-                not: "CANCELADO"
-            };
         }
 
         const actividades = await prisma.actividad.findMany({
@@ -805,7 +827,17 @@ class ActividadService {
                 productores: {
                     include: { productor: true }
                 },
-                evento: true
+                evento: {
+                    include: {
+                        tipoEvento: true,
+                        cliente: {
+                            include: {
+                                persona: true,
+                                empresa: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -824,7 +856,12 @@ class ActividadService {
             where: whereEvento,
             include: {
                 tipoEvento: true,
-                cliente: true,
+                cliente: {
+                    include: {
+                        persona: true,
+                        empresa: true
+                    }
+                },
                 productor: true
             }
         });

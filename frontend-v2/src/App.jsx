@@ -27,6 +27,7 @@ import AgendaPage from "./pages/admin/AgendaPage.jsx";
 
 import ProductorPage from "./pages/productor/ProductorPage";
 import EventosProductorPage from "./pages/productor/EventosProductorPage.jsx";
+import AgendaProductorPage from "./pages/productor/AgendaProductorPage.jsx";
 
 import ClientePage from "./pages/cliente/ClientePage";
 import CompraContratoPage from "./pages/cliente/CompraContratoPage";
@@ -80,6 +81,10 @@ export default function App() {
                         element={<EventoProductorDetallePage />}
                     />
                     <Route path="/productor" element={<ProductorPage />} />
+                    <Route
+                        path="/productor/agenda"
+                        element={<AgendaProductorPage />}
+                    />
                     <Route
                         path="/productor/eventos"
                         element={<EventosProductorPage />}

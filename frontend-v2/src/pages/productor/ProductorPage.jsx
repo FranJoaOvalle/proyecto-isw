@@ -22,7 +22,25 @@ export default function ProductorPage() {
             </div>
 
             <Row className="g-4 mb-4">
-                <Col md={6}>
+                <Col md={6} xl={4}>
+                    <Card className="h-100 shadow-sm">
+                        <Card.Body className="p-4">
+                            <Card.Title className="fw-bold">
+                                Mi agenda
+                            </Card.Title>
+
+                            <Card.Text className="text-secondary">
+                                Consulta tus eventos asignados y actividades programadas.
+                            </Card.Text>
+
+                            <Button as={Link} to="/productor/agenda">
+                                Ver agenda
+                            </Button>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col md={6} xl={4}>
                     <Card className="h-100 shadow-sm">
                         <Card.Body className="p-4">
                             <Card.Title className="fw-bold">
@@ -41,7 +59,7 @@ export default function ProductorPage() {
                     </Card>
                 </Col>
 
-                <Col md={6}>
+                <Col md={6} xl={4}>
                     <Card className="h-100 shadow-sm">
                         <Card.Body className="p-4">
                             <Card.Title className="fw-bold">
