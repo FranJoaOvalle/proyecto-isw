@@ -2,6 +2,16 @@ import { Badge, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import EmptyState from "../EmptyState";
 import { DIAS_SEMANA, TIPOS_ACTIVIDAD, obtenerNombre, obtenerProductoresAsignados, formatearFecha, formatearDia, obtenerVarianteEstado, formatearEstado } from "./agenda.utils";
 
+const obtenerNombreCliente = (cliente) => {
+    if (!cliente) return "Cliente no disponible";
+
+    if (cliente.tipo === "EMPRESA") {
+        return cliente.empresa?.razonSocial || "Cliente empresa";
+    }
+
+    return `${cliente.persona?.nombres || ""} ${cliente.persona?.apellidos || ""}`.trim() || "Cliente persona";
+};
+
 export default function AgendaMes({ agenda }) {
     const { esAdmin, vistaAgenda, mesVisible, cambiarMes, irAHoy, registrosFiltrados, fechaSeleccionada, seleccionarDia, cargando, cambiandoEstadoActividad, diasCalendario, registrosPorDia, cantidadActividades, cantidadEventos, registrosDelDia, abrirEdicionActividad, completarActividadPendiente, marcarActividadPendiente, anularActividad, setActividadReactivando, solicitarEliminacionFisica } = agenda;
 
@@ -620,6 +630,19 @@ export default function AgendaMes({ agenda }) {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div className="d-flex align-items-start gap-3">
+                                                        <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary" style={{ width: 36, height: 36, flexShrink: 0 }}>
+                                                            <i className="bi bi-person-badge" />
+                                                        </div>
+                                                        <div className="pt-1">
+                                                            <div className="text-body-secondary mb-1">Productor asignado</div>
+                                                            <div className="fw-semibold">
+                                                                {registro.productor
+                                                                    ? `${registro.productor.nombres || ""} ${registro.productor.apellidos || ""}`.trim() || "Productor sin nombre"
+                                                                    : "Productor no asignado"}
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     {registro.observaciones && (
                                                         <div className="d-flex align-items-start gap-3">
                                                             <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary" style={{ width: 36, height: 36, flexShrink: 0 }}>
@@ -631,6 +654,40 @@ export default function AgendaMes({ agenda }) {
                                                             </div>
                                                         </div>
                                                     )}
+                                                </>
+                                            )}
+
+                                            {!esEvento && registro.evento && (
+                                                <>
+                                                    <div className="d-flex align-items-start gap-3">
+                                                        <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary" style={{ width: 36, height: 36, flexShrink: 0 }}>
+                                                            <i className="bi bi-calendar-event" />
+                                                        </div>
+                                                        <div className="pt-1">
+                                                            <div className="text-body-secondary mb-1">Evento relacionado</div>
+                                                            <div className="fw-semibold">
+                                                                {registro.evento.tipoEvento?.nombre || "Evento contratado"}
+                                                            </div>
+                                                            <div className="text-body-secondary mt-1">
+                                                                {formatearFecha(registro.evento.inicio)}
+                                                                {registro.evento.fin ? ` – ${formatearFecha(registro.evento.fin)}` : ""}
+                                                            </div>
+                                                            <div className="text-body-secondary">
+                                                                {registro.evento.lugar || "Sin lugar definido"}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="d-flex align-items-start gap-3">
+                                                        <div className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary" style={{ width: 36, height: 36, flexShrink: 0 }}>
+                                                            <i className="bi bi-person" />
+                                                        </div>
+                                                        <div className="pt-1">
+                                                            <div className="text-body-secondary mb-1">Cliente relacionado</div>
+                                                            <div className="fw-semibold">
+                                                                {obtenerNombreCliente(registro.evento.cliente)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -711,7 +768,7 @@ export default function AgendaMes({ agenda }) {
                                                         </Button>
                                                     )}
 
-                                                    {registro.estado !== "CANCELADA" && (
+                                                    {(registro.estado !== "CANCELADA" || esAdmin) && (
                                                         <Button
                                                             variant="outline-primary"
                                                             size="sm"

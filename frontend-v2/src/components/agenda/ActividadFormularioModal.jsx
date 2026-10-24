@@ -113,6 +113,9 @@ export default function ActividadFormularioModal({ agenda }) {
                                 >
                                     <option value="PENDIENTE">Pendiente</option>
                                     <option value="COMPLETADA">Completada</option>
+                                    {actividadEditando.estado === "CANCELADA" && (
+                                        <option value="CANCELADA">Cancelada</option>
+                                    )}
                                 </Form.Select>
                             </Form.Group>
                         )}

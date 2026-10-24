@@ -196,9 +196,7 @@ export default function AgendaPage() {
             fin: convertirAFechaHoraLocal(actividad.fin),
             lugar: actividad.lugar || "",
             eventoId: actividad.eventoId ? String(actividad.eventoId) : "",
-            estado: actividad.estado === "CANCELADA"
-                ? "PENDIENTE"
-                : actividad.estado
+            estado: actividad.estado || "PENDIENTE"
         });
 
         setProductoresActividad(

@@ -17,6 +17,11 @@ const obtenerNombreCliente = (cliente) => {
     return `${cliente.persona?.nombres || ""} ${cliente.persona?.apellidos || ""}`.trim() || "Cliente persona";
 };
 
+const obtenerNombreProductor = (productor) =>
+    productor
+        ? `${productor.nombres || ""} ${productor.apellidos || ""}`.trim() || "Productor sin nombre"
+        : "Productor no asignado";
+
 export default function AgendaRegistroDetalle({
     registro,
     esAdmin,
@@ -115,6 +120,14 @@ export default function AgendaRegistroDetalle({
                                     <div className="fw-semibold">{obtenerNombreCliente(registro.cliente)}</div>
                                 </div>
                             </Col>
+                            <Col xs={12} md={4}>
+                                <div className="border rounded-3 p-3 h-100">
+                                    <div className="small text-body-secondary mb-1">
+                                        <i className="bi bi-person-badge text-primary me-2" />Productor asignado
+                                    </div>
+                                    <div className="fw-semibold">{obtenerNombreProductor(registro.productor)}</div>
+                                </div>
+                            </Col>
                         </>
                     )}
                     {!esEvento && registro.evento?.cliente && (
@@ -201,14 +214,14 @@ export default function AgendaRegistroDetalle({
                                 <i className="bi bi-arrow-counterclockwise me-1" />Marcar pendiente
                             </Button>
                         )}
-                        {registro.estado !== "CANCELADA" && onEdit && (
+                        {onEdit && (registro.estado !== "CANCELADA" || esAdmin) && (
                             <Button variant="outline-primary" className="rounded-3" onClick={() => onEdit(registro)}>
                                 <i className="bi bi-pencil me-1" />Editar
                             </Button>
                         )}
                         {registro.estado !== "CANCELADA" && onCancel && (
                             <Button variant="outline-danger" className="rounded-3" onClick={() => onCancel(registro)}>
-                                <i className="bi bi-x-circle me-1" />Cancelar actividad
+                                <i className="bi bi-x-circle me-1" />Cancelar
                             </Button>
                         )}
                         {esAdmin && registro.estado === "CANCELADA" && onReactivate && (
@@ -218,7 +231,7 @@ export default function AgendaRegistroDetalle({
                         )}
                         {esAdmin && onDelete && (
                             <Button variant="danger" className="rounded-3" onClick={() => onDelete(registro)}>
-                                <i className="bi bi-trash me-1" />Eliminar definitivamente
+                                <i className="bi bi-trash me-1" />Eliminar
                             </Button>
                         )}
                     </div>
