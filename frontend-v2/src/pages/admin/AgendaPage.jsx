@@ -177,6 +177,12 @@ export default function AgendaPage() {
     const [actividadEliminando, setActividadEliminando] = useState(null);
     const [eliminandoActividad, setEliminandoActividad] = useState(false);
 
+    const [filtros, setFiltros] = useState({
+        estado: "",
+        tipo: "",
+        productorResponsable: ""
+    });
+
     const [formActividad, setFormActividad] = useState({
         titulo: "",
         descripcion: "",
@@ -512,6 +518,47 @@ export default function AgendaPage() {
         }
     };
 
+    const registrosFiltrados = useMemo(() => {
+        return registros.filter((registro) => {
+            // Los eventos se mantienen visibles.
+            if (registro.tipoRegistro === "EVENTO") {
+                return true;
+            }
+
+            // Filtrar por estado de la actividad.
+            if (
+                filtros.estado &&
+                registro.estado !== filtros.estado
+            ) {
+                return false;
+            }
+
+            // Filtrar por tipo de actividad.
+            if (
+                filtros.tipo &&
+                registro.tipo !== filtros.tipo
+            ) {
+                return false;
+            }
+
+            // Filtrar por productor responsable.
+            if (filtros.productorResponsable) {
+                const tieneResponsable = (registro.productores || []).some(
+                    (asignacion) =>
+                        asignacion.esResponsable &&
+                        String(asignacion.productorId) ===
+                            filtros.productorResponsable
+                );
+
+                if (!tieneResponsable) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [registros, filtros]);
+
     const diasCalendario = useMemo(() => {
         const anio = mesVisible.getFullYear();
         const mes = mesVisible.getMonth();
@@ -541,7 +588,7 @@ export default function AgendaPage() {
     const registrosPorDia = useMemo(() => {
         const mapa = {};
 
-        registros.forEach((registro) => {
+        registrosFiltrados.forEach((registro) => {
             const comienzo = new Date(registro.inicio);
 
             if (Number.isNaN(comienzo.getTime())) return;
@@ -578,10 +625,10 @@ export default function AgendaPage() {
         });
 
         return mapa;
-    }, [registros]);
+    }, [registrosFiltrados]);
 
     const registrosDelDia = obtenerRegistrosDelDia(
-        registros,
+        registrosFiltrados,
         fechaSeleccionada
     );
 
@@ -757,6 +804,126 @@ export default function AgendaPage() {
                         </Col>
                     </Row>
 
+                    {/* Filtros de la agenda */}
+                    <Card className="bg-body text-body border rounded-4 mb-4">
+                        <Card.Body className="p-3 p-lg-4">
+                            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <div>
+                                    <h2 className="h6 fw-bold mb-1">
+                                        <i className="bi bi-sliders2 text-primary me-2" />
+                                        Filtrar agenda
+                                    </h2>
+                                    <p className="small text-body-secondary mb-0">
+                                        Filtra las actividades por estado, tipo y responsable.
+                                    </p>
+                                </div>
+
+                                <Button
+                                    variant="outline-secondary"
+                                    size="sm"
+                                    className="rounded-3"
+                                    onClick={() =>
+                                        setFiltros({
+                                            estado: "",
+                                            tipo: "",
+                                            productorResponsable: ""
+                                        })
+                                    }
+                                    disabled={
+                                        !filtros.estado &&
+                                        !filtros.tipo &&
+                                        !filtros.productorResponsable
+                                    }
+                                >
+                                    <i className="bi bi-arrow-counterclockwise me-1" />
+                                    Limpiar filtros
+                                </Button>
+                            </div>
+
+                            <Row className="g-3">
+                                <Col xs={12} md={4}>
+                                    <Form.Group>
+                                        <Form.Label className="small fw-semibold">
+                                            Estado
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtros.estado}
+                                            onChange={(e) =>
+                                                setFiltros((actuales) => ({
+                                                    ...actuales,
+                                                    estado: e.target.value
+                                                }))
+                                            }
+                                            className="rounded-3"
+                                        >
+                                            <option value="">Todos los estados</option>
+                                            <option value="PENDIENTE">Pendiente</option>
+                                            <option value="COMPLETADA">Completada</option>
+                                            <option value="CANCELADA">Cancelada</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+
+                                <Col xs={12} md={4}>
+                                    <Form.Group>
+                                        <Form.Label className="small fw-semibold">
+                                            Tipo de actividad
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtros.tipo}
+                                            onChange={(e) =>
+                                                setFiltros((actuales) => ({
+                                                    ...actuales,
+                                                    tipo: e.target.value
+                                                }))
+                                            }
+                                            className="rounded-3"
+                                        >
+                                            <option value="">Todos los tipos</option>
+                                            {TIPOS_ACTIVIDAD.map((tipo) => (
+                                                <option key={tipo.value} value={tipo.value}>
+                                                    {tipo.label}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+
+                                <Col xs={12} md={4}>
+                                    <Form.Group>
+                                        <Form.Label className="small fw-semibold">
+                                            Productor responsable
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtros.productorResponsable}
+                                            onChange={(e) =>
+                                                setFiltros((actuales) => ({
+                                                    ...actuales,
+                                                    productorResponsable: e.target.value
+                                                }))
+                                            }
+                                            className="rounded-3"
+                                        >
+                                            <option value="">Todos los productores</option>
+                                            {productores.map((productor) => (
+                                                <option
+                                                    key={productor.id}
+                                                    value={String(productor.id)}
+                                                >
+                                                    {productor.nombres} {productor.apellidos}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <div className="small text-body-secondary mt-3">
+                                Se muestran {registrosFiltrados.length} registros con los filtros actuales.
+                            </div>
+                        </Card.Body>
+                    </Card>
+
                     {/* Resumen mensual */}
                     <div className="d-flex justify-content-center gap-2 mb-3">
                         <div
@@ -777,7 +944,7 @@ export default function AgendaPage() {
                                 <div className="small text-body-secondary">Eventos</div>
                                 <div className="fw-bold lh-1">
                                     {
-                                        registros.filter(
+                                        registrosFiltrados.filter(
                                             (registro) => registro.tipoRegistro === "EVENTO"
                                         ).length
                                     }
@@ -803,8 +970,8 @@ export default function AgendaPage() {
                                 <div className="small text-body-secondary">Actividades</div>
                                 <div className="fw-bold lh-1">
                                     {
-                                        registros.filter(
-                                            (registro) => registro.tipoRegistro !== "EVENTO"
+                                        registrosFiltrados.filter(
+                                            (registro) => registro.tipoRegistro === "ACTIVIDAD"
                                         ).length
                                     }
                                 </div>
