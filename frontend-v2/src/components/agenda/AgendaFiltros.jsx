@@ -2,7 +2,7 @@ import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
 import { TIPOS_ACTIVIDAD } from "./agenda.utils";
 
 const ESTADOS_AGENDA = [
-    ["PENDIENTE", "Pendiente"],
+    ["PENDIENTE", "Actividad pendiente"],
     ["COMPLETADA", "Actividad completada"],
     ["CANCELADA", "Actividad cancelada"],
     ["CONFIRMADO", "Evento confirmado"],
@@ -37,7 +37,7 @@ export default function AgendaFiltros({ agenda }) {
                         <p className="small text-body-secondary mb-0">
                             {esAdmin
                                 ? "Filtra por fecha, estado, tipo o productor."
-                                : "Filtra tus compromisos por fecha y estado."}
+                                : "Filtra tus compromisos por fecha, estado y tipo de actividad."}
                         </p>
                     </div>
                     <Button variant="outline-secondary" size="sm" className="rounded-3" onClick={limpiarFiltros} disabled={!hayFiltros}>
@@ -75,34 +75,32 @@ export default function AgendaFiltros({ agenda }) {
                             </Form.Select>
                         </Form.Group>
                     </Col>
+                    <Col xs={12} md={6} xl={3}>
+                        <Form.Group>
+                            <Form.Label className="small fw-semibold">Tipo de actividad</Form.Label>
+                            <Form.Select value={filtros.tipo} onChange={(e) => cambiarFiltro("tipo", e.target.value)} className="rounded-3">
+                                <option value="">Todos los tipos</option>
+                                {TIPOS_ACTIVIDAD.map((tipo) => (
+                                    <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
 
                     {esAdmin && (
-                        <>
-                            <Col xs={12} md={6} xl={3}>
-                                <Form.Group>
-                                    <Form.Label className="small fw-semibold">Tipo de actividad</Form.Label>
-                                    <Form.Select value={filtros.tipo} onChange={(e) => cambiarFiltro("tipo", e.target.value)} className="rounded-3">
-                                        <option value="">Todos los tipos</option>
-                                        {TIPOS_ACTIVIDAD.map((tipo) => (
-                                            <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col xs={12} md={6} xl={3}>
-                                <Form.Group>
-                                    <Form.Label className="small fw-semibold">Productor</Form.Label>
-                                    <Form.Select value={filtros.productorId} onChange={(e) => cambiarFiltro("productorId", e.target.value)} className="rounded-3">
-                                        <option value="">Todos los productores</option>
-                                        {productores.map((productor) => (
-                                            <option key={productor.id} value={String(productor.id)}>
-                                                {productor.nombres} {productor.apellidos}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </>
+                        <Col xs={12} md={6} xl={3}>
+                            <Form.Group>
+                                <Form.Label className="small fw-semibold">Productor</Form.Label>
+                                <Form.Select value={filtros.productorId} onChange={(e) => cambiarFiltro("productorId", e.target.value)} className="rounded-3">
+                                    <option value="">Todos los productores</option>
+                                    {productores.map((productor) => (
+                                        <option key={productor.id} value={String(productor.id)}>
+                                            {productor.nombres} {productor.apellidos}
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
                     )}
                 </Row>
 
