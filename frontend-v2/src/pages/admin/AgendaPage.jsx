@@ -162,7 +162,8 @@ export default function AgendaPage() {
     });
 
     const [fechaSeleccionada, setFechaSeleccionada] = useState(hoy);
-    const [registroSeleccionado, setRegistroSeleccionado] = useState(null);
+    const [vistaAgenda, setVistaAgenda] = useState("mes");
+    const [registroListaSeleccionado, setRegistroListaSeleccionado] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [cargandoProductores, setCargandoProductores] = useState(false);
     const [error, setError] = useState("");
@@ -174,6 +175,8 @@ export default function AgendaPage() {
     // Estados para confirmar la cancelación de una actividad.
     const [actividadCancelando, setActividadCancelando] = useState(null);
     const [cancelandoActividad, setCancelandoActividad] = useState(false);
+    const [actividadReactivando, setActividadReactivando] = useState(null);
+    const [cambiandoEstadoActividad, setCambiandoEstadoActividad] = useState(false);
     const [actividadEliminando, setActividadEliminando] = useState(null);
     const [eliminandoActividad, setEliminandoActividad] = useState(false);
 
@@ -417,30 +420,20 @@ export default function AgendaPage() {
             payload.productores = productoresActividad;
 
             if (actividadEditando) {
-                await actualizarActividad(actividadEditando.id, payload);
-                console.log("Estado original:", actividadEditando.estado);
-                console.log("Estado seleccionado:", formActividad.estado);
-
-                if (formActividad.estado !== actividadEditando.estado) {
-                    await cambiarEstadoActividad(
-                        actividadEditando.id,
-                        formActividad.estado
-                    );
-                }
+                await actualizarActividad(actividadEditando.id, {
+                    ...payload,
+                    estado: formActividad.estado
+                });
 
                 setMensaje("Actividad actualizada correctamente.");
             } else {
-                await crearActividad({
-                    ...payload,
-                    estado: "PENDIENTE"
-                });
+                await crearActividad(payload);
 
                 setMensaje("Actividad creada correctamente.");
             }
 
             await recargarAgenda();
             setMostrarFormulario(false);
-            setRegistroSeleccionado(null);
         } catch (err) {
             setError(
                 err.response?.data?.error?.message ||
@@ -471,7 +464,6 @@ export default function AgendaPage() {
             await cancelarActividad(actividadCancelando.id);
             await recargarAgenda();
 
-            setRegistroSeleccionado(null);
             setActividadCancelando(null);
             setMensaje("Actividad cancelada correctamente.");
         } catch (err) {
@@ -482,6 +474,52 @@ export default function AgendaPage() {
             );
         } finally {
             setCancelandoActividad(false);
+        }
+    };
+
+    const completarActividadPendiente = async (actividad) => {
+        if (cambiandoEstadoActividad) return;
+
+        try {
+            setCambiandoEstadoActividad(true);
+            setError("");
+            setMensaje("");
+
+            await cambiarEstadoActividad(actividad.id, "COMPLETADA");
+            await recargarAgenda();
+            setMensaje("Actividad completada correctamente.");
+        } catch (err) {
+            setError(
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                "No fue posible completar la actividad."
+            );
+        } finally {
+            setCambiandoEstadoActividad(false);
+        }
+    };
+
+    const confirmarReactivacion = async () => {
+        if (!actividadReactivando || cambiandoEstadoActividad) return;
+
+        try {
+            setCambiandoEstadoActividad(true);
+            setError("");
+            setMensaje("");
+
+            await cambiarEstadoActividad(actividadReactivando.id, "PENDIENTE");
+            await recargarAgenda();
+            setActividadReactivando(null);
+            setMensaje("Actividad reactivada como pendiente.");
+        } catch (err) {
+            setActividadReactivando(null);
+            setError(
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                "No fue posible reactivar la actividad."
+            );
+        } finally {
+            setCambiandoEstadoActividad(false);
         }
     };
 
@@ -504,7 +542,6 @@ export default function AgendaPage() {
             await eliminarFisicamenteActividad(actividadEliminando.id);
             await recargarAgenda();
 
-            setRegistroSeleccionado(null);
             setActividadEliminando(null);
             setMensaje("Actividad eliminada definitivamente.");
         } catch (err) {
@@ -632,6 +669,37 @@ export default function AgendaPage() {
         fechaSeleccionada
     );
 
+    const registrosDelMes = useMemo(() => {
+        const anio = mesVisible.getFullYear();
+        const mes = mesVisible.getMonth();
+
+        const inicioMes = new Date(anio, mes, 1);
+        const finMes = new Date(anio, mes + 1, 1);
+
+        return registrosFiltrados
+            .filter((registro) => {
+                const inicio = new Date(registro.inicio);
+                const fin = registro.fin
+                    ? new Date(registro.fin)
+                    : inicio;
+
+                if (
+                    Number.isNaN(inicio.getTime()) ||
+                    Number.isNaN(fin.getTime())
+                ) {
+                    return false;
+                }
+
+                // Incluir registros que se crucen con el mes visible.
+                return inicio < finMes && fin >= inicioMes;
+            })
+            .sort(
+                (a, b) =>
+                    new Date(a.inicio).getTime() -
+                    new Date(b.inicio).getTime()
+            );
+    }, [registrosFiltrados, mesVisible]);
+
     const cantidadActividades = registrosDelDia.filter(
         (registro) => registro.tipoRegistro === "ACTIVIDAD"
     ).length;
@@ -649,7 +717,6 @@ export default function AgendaPage() {
             )
         );
 
-        setRegistroSeleccionado(null);
     };
 
     const irAHoy = () => {
@@ -658,13 +725,10 @@ export default function AgendaPage() {
 
         setMesVisible(fecha);
         setFechaSeleccionada(hoy);
-        setRegistroSeleccionado(null);
     };
 
     const seleccionarDia = (fecha) => {
         setFechaSeleccionada(fecha);
-        setRegistroSeleccionado(null);
-
         const fechaElegida = new Date(`${fecha}T12:00:00`);
 
         if (
@@ -679,19 +743,6 @@ export default function AgendaPage() {
                 )
             );
         }
-    };
-
-    const seleccionarRegistro = (registro) => {
-        setRegistroSeleccionado((actual) => {
-            if (
-                actual?.tipoRegistro === registro.tipoRegistro &&
-                actual?.id === registro.id
-            ) {
-                return null;
-            }
-
-            return registro;
-        });
     };
 
     return (
@@ -711,17 +762,6 @@ export default function AgendaPage() {
                 </Alert>
             )}
 
-            <div className="d-flex justify-content-end mb-3">
-                <Button
-                    variant="primary"
-                    className="rounded-3"
-                    onClick={abrirNuevaActividad}
-                >
-                    <i className="bi bi-plus-lg me-2" />
-                    Nueva actividad
-                </Button>
-            </div>
-
             {mensaje && (
                 <Alert
                     variant="success"
@@ -732,42 +772,208 @@ export default function AgendaPage() {
                 </Alert>
             )}
 
-            {/* Calendario mensual */}
-            <Card className="bg-body text-body border rounded-4 mb-4 overflow-hidden shadow">
-                <div className="bg-primary" style={{ height: 5 }} />
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div
+                    className="d-inline-flex gap-1 p-1 border rounded-3 bg-body-tertiary"
+                    role="group"
+                    aria-label="Vista de la agenda"
+                >
+                    <Button
+                        variant={vistaAgenda === "mes" ? "primary" : "light"}
+                        size="sm"
+                        className={`rounded-2 ${
+                            vistaAgenda === "mes"
+                                ? ""
+                                : "bg-transparent border-0 text-body"
+                        }`}
+                        onClick={() => setVistaAgenda("mes")}
+                        aria-pressed={vistaAgenda === "mes"}
+                    >
+                        <i className="bi bi-calendar3 me-2" />
+                        Mes
+                    </Button>
 
+                    <Button
+                        variant={vistaAgenda === "lista" ? "primary" : "light"}
+                        size="sm"
+                        className={`rounded-2 ${
+                            vistaAgenda === "lista"
+                                ? ""
+                                : "bg-transparent border-0 text-body"
+                        }`}
+                        onClick={() => setVistaAgenda("lista")}
+                        aria-pressed={vistaAgenda === "lista"}
+                    >
+                        <i className="bi bi-list-ul me-2" />
+                        Lista
+                    </Button>
+                </div>
+
+                <Button
+                    variant="primary"
+                    className="rounded-3 fw-semibold px-3 shadow-sm"
+                    onClick={abrirNuevaActividad}
+                >
+                    <i className="bi bi-plus-lg me-2" />
+                    Nueva actividad
+                </Button>
+            </div>
+
+            {/* Filtros de la agenda */}
+            <Card className="bg-body text-body border rounded-4 mb-4">
                 <Card.Body className="p-3 p-lg-4">
-                    {/* Encabezado */}
-                    <Row className="align-items-center g-3 mb-4">
-                        <Col xs={12} lg>
+                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div>
+                            <h2 className="h6 fw-bold mb-1">
+                                <i className="bi bi-sliders2 text-primary me-2" />
+                                Filtrar agenda
+                            </h2>
+                            <p className="small text-body-secondary mb-0">
+                                Filtra las actividades por estado, tipo y responsable.
+                            </p>
+                        </div>
+
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-3"
+                            onClick={() =>
+                                setFiltros({
+                        estado: "",
+                        tipo: "",
+                        productorResponsable: ""
+                                })
+                            }
+                            disabled={
+                                !filtros.estado &&
+                                !filtros.tipo &&
+                                !filtros.productorResponsable
+                            }
+                        >
+                            <i className="bi bi-arrow-counterclockwise me-1" />
+                            Limpiar filtros
+                        </Button>
+                    </div>
+
+                    <Row className="g-3">
+                        <Col xs={12} md={4}>
+                            <Form.Group>
+                                <Form.Label className="small fw-semibold">
+                        Estado
+                                </Form.Label>
+                                <Form.Select
+                        value={filtros.estado}
+                        onChange={(e) =>
+                            setFiltros((actuales) => ({
+                                ...actuales,
+                                estado: e.target.value
+                            }))
+                        }
+                        className="rounded-3"
+                                >
+                        <option value="">Todos los estados</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="COMPLETADA">Completada</option>
+                        <option value="CANCELADA">Cancelada</option>
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+
+                        <Col xs={12} md={4}>
+                            <Form.Group>
+                                <Form.Label className="small fw-semibold">
+                        Tipo de actividad
+                                </Form.Label>
+                                <Form.Select
+                        value={filtros.tipo}
+                        onChange={(e) =>
+                            setFiltros((actuales) => ({
+                                ...actuales,
+                                tipo: e.target.value
+                            }))
+                        }
+                        className="rounded-3"
+                                >
+                        <option value="">Todos los tipos</option>
+                        {TIPOS_ACTIVIDAD.map((tipo) => (
+                            <option key={tipo.value} value={tipo.value}>
+                                {tipo.label}
+                            </option>
+                        ))}
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+
+                        <Col xs={12} md={4}>
+                            <Form.Group>
+                                <Form.Label className="small fw-semibold">
+                        Productor responsable
+                                </Form.Label>
+                                <Form.Select
+                        value={filtros.productorResponsable}
+                        onChange={(e) =>
+                            setFiltros((actuales) => ({
+                                ...actuales,
+                                productorResponsable: e.target.value
+                            }))
+                        }
+                        className="rounded-3"
+                                >
+                        <option value="">Todos los productores</option>
+                        {productores.map((productor) => (
+                            <option
+                                key={productor.id}
+                                value={String(productor.id)}
+                            >
+                                {productor.nombres} {productor.apellidos}
+                            </option>
+                        ))}
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    <div className="small text-body-secondary mt-3">
+                        Se muestran {registrosDelMes.length} registros de {mesVisible.toLocaleDateString("es-CL", {
+                            month: "long",
+                            year: "numeric"
+                        })} con los filtros actuales.
+                    </div>
+                </Card.Body>
+            </Card>
+
+
+            {vistaAgenda === "lista" && (
+                <Card className="bg-body text-body border rounded-4 mb-4 overflow-hidden shadow">
+                    <div className="bg-primary" style={{ height: 5 }} />
+
+                    <Card.Body className="p-3 p-lg-4">
+                        {/* Encabezado de la lista */}
+                        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                             <div className="d-flex align-items-center gap-3">
                                 <div
-                                    className="d-flex align-items-center justify-content-center rounded-4 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25"
-                                    style={{ width: 54, height: 54, flexShrink: 0 }}
+                                    className="d-flex align-items-center justify-content-center rounded-4 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 flex-shrink-0"
+                                    style={{ width: 54, height: 54 }}
                                 >
-                                    <i className="bi bi-calendar3 fs-3" />
+                                    <i className="bi bi-list-ul fs-3" />
                                 </div>
 
                                 <div className="min-w-0">
                                     <div className="small fw-bold text-primary mb-1">
                                         MI AGENDA
                                     </div>
-
                                     <h2 className="h4 fw-bold text-capitalize mb-1">
                                         {mesVisible.toLocaleDateString("es-CL", {
                                             month: "long",
                                             year: "numeric"
                                         })}
                                     </h2>
-
                                     <div className="small text-body-secondary">
                                         Organiza y consulta tus eventos y actividades
                                     </div>
                                 </div>
                             </div>
-                        </Col>
 
-                        <Col xs={12} lg="auto">
                             <div className="d-flex align-items-center justify-content-between justify-content-lg-end gap-2">
                                 <div className="d-flex align-items-center gap-1 p-1 rounded-3 border bg-body-tertiary">
                                     <Button
@@ -801,455 +1007,813 @@ export default function AgendaPage() {
                                     Hoy
                                 </Button>
                             </div>
-                        </Col>
-                    </Row>
+                        </div>
 
-                    {/* Filtros de la agenda */}
-                    <Card className="bg-body text-body border rounded-4 mb-4">
-                        <Card.Body className="p-3 p-lg-4">
-                            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        {/* Resumen */}
+                        <div className="d-flex flex-wrap gap-2 mb-4">
+                            <div className="border rounded-3 px-3 py-2 d-flex align-items-center gap-2">
+                                <i className="bi bi-calendar-event text-primary fs-5" />
                                 <div>
-                                    <h2 className="h6 fw-bold mb-1">
-                                        <i className="bi bi-sliders2 text-primary me-2" />
-                                        Filtrar agenda
-                                    </h2>
-                                    <p className="small text-body-secondary mb-0">
-                                        Filtra las actividades por estado, tipo y responsable.
-                                    </p>
-                                </div>
-
-                                <Button
-                                    variant="outline-secondary"
-                                    size="sm"
-                                    className="rounded-3"
-                                    onClick={() =>
-                                        setFiltros({
-                                            estado: "",
-                                            tipo: "",
-                                            productorResponsable: ""
-                                        })
-                                    }
-                                    disabled={
-                                        !filtros.estado &&
-                                        !filtros.tipo &&
-                                        !filtros.productorResponsable
-                                    }
-                                >
-                                    <i className="bi bi-arrow-counterclockwise me-1" />
-                                    Limpiar filtros
-                                </Button>
-                            </div>
-
-                            <Row className="g-3">
-                                <Col xs={12} md={4}>
-                                    <Form.Group>
-                                        <Form.Label className="small fw-semibold">
-                                            Estado
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtros.estado}
-                                            onChange={(e) =>
-                                                setFiltros((actuales) => ({
-                                                    ...actuales,
-                                                    estado: e.target.value
-                                                }))
-                                            }
-                                            className="rounded-3"
-                                        >
-                                            <option value="">Todos los estados</option>
-                                            <option value="PENDIENTE">Pendiente</option>
-                                            <option value="COMPLETADA">Completada</option>
-                                            <option value="CANCELADA">Cancelada</option>
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col xs={12} md={4}>
-                                    <Form.Group>
-                                        <Form.Label className="small fw-semibold">
-                                            Tipo de actividad
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtros.tipo}
-                                            onChange={(e) =>
-                                                setFiltros((actuales) => ({
-                                                    ...actuales,
-                                                    tipo: e.target.value
-                                                }))
-                                            }
-                                            className="rounded-3"
-                                        >
-                                            <option value="">Todos los tipos</option>
-                                            {TIPOS_ACTIVIDAD.map((tipo) => (
-                                                <option key={tipo.value} value={tipo.value}>
-                                                    {tipo.label}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col xs={12} md={4}>
-                                    <Form.Group>
-                                        <Form.Label className="small fw-semibold">
-                                            Productor responsable
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtros.productorResponsable}
-                                            onChange={(e) =>
-                                                setFiltros((actuales) => ({
-                                                    ...actuales,
-                                                    productorResponsable: e.target.value
-                                                }))
-                                            }
-                                            className="rounded-3"
-                                        >
-                                            <option value="">Todos los productores</option>
-                                            {productores.map((productor) => (
-                                                <option
-                                                    key={productor.id}
-                                                    value={String(productor.id)}
-                                                >
-                                                    {productor.nombres} {productor.apellidos}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <div className="small text-body-secondary mt-3">
-                                Se muestran {registrosFiltrados.length} registros con los filtros actuales.
-                            </div>
-                        </Card.Body>
-                    </Card>
-
-                    {/* Resumen mensual */}
-                    <div className="d-flex justify-content-center gap-2 mb-3">
-                        <div
-                            className="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border border-primary border-opacity-25"
-                            style={{
-                                backgroundColor: "var(--bs-primary-bg-subtle)",
-                                width: "fit-content"
-                            }}
-                        >
-                            <div
-                                className="d-flex align-items-center justify-content-center rounded-2 bg-primary text-white"
-                                style={{ width: 28, height: 28, flexShrink: 0 }}
-                            >
-                                <i className="bi bi-calendar-event small" />
-                            </div>
-
-                            <div>
-                                <div className="small text-body-secondary">Eventos</div>
-                                <div className="fw-bold lh-1">
-                                    {
-                                        registrosFiltrados.filter(
+                                    <div className="small text-body-secondary">Eventos</div>
+                                    <div className="fw-bold">
+                                        {registrosDelMes.filter(
                                             (registro) => registro.tipoRegistro === "EVENTO"
-                                        ).length
-                                    }
+                                        ).length}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div
-                            className="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border border-success border-opacity-25"
-                            style={{
-                                backgroundColor: "var(--bs-success-bg-subtle)",
-                                width: "fit-content"
-                            }}
-                        >
-                            <div
-                                className="d-flex align-items-center justify-content-center rounded-2 bg-success text-white"
-                                style={{ width: 28, height: 28, flexShrink: 0 }}
-                            >
-                                <i className="bi bi-check2-circle small" />
-                            </div>
-
-                            <div>
-                                <div className="small text-body-secondary">Actividades</div>
-                                <div className="fw-bold lh-1">
-                                    {
-                                        registrosFiltrados.filter(
+                            <div className="border rounded-3 px-3 py-2 d-flex align-items-center gap-2">
+                                <i className="bi bi-list-check text-success fs-5" />
+                                <div>
+                                    <div className="small text-body-secondary">Actividades</div>
+                                    <div className="fw-bold">
+                                        {registrosDelMes.filter(
                                             (registro) => registro.tipoRegistro === "ACTIVIDAD"
-                                        ).length
-                                    }
+                                        ).length}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Selector de fecha y leyenda */}
-                    <div className="border rounded-4 p-3 mb-4 bg-body-tertiary">
-                        <Row className="align-items-end g-3">
-                            <Col xs={12} md={5} lg={4}>
-                                <Form.Label className="small fw-semibold mb-2">
-                                    <i className="bi bi-calendar-event text-primary me-2" />
-                                    Ir a una fecha
-                                </Form.Label>
+                        {cargando ? (
+                            <div className="d-flex flex-column align-items-center py-5">
+                                <Spinner animation="border" variant="primary" className="mb-3" />
+                                <span className="small text-body-secondary">
+                                    Cargando agenda...
+                                </span>
+                            </div>
+                        ) : registrosDelMes.length === 0 ? (
+                            <EmptyState
+                                icon="bi-calendar2-check"
+                                title="Sin registros"
+                                description="No hay eventos ni actividades para este mes con los filtros actuales."
+                            />
+                        ) : (
+                            <>
+                                {/* Lista compacta agrupada por día */}
+                                    <div className="d-flex flex-column gap-3">
+                                    {registrosDelMes.map((registro, indice) => {
+                                        const esEvento = registro.tipoRegistro === "EVENTO";
+                                        const fechaRegistro = new Date(registro.inicio);
 
-                                <Form.Control
-                                    type="date"
-                                    size="sm"
-                                    className="rounded-3 bg-body"
-                                    value={fechaSeleccionada}
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            seleccionarDia(e.target.value);
-                                        }
-                                    }}
-                                    aria-label="Ir a una fecha"
-                                />
+                                        const fechaAnterior = indice > 0
+                                            ? new Date(registrosDelMes[indice - 1].inicio)
+                                            : null;
+
+                                        const cambiaDia =
+                                            !fechaAnterior ||
+                                            obtenerFechaLocal(fechaRegistro) !==
+                                                obtenerFechaLocal(fechaAnterior);
+
+                                        const seleccionado =
+                                            registroListaSeleccionado?.tipoRegistro ===
+                                                registro.tipoRegistro &&
+                                            registroListaSeleccionado?.id === registro.id;
+
+                                        return (
+                                            <div key={`${registro.tipoRegistro}-${registro.id}`}>
+                                                {cambiaDia && (
+                                                    <div className="d-flex align-items-center gap-2 mb-2 mt-1">
+                                                        <div
+                                                            className="d-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary"
+                                                            style={{ width: 34, height: 34 }}
+                                                        >
+                                                            <i className="bi bi-calendar3" />
+                                                        </div>
+
+                                                        <div>
+                                                            <h3 className="h6 fw-bold text-capitalize mb-0">
+                                                                {formatearDia(
+                                                                    obtenerFechaLocal(fechaRegistro)
+                                                                )}
+                                                            </h3>
+                                                            <span className="small text-body-secondary">
+                                                                {fechaRegistro.toLocaleDateString("es-CL", {
+                                                                    day: "numeric",
+                                                                    month: "long"
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    className={`w-100 text-start border rounded-3 p-2 p-md-3 ${
+                                                        seleccionado
+                                                            ? "border-primary bg-body-tertiary"
+                                                            : "border-secondary border-opacity-25 bg-body"
+                                                    }`}
+                                                    style={{
+                                                        cursor: "pointer",
+                                                        transition: "background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
+                                                        boxShadow: seleccionado
+                                                            ? "0 0 0 1px var(--bs-primary)"
+                                                            : "none"
+                                                    }}
+                                                    onClick={() => {
+                                                        setRegistroListaSeleccionado(
+                                                            seleccionado ? null : registro
+                                                        );
+                                                    }}
+                                                    aria-pressed={seleccionado}
+                                                >
+                                                    <div className="d-flex align-items-center gap-2 gap-md-3">
+                                                        {/* Horario */}
+                                                        <div className="d-flex align-items-center gap-2 rounded-3 border bg-body-tertiary px-2 py-2 flex-shrink-0">
+                                                            <i className="bi bi-clock text-body-secondary small" />
+                                                            <div className="d-flex align-items-center gap-1 text-nowrap">
+                                                                <span className="fw-semibold text-body">
+                                                                {fechaRegistro.toLocaleTimeString("es-CL", {
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit"
+                                                                })}
+                                                                </span>
+
+                                                                <i className="bi bi-arrow-right-short text-body-secondary" />
+                                                                <span className="small text-body-secondary">
+                                                                {registro.fin
+                                                                    ? new Date(registro.fin).toLocaleTimeString(
+                                                                        "es-CL",
+                                                                        {
+                                                                            hour: "2-digit",
+                                                                            minute: "2-digit"
+                                                                        }
+                                                                    )
+                                                                    : "Sin fin"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Información resumida */}
+                                                        <div className="flex-grow-1 min-w-0">
+                                                            <div className="fw-semibold text-body text-truncate mb-1">
+                                                                {obtenerNombre(registro)}
+                                                            </div>
+
+                                                            <div className="d-flex flex-wrap gap-1 gap-sm-2">
+                                                                <Badge bg={esEvento ? "primary" : "success"} className="rounded-pill">
+                                                                    {esEvento ? "Evento" : "Actividad"}
+                                                                </Badge>
+
+                                                                {!esEvento && (
+                                                                    <Badge bg="info" className="rounded-pill">
+                                                                        {TIPOS_ACTIVIDAD.find(
+                                                                            (tipo) => tipo.value === registro.tipo
+                                                                        )?.label || "Sin tipo"}
+                                                                    </Badge>
+                                                                )}
+
+                                                                <Badge bg={obtenerVarianteEstado(registro.estado)} className="rounded-pill">
+                                                                    {formatearEstado(registro.estado) || "Sin estado"}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Indicador de selección */}
+                                                        <i
+                                                            className={`bi ${
+                                                                seleccionado
+                                                                    ? "bi-chevron-up"
+                                                                    : "bi-chevron-down"
+                                                            } text-body-secondary`}
+                                                        />
+                                                    </div>
+                                                </button>
+                                {/* Detalles completos debajo del registro seleccionado */}
+                                {seleccionado &&
+                                    registrosDelMes.some(
+                                        (registro) =>
+                                            registro.tipoRegistro ===
+                                                registroListaSeleccionado.tipoRegistro &&
+                                            registro.id === registroListaSeleccionado.id
+                                    ) && (() => {
+                                        const registro = registrosDelMes.find(
+                                            (item) =>
+                                                item.tipoRegistro ===
+                                                    registroListaSeleccionado.tipoRegistro &&
+                                                item.id === registroListaSeleccionado.id
+                                        );
+
+                                        if (!registro) return null;
+
+                                        const esEvento = registro.tipoRegistro === "EVENTO";
+                                        const productoresAsignados = esEvento
+                                            ? []
+                                            : obtenerProductoresAsignados(registro);
+
+                                        return (
+                                            <Card className={`mt-2 border border-${esEvento ? "primary" : "success"} border-opacity-50 rounded-4 overflow-hidden shadow-sm`}>
+                                                <div className={esEvento ? "bg-primary" : "bg-success"} style={{ height: 4 }} />
+
+                                                <Card.Body className="p-3 p-lg-4">
+                                                    <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+                                                        <div>
+                                                            <div className={`small text-${esEvento ? "primary" : "success"} fw-semibold mb-1`}>
+                                                                {esEvento
+                                                                    ? "DETALLE DEL EVENTO"
+                                                                    : "DETALLE DE LA ACTIVIDAD"}
+                                                            </div>
+                                                            <h3 className="h5 fw-bold mb-2">
+                                                                {obtenerNombre(registro)}
+                                                            </h3>
+                                                            <div className="d-flex flex-wrap gap-2">
+                                                                <Badge bg={esEvento ? "primary" : "success"}>
+                                                                    {esEvento ? "Evento" : "Actividad"}
+                                                                </Badge>
+
+                                                                {!esEvento && (
+                                                                    <Badge bg="info">
+                                                                        {TIPOS_ACTIVIDAD.find(
+                                                                            (tipo) => tipo.value === registro.tipo
+                                                                        )?.label || "Sin tipo"}
+                                                                    </Badge>
+                                                                )}
+
+                                                                <Badge bg={obtenerVarianteEstado(registro.estado)}>
+                                                                    {formatearEstado(registro.estado) || "Sin estado"}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+
+                                                        <Button
+                                                            variant="outline-secondary"
+                                                            size="sm"
+                                                            className="rounded-3"
+                                                            onClick={() => setRegistroListaSeleccionado(null)}
+                                                        >
+                                                            <i className="bi bi-x-lg me-1" />
+                                                            Cerrar detalles
+                                                        </Button>
+                                                    </div>
+
+                                                    <Row className="g-3">
+                                                        <Col xs={12} md={6}>
+                                                            <div className="border rounded-3 p-3 h-100">
+                                                                <div className="small text-body-secondary mb-1">
+                                                                    <i className="bi bi-clock text-primary me-2" />
+                                                                    Inicio
+                                                                </div>
+                                                                <div className="fw-semibold">
+                                                                    {formatearFecha(registro.inicio)}
+                                                                </div>
+                                                            </div>
+                                                        </Col>
+
+                                                        <Col xs={12} md={6}>
+                                                            <div className="border rounded-3 p-3 h-100">
+                                                                <div className="small text-body-secondary mb-1">
+                                                                    <i className="bi bi-clock-history text-primary me-2" />
+                                                                    Término
+                                                                </div>
+                                                                <div className="fw-semibold">
+                                                                    {formatearFecha(registro.fin)}
+                                                                </div>
+                                                            </div>
+                                                        </Col>
+
+                                                        <Col xs={12}>
+                                                            <div className="border rounded-3 p-3">
+                                                                <div className="small text-body-secondary mb-1">
+                                                                    <i className="bi bi-geo-alt text-primary me-2" />
+                                                                    Lugar
+                                                                </div>
+                                                                <div className="fw-semibold">
+                                                                    {registro.lugar || "Sin lugar definido"}
+                                                                </div>
+                                                            </div>
+                                                        </Col>
+
+                                                        <Col xs={12}>
+                                                            <div className="border rounded-3 p-3">
+                                                                <div className="small text-body-secondary mb-2">
+                                                                    <i className="bi bi-card-text text-primary me-2" />
+                                                                    Descripción
+                                                                </div>
+                                                                <p className="mb-0 text-body-secondary" style={{ whiteSpace: "pre-wrap" }}>
+                                                                    {registro.descripcion ||
+                                                                        registro.tipoEvento?.descripcion ||
+                                                                        "Sin descripción disponible."}
+                                                                </p>
+                                                            </div>
+                                                        </Col>
+                                                    </Row>
+
+                                                    {!esEvento && (
+                                                        <div className="border rounded-3 p-3 mt-3">
+                                                            <div className="d-flex align-items-center gap-2 mb-3">
+                                                                <i className="bi bi-people text-primary fs-5" />
+                                                                <span className="fw-semibold">
+                                                                    Productores asignados
+                                                                </span>
+                                                                <Badge bg="secondary" pill>
+                                                                    {productoresAsignados.length}
+                                                                </Badge>
+                                                            </div>
+
+                                                            {productoresAsignados.length === 0 ? (
+                                                                <span className="small text-body-secondary">
+                                                                    No hay productores asignados.
+                                                                </span>
+                                                            ) : (
+                                                                <div className="d-flex flex-column gap-2">
+                                                                    {productoresAsignados.map((productor, indice) => (
+                                                                        <div
+                                                                            key={productor.id ?? indice}
+                                                                            className="d-flex flex-wrap align-items-center justify-content-between gap-2"
+                                                                        >
+                                                                            <span>
+                                                                                <i className="bi bi-person-circle text-secondary me-2" />
+                                                                                {productor.nombre}
+                                                                            </span>
+
+                                                                            {productor.esResponsable && (
+                                                                                <Badge bg="primary" pill>
+                                                                                    Responsable
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {!esEvento && (
+                                                        <div className="d-flex flex-wrap gap-2 mt-4">
+                                                            {registro.estado === "PENDIENTE" && (
+                                                                <Button
+                                                                    variant="outline-success"
+                                                                    className="rounded-3"
+                                                                    onClick={() => completarActividadPendiente(registro)}
+                                                                    disabled={cambiandoEstadoActividad}
+                                                                >
+                                                                    <i className="bi bi-check2-circle me-1" />
+                                                                    Completar
+                                                                </Button>
+                                                            )}
+
+                                                            {registro.estado !== "CANCELADA" && (
+                                                                <Button
+                                                                    variant="outline-primary"
+                                                                    className="rounded-3"
+                                                                    onClick={() => abrirEdicionActividad(registro)}
+                                                                >
+                                                                    <i className="bi bi-pencil me-1" />
+                                                                    Editar
+                                                                </Button>
+                                                            )}
+
+                                                            {registro.estado !== "CANCELADA" && (
+                                                                <Button
+                                                                    variant="outline-danger"
+                                                                    className="rounded-3"
+                                                                    onClick={() => anularActividad(registro)}
+                                                                >
+                                                                    <i className="bi bi-x-circle me-1" />
+                                                                    Cancelar actividad
+                                                                </Button>
+                                                            )}
+
+                                                            {registro.estado === "CANCELADA" && esAdmin && (
+                                                                <Button
+                                                                    variant="outline-success"
+                                                                    className="rounded-3"
+                                                                    onClick={() => setActividadReactivando(registro)}
+                                                                    disabled={cambiandoEstadoActividad}
+                                                                >
+                                                                    <i className="bi bi-arrow-counterclockwise me-1" />
+                                                                    Reactivar
+                                                                </Button>
+                                                            )}
+
+                                                            {esAdmin && (
+                                                                <Button
+                                                                    variant="danger"
+                                                                    className="rounded-3"
+                                                                    onClick={() => solicitarEliminacionFisica(registro)}
+                                                                >
+                                                                    <i className="bi bi-trash me-1" />
+                                                                    Eliminar definitivamente
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </Card.Body>
+                                            </Card>
+                                        );
+                                    })()}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                            </>
+                        )}
+                    </Card.Body>
+                </Card>
+            )}
+
+            {vistaAgenda === "mes" && (
+                    <Card className="bg-body text-body border rounded-4 mb-4 overflow-hidden shadow">
+                    <div className="bg-primary" style={{ height: 5 }} />
+
+                    <Card.Body className="p-3 p-lg-4">
+                        {/* Encabezado */}
+                        <Row className="align-items-center g-3 mb-4">
+                            <Col xs={12} lg>
+                                <div className="d-flex align-items-center gap-3">
+                                    <div
+                                        className="d-flex align-items-center justify-content-center rounded-4 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25"
+                                        style={{ width: 54, height: 54, flexShrink: 0 }}
+                                    >
+                                        <i className="bi bi-calendar3 fs-3" />
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <div className="small fw-bold text-primary mb-1">
+                                            MI AGENDA
+                                        </div>
+
+                                        <h2 className="h4 fw-bold text-capitalize mb-1">
+                                            {mesVisible.toLocaleDateString("es-CL", {
+                                                month: "long",
+                                                year: "numeric"
+                                            })}
+                                        </h2>
+
+                                        <div className="small text-body-secondary">
+                                            Organiza y consulta tus eventos y actividades
+                                        </div>
+                                    </div>
+                                </div>
                             </Col>
 
-                            <Col xs={12} md>
-                                <div className="d-flex align-items-center flex-wrap gap-3 gap-lg-4">
-                                    <span className="small fw-semibold text-body-secondary">
-                                        Referencias
-                                    </span>
+                            <Col xs={12} lg="auto">
+                                <div className="d-flex align-items-center justify-content-between justify-content-lg-end gap-2">
+                                    <div className="d-flex align-items-center gap-1 p-1 rounded-3 border bg-body-tertiary">
+                                        <Button
+                                            variant="light"
+                                            size="sm"
+                                            className="rounded-2 border-0 bg-transparent text-body"
+                                            onClick={() => cambiarMes(-1)}
+                                            aria-label="Mes anterior"
+                                        >
+                                            <i className="bi bi-chevron-left" />
+                                        </Button>
 
-                                    <span className="d-inline-flex align-items-center gap-2 small">
-                                        <span
-                                            className="rounded-2 bg-primary"
-                                            style={{ width: 10, height: 10 }}
-                                        />
-                                        Eventos
-                                    </span>
+                                        <Button
+                                            variant="light"
+                                            size="sm"
+                                            className="rounded-2 border-0 bg-transparent text-body"
+                                            onClick={() => cambiarMes(1)}
+                                            aria-label="Mes siguiente"
+                                        >
+                                            <i className="bi bi-chevron-right" />
+                                        </Button>
+                                    </div>
 
-                                    <span className="d-inline-flex align-items-center gap-2 small">
-                                        <span
-                                            className="rounded-2 bg-success"
-                                            style={{ width: 10, height: 10 }}
-                                        />
-                                        Actividades
-                                    </span>
+                                    <Button
+                                        variant="primary"
+                                        size="sm"
+                                        className="rounded-3 fw-semibold px-3 shadow-sm"
+                                        onClick={irAHoy}
+                                    >
+                                        <i className="bi bi-calendar-check me-2" />
+                                        Hoy
+                                    </Button>
                                 </div>
                             </Col>
                         </Row>
-                    </div>
 
-                    {/* Calendario */}
-                    {cargando ? (
-                        <div className="d-flex flex-column align-items-center py-5">
-                            <Spinner
-                                animation="border"
-                                variant="primary"
-                                className="mb-3"
-                            />
-                            <span className="small text-body-secondary">
-                                Cargando calendario...
-                            </span>
-                        </div>
-                    ) : (
-                        <>
+                        {/* Resumen mensual */}
+                        <div className="d-flex justify-content-center gap-2 mb-3">
                             <div
-                                className="border border-2 rounded-4 overflow-hidden"
+                                className="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border border-primary border-opacity-25"
                                 style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                                    backgroundColor: "var(--bs-border-color)"
+                                    backgroundColor: "var(--bs-primary-bg-subtle)",
+                                    width: "fit-content"
                                 }}
                             >
-                                {/* Encabezados de los días */}
-                                {DIAS_SEMANA.map((dia) => (
-                                    <div
-                                        key={dia}
-                                        className="text-center small fw-bold text-body-secondary bg-body-tertiary border-end border-bottom py-3"
-                                    >
-                                        {dia}
-                                    </div>
-                                ))}
-
-                                {/* Días del mes */}
-                                {diasCalendario.map((dia) => {
-                                    const registrosDia = registrosPorDia[dia.fecha] || [];
-                                    const seleccionado = fechaSeleccionada === dia.fecha;
-
-                                    return (
-                                        <button
-                                            key={dia.fecha}
-                                            type="button"
-                                            onClick={() => seleccionarDia(dia.fecha)}
-                                            aria-label={`Seleccionar ${dia.fecha}`}
-                                            aria-pressed={seleccionado}
-                                            className={[
-                                                "d-flex flex-column align-items-stretch text-start",
-                                                "border-0 border-end border-bottom p-1 p-sm-2 p-lg-3",
-                                                seleccionado
-                                                    ? "bg-primary bg-opacity-10"
-                                                    : dia.perteneceMes
-                                                        ? "bg-body"
-                                                        : "bg-body-tertiary",
-                                                !dia.perteneceMes
-                                                    ? "text-secondary"
-                                                    : "text-body"
-                                            ].join(" ")}
-                                            style={{
-                                                minWidth: 0,
-                                                minHeight: "clamp(88px, 10vw, 124px)",
-                                                cursor: "pointer",
-                                                boxShadow: seleccionado
-                                                    ? "inset 0 0 0 2px var(--bs-primary)"
-                                                    : "none",
-                                                transition: "background-color 0.15s ease"
-                                            }}
-                                        >
-                                            {/* Número del día */}
-                                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                                <span
-                                                    className="d-inline-flex align-items-center justify-content-center rounded-circle fw-semibold"
-                                                    style={{
-                                                        width: 30,
-                                                        height: 30,
-                                                        flexShrink: 0,
-                                                        fontSize: 13,
-                                                        backgroundColor: dia.esHoy
-                                                            ? "var(--bs-primary)"
-                                                            : "transparent",
-                                                        color: dia.esHoy
-                                                            ? "#fff"
-                                                            : "var(--bs-body-color)",
-                                                        outline:
-                                                            seleccionado && !dia.esHoy
-                                                                ? "2px solid var(--bs-primary)"
-                                                                : "none",
-                                                        outlineOffset: -1
-                                                    }}
-                                                >
-                                                    {dia.numero}
-                                                </span>
-
-                                                {registrosDia.length > 0 && (
-                                                    <span
-                                                        className="d-inline-flex align-items-center justify-content-center rounded-pill bg-body-tertiary border text-body-secondary fw-semibold"
-                                                        style={{
-                                                            minWidth: 22,
-                                                            height: 22,
-                                                            padding: "0 5px",
-                                                            fontSize: 11
-                                                        }}
-                                                    >
-                                                        {registrosDia.length}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Registros del día */}
-                                            <div className="d-flex flex-column gap-1">
-                                                {registrosDia.slice(0, 2).map((registro) => {
-                                                    const esEvento =
-                                                        registro.tipoRegistro === "EVENTO";
-
-                                                    return (
-                                                        <div
-                                                            key={`${registro.tipoRegistro}-${registro.id}`}
-                                                            className="d-flex align-items-center gap-1 rounded-2 px-1 px-sm-2 py-1 fw-medium"
-                                                            style={{
-                                                                backgroundColor: esEvento
-                                                                    ? "var(--bs-primary-bg-subtle)"
-                                                                    : "var(--bs-success-bg-subtle)",
-                                                                color: esEvento
-                                                                    ? "var(--bs-primary-text-emphasis)"
-                                                                    : "var(--bs-success-text-emphasis)",
-                                                                minWidth: 0,
-                                                                borderLeft: `3px solid var(--bs-${esEvento ? "primary" : "success"})`
-                                                            }}
-                                                            title={obtenerNombre(registro)}
-                                                        >
-                                                            <i
-                                                                className={`bi ${
-                                                                    esEvento
-                                                                        ? "bi-calendar-event"
-                                                                        : "bi-check-circle"
-                                                                }`}
-                                                                style={{
-                                                                    fontSize: 10,
-                                                                    flexShrink: 0
-                                                                }}
-                                                            />
-
-                                                            <span
-                                                                className="small"
-                                                                style={{
-                                                                    fontSize: "clamp(9px, 0.8vw, 12px)",
-                                                                    lineHeight: 1.4,
-                                                                    overflow: "hidden",
-                                                                    textOverflow: "ellipsis",
-                                                                    whiteSpace: "nowrap",
-                                                                    minWidth: 0
-                                                                }}
-                                                            >
-                                                                {obtenerNombre(registro)}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-
-                                                {registrosDia.length > 2 && (
-                                                    <span
-                                                        className="small text-body-secondary px-1"
-                                                        style={{ fontSize: 11 }}
-                                                    >
-                                                        +{registrosDia.length - 2} más
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Pie */}
-                            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mt-3 pt-3 border-top">
-                                <div className="d-flex align-items-start gap-2">
-                                    <i className="bi bi-info-circle text-primary mt-1" />
-                                    <span className="small text-body-secondary">
-                                        Selecciona un día para consultar sus registros.
-                                    </span>
+                                <div
+                                    className="d-flex align-items-center justify-content-center rounded-2 bg-primary text-white"
+                                    style={{ width: 28, height: 28, flexShrink: 0 }}
+                                >
+                                    <i className="bi bi-calendar-event small" />
                                 </div>
 
-                                <Button
-                                    variant="outline-primary"
-                                    size="sm"
-                                    className="rounded-3 align-self-start align-self-sm-auto fw-semibold"
-                                    onClick={irAHoy}
-                                >
-                                    <i className="bi bi-arrow-counterclockwise me-2" />
-                                    Volver a hoy
-                                </Button>
+                                <div>
+                                    <div className="small text-body-secondary">Eventos</div>
+                                    <div className="fw-bold lh-1">
+                                        {
+                                            registrosFiltrados.filter(
+                                                (registro) => registro.tipoRegistro === "EVENTO"
+                                            ).length
+                                        }
+                                    </div>
+                                </div>
                             </div>
-                        </>
-                    )}
-                </Card.Body>
-            </Card>
 
-            <div
-                className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3"
-                style={{ marginTop: "60px" }}
-            >
-                <div>
-                    <div className="d-flex align-items-center gap-2 mb-1">
-                        <i className="bi bi-calendar2-week text-primary fs-5" />
-                        <h2 className="h5 fw-bold mb-0">
-                            Detalle del día
-                        </h2>
+                            <div
+                                className="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border border-success border-opacity-25"
+                                style={{
+                                    backgroundColor: "var(--bs-success-bg-subtle)",
+                                    width: "fit-content"
+                                }}
+                            >
+                                <div
+                                    className="d-flex align-items-center justify-content-center rounded-2 bg-success text-white"
+                                    style={{ width: 28, height: 28, flexShrink: 0 }}
+                                >
+                                    <i className="bi bi-check2-circle small" />
+                                </div>
+
+                                <div>
+                                    <div className="small text-body-secondary">Actividades</div>
+                                    <div className="fw-bold lh-1">
+                                        {
+                                            registrosFiltrados.filter(
+                                                (registro) => registro.tipoRegistro === "ACTIVIDAD"
+                                            ).length
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Selector de fecha y leyenda */}
+                        <div className="border rounded-4 p-3 mb-4 bg-body-tertiary">
+                            <Row className="align-items-end g-3">
+                                <Col xs={12} md={5} lg={4}>
+                                    <Form.Label className="small fw-semibold mb-2">
+                                        <i className="bi bi-calendar-event text-primary me-2" />
+                                        Ir a una fecha
+                                    </Form.Label>
+
+                                    <Form.Control
+                                        type="date"
+                                        size="sm"
+                                        className="rounded-3 bg-body"
+                                        value={fechaSeleccionada}
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                seleccionarDia(e.target.value);
+                                            }
+                                        }}
+                                        aria-label="Ir a una fecha"
+                                    />
+                                </Col>
+
+                                <Col xs={12} md>
+                                    <div className="d-flex align-items-center flex-wrap gap-3 gap-lg-4">
+                                        <span className="small fw-semibold text-body-secondary">
+                                            Referencias
+                                        </span>
+
+                                        <span className="d-inline-flex align-items-center gap-2 small">
+                                            <span
+                                                className="rounded-2 bg-primary"
+                                                style={{ width: 10, height: 10 }}
+                                            />
+                                            Eventos
+                                        </span>
+
+                                        <span className="d-inline-flex align-items-center gap-2 small">
+                                            <span
+                                                className="rounded-2 bg-success"
+                                                style={{ width: 10, height: 10 }}
+                                            />
+                                            Actividades
+                                        </span>
+                                    </div>
+                                </Col>
+                            </Row>
+                        </div>
+
+                        {/* Calendario */}
+                        {cargando ? (
+                            <div className="d-flex flex-column align-items-center py-5">
+                                <Spinner
+                                    animation="border"
+                                    variant="primary"
+                                    className="mb-3"
+                                />
+                                <span className="small text-body-secondary">
+                                    Cargando calendario...
+                                </span>
+                            </div>
+                        ) : (
+                            <>
+                                <div
+                                    className="border border-2 rounded-4 overflow-hidden"
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                                        backgroundColor: "var(--bs-border-color)"
+                                    }}
+                                >
+                                    {/* Encabezados de los días */}
+                                    {DIAS_SEMANA.map((dia) => (
+                                        <div
+                                            key={dia}
+                                            className="text-center small fw-bold text-body-secondary bg-body-tertiary border-end border-bottom py-3"
+                                        >
+                                            {dia}
+                                        </div>
+                                    ))}
+
+                                    {/* Días del mes */}
+                                    {diasCalendario.map((dia) => {
+                                        const registrosDia = registrosPorDia[dia.fecha] || [];
+                                        const seleccionado = fechaSeleccionada === dia.fecha;
+
+                                        return (
+                                            <button
+                                                key={dia.fecha}
+                                                type="button"
+                                                onClick={() => seleccionarDia(dia.fecha)}
+                                                aria-label={`Seleccionar ${dia.fecha}`}
+                                                aria-pressed={seleccionado}
+                                                className={[
+                                                    "d-flex flex-column align-items-stretch text-start",
+                                                    "border-0 border-end border-bottom p-1 p-sm-2 p-lg-3",
+                                                    seleccionado
+                                                        ? "bg-primary bg-opacity-10"
+                                                        : dia.perteneceMes
+                                                            ? "bg-body"
+                                                            : "bg-body-tertiary",
+                                                    !dia.perteneceMes
+                                                        ? "text-secondary"
+                                                        : "text-body"
+                                                ].join(" ")}
+                                                style={{
+                                                    minWidth: 0,
+                                                    minHeight: "clamp(88px, 10vw, 124px)",
+                                                    cursor: "pointer",
+                                                    boxShadow: seleccionado
+                                                        ? "inset 0 0 0 2px var(--bs-primary)"
+                                                        : "none",
+                                                    transition: "background-color 0.15s ease"
+                                                }}
+                                            >
+                                                {/* Número del día */}
+                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <span
+                                                        className="d-inline-flex align-items-center justify-content-center rounded-circle fw-semibold"
+                                                        style={{
+                                                            width: 30,
+                                                            height: 30,
+                                                            flexShrink: 0,
+                                                            fontSize: 13,
+                                                            backgroundColor: dia.esHoy
+                                                                ? "var(--bs-primary)"
+                                                                : "transparent",
+                                                            color: dia.esHoy
+                                                                ? "#fff"
+                                                                : "var(--bs-body-color)",
+                                                            outline:
+                                                                seleccionado && !dia.esHoy
+                                                                    ? "2px solid var(--bs-primary)"
+                                                                    : "none",
+                                                            outlineOffset: -1
+                                                        }}
+                                                    >
+                                                        {dia.numero}
+                                                    </span>
+
+                                                    {registrosDia.length > 0 && (
+                                                        <span
+                                                            className="d-inline-flex align-items-center justify-content-center rounded-pill bg-body-tertiary border text-body-secondary fw-semibold"
+                                                            style={{
+                                                                minWidth: 22,
+                                                                height: 22,
+                                                                padding: "0 5px",
+                                                                fontSize: 11
+                                                            }}
+                                                        >
+                                                            {registrosDia.length}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Registros del día */}
+                                                <div className="d-flex flex-column gap-1">
+                                                    {registrosDia.slice(0, 2).map((registro) => {
+                                                        const esEvento =
+                                                            registro.tipoRegistro === "EVENTO";
+
+                                                        return (
+                                                            <div
+                                                                key={`${registro.tipoRegistro}-${registro.id}`}
+                                                                className="d-flex align-items-center gap-1 rounded-2 px-1 px-sm-2 py-1 fw-medium"
+                                                                style={{
+                                                                    backgroundColor: esEvento
+                                                                        ? "var(--bs-primary-bg-subtle)"
+                                                                        : "var(--bs-success-bg-subtle)",
+                                                                    color: esEvento
+                                                                        ? "var(--bs-primary-text-emphasis)"
+                                                                        : "var(--bs-success-text-emphasis)",
+                                                                    minWidth: 0,
+                                                                    borderLeft: `3px solid var(--bs-${esEvento ? "primary" : "success"})`
+                                                                }}
+                                                                title={obtenerNombre(registro)}
+                                                            >
+                                                                <i
+                                                                    className={`bi ${
+                                                                        esEvento
+                                                                            ? "bi-calendar-event"
+                                                                            : "bi-check-circle"
+                                                                    }`}
+                                                                    style={{
+                                                                        fontSize: 10,
+                                                                        flexShrink: 0
+                                                                    }}
+                                                                />
+
+                                                                <span
+                                                                    className="small"
+                                                                    style={{
+                                                                        fontSize: "clamp(9px, 0.8vw, 12px)",
+                                                                        lineHeight: 1.4,
+                                                                        overflow: "hidden",
+                                                                        textOverflow: "ellipsis",
+                                                                        whiteSpace: "nowrap",
+                                                                        minWidth: 0
+                                                                    }}
+                                                                >
+                                                                    {obtenerNombre(registro)}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+
+                                                    {registrosDia.length > 2 && (
+                                                        <span
+                                                            className="small text-body-secondary px-1"
+                                                            style={{ fontSize: 11 }}
+                                                        >
+                                                            +{registrosDia.length - 2} más
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Pie */}
+                                <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mt-3 pt-3 border-top">
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className="bi bi-info-circle text-primary" />
+                                        <span className="small text-body-secondary">
+                                            Selecciona un día para consultar sus registros.
+                                        </span>
+                                    </div>
+
+                                    <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        className="rounded-3 align-self-start align-self-sm-auto fw-semibold"
+                                        onClick={irAHoy}
+                                    >
+                                        <i className="bi bi-arrow-counterclockwise me-2" />
+                                        Volver a hoy
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </Card.Body>
+                </Card>
+            )}
+            {vistaAgenda === "mes" && (
+                <>
+                    <div
+                        className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3"
+                    >
+                    <div>
+                        <div className="d-flex align-items-center gap-2 mb-1">
+                            <i className="bi bi-calendar2-week text-primary fs-5" />
+                            <h2 className="h5 fw-bold mb-0">
+                                Detalle del día
+                            </h2>
+                        </div>
+
+                        <p className="small text-secondary text-capitalize mb-0">
+                            {formatearDia(fechaSeleccionada)}
+                        </p>
                     </div>
 
-                    <p className="small text-secondary text-capitalize mb-0">
-                        {formatearDia(fechaSeleccionada)}
-                    </p>
-                </div>
+                    <div className="d-flex flex-wrap gap-2">
+                        <Badge bg="success" className="rounded-pill px-3 py-2">
+                            {cantidadActividades} actividades
+                        </Badge>
 
-                <div className="d-flex flex-wrap gap-2">
-                    <Badge bg="success" className="rounded-pill px-3 py-2">
-                        {cantidadActividades} actividades
-                    </Badge>
-
-                    <Badge bg="primary" className="rounded-pill px-3 py-2">
-                        {cantidadEventos} eventos
-                    </Badge>
+                        <Badge bg="primary" className="rounded-pill px-3 py-2">
+                            {cantidadEventos} eventos
+                        </Badge>
+                    </div>
                 </div>
-            </div>
 
             {cargando ? (
                 <Card className="bg-body text-body border border-secondary border-opacity-25 shadow-sm rounded-4">
@@ -1503,16 +2067,31 @@ export default function AgendaPage() {
 
                                         {!esEvento &&
                                             (registro.estado !== "CANCELADA" || esAdmin) && (
-                                                <div className="d-flex gap-2 mt-3">
-                                                    <Button
-                                                        variant="outline-primary"
-                                                        size="sm"
-                                                        className="rounded-3 flex-fill py-2"
-                                                        onClick={() => abrirEdicionActividad(registro)}
-                                                    >
-                                                        <i className="bi bi-pencil me-1" />
-                                                        Editar
-                                                    </Button>
+                                                <div className="d-flex flex-wrap gap-2 mt-3">
+                                                    {registro.estado === "PENDIENTE" && (
+                                                        <Button
+                                                            variant="outline-success"
+                                                            size="sm"
+                                                            className="rounded-3 flex-fill py-2"
+                                                            onClick={() => completarActividadPendiente(registro)}
+                                                            disabled={cambiandoEstadoActividad}
+                                                        >
+                                                            <i className="bi bi-check2-circle me-1" />
+                                                            Completar
+                                                        </Button>
+                                                    )}
+
+                                                    {registro.estado !== "CANCELADA" && (
+                                                        <Button
+                                                            variant="outline-primary"
+                                                            size="sm"
+                                                            className="rounded-3 flex-fill py-2"
+                                                            onClick={() => abrirEdicionActividad(registro)}
+                                                        >
+                                                            <i className="bi bi-pencil me-1" />
+                                                            Editar
+                                                        </Button>
+                                                    )}
 
                                                     {registro.estado !== "CANCELADA" && (
                                                         <Button
@@ -1523,6 +2102,19 @@ export default function AgendaPage() {
                                                         >
                                                             <i className="bi bi-x-circle me-1" />
                                                             Cancelar
+                                                        </Button>
+                                                    )}
+
+                                                    {registro.estado === "CANCELADA" && esAdmin && (
+                                                        <Button
+                                                            variant="outline-success"
+                                                            size="sm"
+                                                            className="rounded-3 flex-fill py-2"
+                                                            onClick={() => setActividadReactivando(registro)}
+                                                            disabled={cambiandoEstadoActividad}
+                                                        >
+                                                            <i className="bi bi-arrow-counterclockwise me-1" />
+                                                            Reactivar
                                                         </Button>
                                                     )}
 
@@ -1545,6 +2137,8 @@ export default function AgendaPage() {
                         );
                     })}
                 </Row>
+            )}
+                </>
             )}
 
             {/* Formulario para crear o editar actividades */}
@@ -1813,6 +2407,24 @@ export default function AgendaPage() {
                     «{actividadCancelando?.titulo}»
                 </strong>
                 ?
+            </ConfirmModal>
+            {/* La reactivación siempre devuelve la actividad al estado pendiente. */}
+            <ConfirmModal
+                show={Boolean(actividadReactivando)}
+                onHide={() => {
+                    if (!cambiandoEstadoActividad) {
+                        setActividadReactivando(null);
+                    }
+                }}
+                onConfirm={confirmarReactivacion}
+                title="Reactivar actividad"
+                confirmText="Sí, reactivar"
+                variant="success"
+                loading={cambiandoEstadoActividad}
+            >
+                La actividad{" "}
+                <strong>«{actividadReactivando?.titulo}»</strong>{" "}
+                volverá al estado pendiente. El sistema comprobará que no existan conflictos de horario.
             </ConfirmModal>
             {/* Modal de confirmación para eliminar físicamente una actividad */}
             <ConfirmModal

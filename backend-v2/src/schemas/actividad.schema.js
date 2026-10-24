@@ -120,9 +120,6 @@ const updateActividadSchema = z.object({
     }),
 
     body: actividadBaseSchema
-        .omit({
-            estado: true
-        })
         .partial()
         .refine(
             data => Object.keys(data).length > 0,
