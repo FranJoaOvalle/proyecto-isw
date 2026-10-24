@@ -1223,7 +1223,10 @@ export default function AgendaPage() {
                 </Card.Body>
             </Card>
 
-            <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3">
+            <div
+                className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3"
+                style={{ marginTop: "60px" }}
+            >
                 <div>
                     <div className="d-flex align-items-center gap-2 mb-1">
                         <i className="bi bi-calendar2-week text-primary fs-5" />
@@ -1287,26 +1290,44 @@ export default function AgendaPage() {
                                     />
 
                                     <Card.Body className="p-3 p-lg-4">
-                                        <div className="d-flex align-items-center justify-content-between gap-2 mb-3">
-                                            <Badge
-                                                bg={esEvento ? "primary" : "success"}
-                                                className="rounded-pill px-2 py-1 d-inline-flex align-items-center justify-content-center text-nowrap"
-                                                style={{
-                                                    minHeight: 25,
-                                                    fontSize: "0.73rem",
-                                                    lineHeight: 1.1,
-                                                    flexShrink: 0
-                                                }}
-                                            >
-                                                <i
-                                                    className={`bi ${
-                                                        esEvento
-                                                            ? "bi-calendar-event"
-                                                            : "bi-list-check"
-                                                    } me-1`}
-                                                />
-                                                {esEvento ? "Evento" : "Actividad"}
-                                            </Badge>
+                                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                            <div className="d-flex flex-wrap align-items-center gap-2">
+                                                <Badge
+                                                    bg={esEvento ? "primary" : "success"}
+                                                    className="rounded-pill px-2 py-1 d-inline-flex align-items-center justify-content-center text-nowrap"
+                                                    style={{
+                                                        minHeight: 25,
+                                                        fontSize: "0.73rem",
+                                                        lineHeight: 1.1
+                                                    }}
+                                                >
+                                                    <i
+                                                        className={`bi ${
+                                                            esEvento
+                                                                ? "bi-calendar-event"
+                                                                : "bi-list-check"
+                                                        } me-1`}
+                                                    />
+                                                    {esEvento ? "Evento" : "Actividad"}
+                                                </Badge>
+
+                                                {!esEvento && (
+                                                    <Badge
+                                                        bg="info"
+                                                        className="rounded-pill px-2 py-1 d-inline-flex align-items-center justify-content-center text-nowrap"
+                                                        style={{
+                                                            minHeight: 25,
+                                                            fontSize: "0.73rem",
+                                                            lineHeight: 1.1,
+                                                            color: "#ffffff"
+                                                        }}
+                                                    >
+                                                        {TIPOS_ACTIVIDAD.find(
+                                                            (tipo) => tipo.value === registro.tipo
+                                                        )?.label || "Sin tipo"}
+                                                    </Badge>
+                                                )}
+                                            </div>
 
                                             <Badge
                                                 bg={obtenerVarianteEstado(registro.estado)}
