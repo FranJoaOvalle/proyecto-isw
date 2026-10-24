@@ -137,7 +137,7 @@ class ActividadService {
         }
 
         if (filtros.inicio || filtros.fin) {
-            where.AND = [];
+            where.AND = [...(where.AND || [])];
 
             if (filtros.fin) {
                 where.AND.push({
@@ -588,13 +588,18 @@ class ActividadService {
         };
 
         if (esProductor) {
-            const productorId =
-                await this.obtenerProductorAutenticado(usuario);
+            const eventoActualId = actividadActual.eventoId ?? null;
+            const eventoNuevoId = datosFinales.eventoId ?? null;
 
-            await this.validarEventoProductor(
-                datosFinales.eventoId,
-                productorId
-            );
+            if (eventoNuevoId !== eventoActualId) {
+                const productorId =
+                    await this.obtenerProductorAutenticado(usuario);
+
+                await this.validarEventoProductor(
+                    eventoNuevoId,
+                    productorId
+                );
+            }
         } else {
             await this.validarRelaciones({
                 eventoId: datosFinales.eventoId,

@@ -1,8 +1,27 @@
+import { useState } from "react";
 import { Alert, Button, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { TIPOS_ACTIVIDAD } from "./agenda.utils";
 
 export default function ActividadFormularioModal({ agenda }) {
-    const { esAdmin, mostrarFormulario, setMostrarFormulario, guardandoActividad, guardarActividad, actividadEditando, formActividad, setFormActividad, cargandoProductores, productores, productoresActividad, cambiarProductorAsignado, cambiarResponsable, error } = agenda;
+    const { esAdmin, mostrarFormulario, setMostrarFormulario, guardandoActividad, guardarActividad, actividadEditando, formActividad, setFormActividad, eventosDisponibles, cargandoProductores, productores, productoresActividad, cambiarProductorAsignado, cambiarResponsable, error } = agenda;
+    const [busquedaProductor, setBusquedaProductor] = useState("");
+    const eventos = [...eventosDisponibles];
+
+    if (
+        actividadEditando?.evento &&
+        !eventos.some((evento) => evento.id === actividadEditando.evento.id)
+    ) {
+        eventos.unshift({
+            ...actividadEditando.evento,
+            tipoRegistro: "EVENTO"
+        });
+    }
+
+    const productoresFiltrados = productores.filter((productor) =>
+        `${productor.nombres} ${productor.apellidos}`
+            .toLocaleLowerCase("es-CL")
+            .includes(busquedaProductor.trim().toLocaleLowerCase("es-CL"))
+    );
 
     return (
         <>            {/* Formulario para crear o editar actividades */}
@@ -13,6 +32,7 @@ export default function ActividadFormularioModal({ agenda }) {
                         setMostrarFormulario(false);
                     }
                 }}
+                onShow={() => setBusquedaProductor("")}
                 centered
             >
                 <Form onSubmit={guardarActividad}>
@@ -148,6 +168,31 @@ export default function ActividadFormularioModal({ agenda }) {
                             />
                         </Form.Group>
 
+                        <Form.Group className="mb-3">
+                            <Form.Label>Evento relacionado</Form.Label>
+                            <Form.Select
+                                value={formActividad.eventoId}
+                                onChange={(e) =>
+                                    setFormActividad({
+                                        ...formActividad,
+                                        eventoId: e.target.value
+                                    })
+                                }
+                            >
+                                <option value="">Sin evento asociado</option>
+                                {eventos.map((evento) => (
+                                    <option key={evento.id} value={String(evento.id)}>
+                                        {evento.tipoEvento?.nombre || "Evento"} — {new Date(evento.inicio).toLocaleDateString("es-CL")}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            <Form.Text className="text-body-secondary">
+                                {esAdmin
+                                    ? "Puedes asociar la actividad a cualquier evento de la organización."
+                                    : "Solo puedes asociarla a uno de tus eventos asignados."}
+                            </Form.Text>
+                        </Form.Group>
+
                         {esAdmin ? (
                             <Form.Group className="mb-3">
                                 <Form.Label>Productores asignados *</Form.Label>
@@ -164,8 +209,21 @@ export default function ActividadFormularioModal({ agenda }) {
                                         No hay productores activos disponibles.
                                     </Alert>
                                 ) : (
-                                    <div className="border rounded-3 px-3">
-                                        {productores.map((productor) => {
+                                    <>
+                                        <Form.Control
+                                            type="search"
+                                            value={busquedaProductor}
+                                            onChange={(e) => setBusquedaProductor(e.target.value)}
+                                            placeholder="Buscar productor por nombre"
+                                            aria-label="Buscar productor por nombre"
+                                            className="rounded-3 mb-2"
+                                        />
+                                        <div className="border rounded-3 px-3 overflow-auto" style={{ maxHeight: 220 }}>
+                                        {productoresFiltrados.length === 0 ? (
+                                            <div className="small text-body-secondary text-center py-3">
+                                                No hay productores que coincidan con la búsqueda.
+                                            </div>
+                                        ) : productoresFiltrados.map((productor) => {
                                             const asignado =
                                                 productoresActividad.find(
                                                     (item) =>
@@ -205,7 +263,8 @@ export default function ActividadFormularioModal({ agenda }) {
                                                 </div>
                                             );
                                         })}
-                                    </div>
+                                        </div>
+                                    </>
                                 )}
 
                                 <Form.Text className="text-body-secondary">

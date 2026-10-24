@@ -78,6 +78,7 @@ export default function AgendaPage() {
         inicio: `${hoy}T09:00`,
         fin: `${hoy}T10:00`,
         lugar: "",
+        eventoId: "",
         estado: "PENDIENTE"
     });
 
@@ -175,6 +176,7 @@ export default function AgendaPage() {
             inicio: `${fechaSeleccionada}T09:00`,
             fin: `${fechaSeleccionada}T10:00`,
             lugar: "",
+            eventoId: "",
             estado: "PENDIENTE"
         });
 
@@ -193,6 +195,7 @@ export default function AgendaPage() {
             inicio: convertirAFechaHoraLocal(actividad.inicio),
             fin: convertirAFechaHoraLocal(actividad.fin),
             lugar: actividad.lugar || "",
+            eventoId: actividad.eventoId ? String(actividad.eventoId) : "",
             estado: actividad.estado === "CANCELADA"
                 ? "PENDIENTE"
                 : actividad.estado
@@ -306,7 +309,10 @@ export default function AgendaPage() {
                 tipo: formActividad.tipo,
                 inicio: new Date(formActividad.inicio).toISOString(),
                 fin: new Date(formActividad.fin).toISOString(),
-                lugar: formActividad.lugar.trim() || null
+                lugar: formActividad.lugar.trim() || null,
+                eventoId: formActividad.eventoId
+                    ? Number(formActividad.eventoId)
+                    : null
             };
 
             if (esAdmin) {
@@ -693,6 +699,7 @@ export default function AgendaPage() {
 
     const agendaProps = {
         esAdmin,
+        eventosDisponibles: registros.filter((registro) => registro.tipoRegistro === "EVENTO"),
         vistaAgenda,
         mesVisible,
         cambiarMes,
