@@ -22,3 +22,8 @@ export const cambiarEstadoActividad = async (id, estado) => {
 
     return response.data;
 };
+
+export const eliminarFisicamenteActividad = async (id) => {
+    const response = await api.delete(`/actividades/${id}/fisico`);
+    return response.data;
+};

@@ -22,7 +22,8 @@ import {
     crearActividad,
     actualizarActividad,
     cambiarEstadoActividad,
-    cancelarActividad
+    cancelarActividad,
+    eliminarFisicamenteActividad
 } from "../../services/actividad.service";
 
 const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -173,6 +174,8 @@ export default function AgendaPage() {
     // Estados para confirmar la cancelación de una actividad.
     const [actividadCancelando, setActividadCancelando] = useState(null);
     const [cancelandoActividad, setCancelandoActividad] = useState(false);
+    const [actividadEliminando, setActividadEliminando] = useState(null);
+    const [eliminandoActividad, setEliminandoActividad] = useState(false);
 
     const [formActividad, setFormActividad] = useState({
         titulo: "",
@@ -473,6 +476,39 @@ export default function AgendaPage() {
             );
         } finally {
             setCancelandoActividad(false);
+        }
+    };
+
+        // Abre el modal de confirmación para eliminar físicamente una actividad.
+    const solicitarEliminacionFisica = (actividad) => {
+        setError("");
+        setMensaje("");
+        setActividadEliminando(actividad);
+    };
+
+    // Elimina definitivamente la actividad cuando ADMIN confirma.
+    const confirmarEliminacionFisica = async () => {
+        if (!actividadEliminando || eliminandoActividad) return;
+
+        try {
+            setEliminandoActividad(true);
+            setError("");
+            setMensaje("");
+
+            await eliminarFisicamenteActividad(actividadEliminando.id);
+            await recargarAgenda();
+
+            setRegistroSeleccionado(null);
+            setActividadEliminando(null);
+            setMensaje("Actividad eliminada definitivamente.");
+        } catch (err) {
+            setError(
+                err.response?.data?.error?.message ||
+                err.response?.data?.message ||
+                "No fue posible eliminar físicamente la actividad."
+            );
+        } finally {
+            setEliminandoActividad(false);
         }
     };
 
@@ -1208,6 +1244,18 @@ export default function AgendaPage() {
                                                             Cancelar
                                                         </Button>
                                                     )}
+
+                                                    {esAdmin && (
+                                                        <Button
+                                                            variant="danger"
+                                                            size="sm"
+                                                            className="rounded-3 flex-fill py-2"
+                                                            onClick={() => solicitarEliminacionFisica(registro)}
+                                                        >
+                                                            <i className="bi bi-trash me-1" />
+                                                            Eliminar
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             )}
                                     </Card.Body>
@@ -1484,6 +1532,27 @@ export default function AgendaPage() {
                     «{actividadCancelando?.titulo}»
                 </strong>
                 ?
+            </ConfirmModal>
+            {/* Modal de confirmación para eliminar físicamente una actividad */}
+            <ConfirmModal
+                show={Boolean(actividadEliminando)}
+                onHide={() => {
+                    if (!eliminandoActividad) {
+                        setActividadEliminando(null);
+                    }
+                }}
+                onConfirm={confirmarEliminacionFisica}
+                title="Eliminar definitivamente"
+                confirmText="Sí, eliminar definitivamente"
+                variant="danger"
+                loading={eliminandoActividad}
+            >
+                ¿Estás seguro de que deseas eliminar definitivamente la actividad{" "}
+                <strong>«{actividadEliminando?.titulo}»</strong>?
+
+                <p className="text-danger mt-2 mb-0">
+                    Esta acción no se puede deshacer.
+                </p>
             </ConfirmModal>
         </Container>
     );
