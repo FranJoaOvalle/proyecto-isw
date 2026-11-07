@@ -1,4 +1,7 @@
 import api from "./_api";
+export const editarEvento = async (id, datos) => (await api.patch(`/eventos/${id}`, datos)).data;
+export const cancelarEvento = async (id) => (await api.patch(`/eventos/${id}/cancelar`)).data;
+export const eliminarEvento = async (id) => (await api.delete(`/eventos/${id}`)).data;
 
 export const getEventosSeguimiento = async (params) => (await api.get("/eventos", { params })).data;
 export const getEventoSeguimiento = async (id) => (await api.get(`/eventos/${id}`)).data;

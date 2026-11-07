@@ -1,0 +1,80 @@
+import { useState } from "react";
+import { Alert, Button, Form, Modal } from "react-bootstrap";
+import ConfirmModal from "../ConfirmModal";
+import { editarEvento, cancelarEvento, eliminarEvento } from "../../services/seguimiento.service";
+import { mensajeError } from "./seguimiento.utils";
+
+const fechaLocal = valor => {
+    const fecha = new Date(valor);
+    return new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+export default function EventoAcciones({ evento, onCambio }) {
+    const [accion, setAccion] = useState("");
+    const [form, setForm] = useState({});
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [mensaje, setMensaje] = useState("");
+    const [validated, setValidated] = useState(false);
+    const [imagenError, setImagenError] = useState(false);
+    const abrirEditar = () => {
+        setForm({ inicio: fechaLocal(evento.inicio), fin: fechaLocal(evento.fin), lugar: evento.lugar,
+            asistentes: evento.asistentes, observaciones: evento.observaciones ?? "", imagen_url: evento.imagen_url ?? "" });
+        setValidated(false); setError(""); setImagenError(false); setAccion("editar");
+    };
+    const cerrar = () => { if (!saving) setAccion(""); };
+    async function ejecutar(datos) {
+        if (saving) return;
+        setSaving(true); setError(""); setMensaje("");
+        try {
+            if (accion === "editar") await editarEvento(evento.id, datos);
+            else if (accion === "cancelar") await cancelarEvento(evento.id);
+            else await eliminarEvento(evento.id);
+            setAccion(""); setMensaje(accion === "editar" ? "Evento actualizado correctamente." : "Evento cancelado correctamente.");
+            onCambio();
+        } catch (err) { setError(mensajeError(err, "No fue posible completar la acción.")); }
+        finally { setSaving(false); }
+    }
+    const cambiar = e => { setForm(v => ({ ...v, [e.target.name]: e.target.value })); if (e.target.name === "imagen_url") setImagenError(false); };
+    return <>
+        {mensaje && <Alert variant="success" className="mt-3" dismissible onClose={() => setMensaje("")}>{mensaje}</Alert>}
+        {error && <Alert variant="danger" className="mt-3" dismissible onClose={() => setError("")}>{error}</Alert>}
+        <div className="d-flex flex-wrap gap-2 mt-3">
+            {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && <Button variant="outline-primary" onClick={abrirEditar}><i className="bi bi-pencil me-2" />Editar</Button>}
+            {["CONFIRMADO", "POSPUESTO"].includes(evento.estado) && <Button variant="outline-danger" onClick={() => { setError(""); setAccion("cancelar"); }}>Cancelar evento</Button>}
+            {evento.estado === "CANCELADO" && <div><Button variant="outline-danger" disabled>Eliminar definitivamente</Button><small className="d-block text-secondary mt-1">Conserva un presupuesto contratado e historial protegido.</small></div>}
+        </div>
+        <Modal show={accion === "editar"} onHide={cerrar} centered backdrop="static">
+            <Form noValidate validated={validated} onSubmit={e => {
+                e.preventDefault(); setValidated(true);
+                if (!e.currentTarget.checkValidity() || !form.lugar.trim() || new Date(form.fin) <= new Date(form.inicio)) return;
+                ejecutar({ ...form, inicio: new Date(form.inicio).toISOString(), fin: new Date(form.fin).toISOString(),
+                    asistentes: Number(form.asistentes), observaciones: form.observaciones.trim() || null, imagen_url: form.imagen_url.trim() || null });
+            }}>
+                <Modal.Header closeButton={!saving}><Modal.Title>Editar evento</Modal.Title></Modal.Header>
+                <Modal.Body>
+                    {error && <Alert variant="danger">{error}</Alert>}
+                    {[['inicio', 'Inicio', 'datetime-local'], ['fin', 'Término', 'datetime-local'], ['lugar', 'Lugar', 'text'], ['asistentes', 'Asistentes', 'number']].map(([name, label, type]) =>
+                        <Form.Group key={name} controlId={`evento-${name}`} className="mb-3 position-relative"><Form.Label>{label}</Form.Label>
+                            <Form.Control name={name} type={type} value={form[name] ?? ""} onChange={cambiar} required disabled={saving}
+                                min={type === "number" ? 1 : undefined} step={type === "number" ? 1 : undefined} maxLength={name === "lugar" ? 200 : undefined}
+                                isInvalid={validated && name === "fin" && new Date(form.fin) <= new Date(form.inicio)} />
+                            <Form.Control.Feedback type="invalid" tooltip>{name === "fin" ? "El término debe ser posterior al inicio." : "Ingresa un valor válido."}</Form.Control.Feedback>
+                        </Form.Group>)}
+                    <Form.Group controlId="evento-observaciones" className="mb-3"><Form.Label>Observaciones</Form.Label>
+                        <Form.Control as="textarea" name="observaciones" maxLength={5000} value={form.observaciones ?? ""} onChange={cambiar} disabled={saving} /></Form.Group>
+                    <Form.Group controlId="evento-imagen"><Form.Label>URL de imagen (opcional)</Form.Label>
+                        <Form.Control type="url" name="imagen_url" maxLength={2048} pattern="https?://.*" value={form.imagen_url ?? ""} onChange={cambiar} disabled={saving} />
+                        <Form.Text>Utiliza una URL HTTP o HTTPS, como en Catálogo. Deja vacío para quitar la imagen.</Form.Text>
+                    </Form.Group>
+                    {form.imagen_url && (/^https?:\/\//i.test(form.imagen_url)) && (imagenError ? <Alert variant="warning" className="mt-3">No fue posible cargar la vista previa. Comprueba la URL.</Alert> : <img src={form.imagen_url} alt="Vista previa del evento" className="img-fluid rounded mt-3" onError={() => setImagenError(true)} />)}
+                </Modal.Body>
+                <Modal.Footer><Button variant="secondary" disabled={saving} onClick={cerrar}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button></Modal.Footer>
+            </Form>
+        </Modal>
+        <ConfirmModal show={accion === "cancelar"} onHide={cerrar} onConfirm={() => ejecutar()} loading={saving} title="Cancelar evento" confirmText="Sí, cancelar evento">
+            <p>El evento pasará a CANCELADO. Se conservarán su presupuesto, pagos, recursos y todo su historial. Cancelar no elimina el evento.</p>
+            {error && <Alert variant="danger">{error}</Alert>}
+        </ConfirmModal>
+    </>;
+}

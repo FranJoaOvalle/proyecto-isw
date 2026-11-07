@@ -1,8 +1,10 @@
+import EventoImagen from "./EventoImagen";
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../PageHeader";
+import EventoAcciones from "./EventoAcciones";
 import SeguimientoPanel from "./SeguimientoPanel";
 import { getEventoSeguimiento } from "../../services/seguimiento.service";
 import { estadosEvento, varianteEstado, fechaSeguimiento, mensajeError } from "./seguimiento.utils";
@@ -39,7 +41,7 @@ function Detalle({ id }) {
         {cargando ? <div role="status"><Spinner size="sm" /> Cargando evento...</div>
             : error ? <Alert variant="danger">{error} <Button variant="link" onClick={() => setRevision(v => v + 1)}>Reintentar</Button></Alert>
             : evento && <>
-                <Card className="shadow-sm mb-4"><Card.Body className="p-4">
+                <Card className="shadow-sm mb-4"><EventoImagen url={evento.imagen_url} nombre={evento.tipoEvento.nombre} /><Card.Body className="p-4">
                     <div className="d-flex justify-content-between gap-3 mb-3"><h2 className="h4">{evento.tipoEvento.nombre}</h2>
                         <Badge bg={varianteEstado[evento.estado]} className="align-self-start">{estadosEvento[evento.estado]}</Badge></div>
                     <Row className="g-3">
@@ -51,6 +53,7 @@ function Detalle({ id }) {
                         <Col md={6}><strong>Cliente:</strong> {evento.cliente.empresa?.razonSocial || `${evento.cliente.persona?.nombres || ""} ${evento.cliente.persona?.apellidos || ""}`}</Col>
                     </Row>
                     {evento.observaciones && <p className="mt-3 mb-0 text-break" style={{ whiteSpace: "pre-wrap" }}>{evento.observaciones}</p>}
+                    {usuario?.rol === "ADMIN" && <EventoAcciones evento={evento} onCambio={() => getEventoSeguimiento(id).then(setEvento).catch(err => setError(mensajeError(err, "No fue posible actualizar el evento.")))} />}
                 </Card.Body></Card>
                 <SeguimientoPanel eventoId={id} />
             </>}
