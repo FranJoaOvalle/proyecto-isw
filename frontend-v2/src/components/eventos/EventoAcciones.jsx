@@ -73,7 +73,6 @@ export default function EventoAcciones({ evento, onCambio }) {
                             <Form.Control type="url" name="imagen_url" maxLength={2048} pattern="https://.*" required value={form.imagen_url ?? ""} onChange={cambiar} disabled={saving} />
                             <Form.Control.Feedback type="invalid">Ingresa una URL HTTPS válida.</Form.Control.Feedback>
                         </Form.Group>}
-                        {!imagenPersonalizada && <Form.Text>Se utiliza la imagen actual de Catálogo sin copiarla al evento.</Form.Text>}
                         {((imagenPersonalizada && /^https:\/\//i.test(form.imagen_url)) || (!imagenPersonalizada && evento.tipoEvento?.imagen_url)) && (imagenError
                             ? <Alert variant="warning" className="mt-3">No fue posible cargar la vista previa. Se mostrará una alternativa si la imagen no está disponible.</Alert>
                             : <img src={imagenPersonalizada ? form.imagen_url : evento.tipoEvento.imagen_url} alt="Vista previa del evento" className="img-fluid rounded mt-3" onError={() => setImagenError(true)} />)}

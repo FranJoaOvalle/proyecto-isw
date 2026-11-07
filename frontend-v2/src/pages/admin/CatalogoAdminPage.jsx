@@ -58,6 +58,7 @@ export default function CatalogoAdminPage() {
         useState(initialFormData);
 
     const [validated, setValidated] = useState(false);
+    const [usarImagen, setUsarImagen] = useState(false);
 
     const [tipoEventoEstado, setTipoEventoEstado] =
         useState(null);
@@ -135,6 +136,7 @@ export default function CatalogoAdminPage() {
     ]);
 
     const abrirCrear = () => {
+        setUsarImagen(false);
         setSelectedTipoEvento(null);
         setFormData(initialFormData);
         setValidated(false);
@@ -143,6 +145,7 @@ export default function CatalogoAdminPage() {
     };
 
     const abrirEditar = (tipoEvento) => {
+        setUsarImagen(Boolean(tipoEvento.imagen_url));
         setSelectedTipoEvento(tipoEvento);
 
         setFormData({
@@ -207,7 +210,7 @@ export default function CatalogoAdminPage() {
                     : null,
                 incluye: formData.incluye.trim() || null,
                 cantidadPersonasBase: Number(formData.cantidadPersonasBase),
-                imagen_url: formData.imagen_url.trim() || null
+                imagen_url: usarImagen ? formData.imagen_url.trim() : null
             };
 
             if (!selectedTipoEvento) {
@@ -581,7 +584,12 @@ export default function CatalogoAdminPage() {
                             </Form.Control.Feedback>
                         </Form.Group>
 
-                        <Form.Group className="mb-3">
+                        <fieldset className="mb-3">
+                            <legend className="fs-6">Imagen del evento</legend>
+                            <Form.Check id="catalogo-sin-imagen" type="radio" name="modoImagen" label="Sin imagen" checked={!usarImagen} disabled={saving} onChange={() => setUsarImagen(false)} />
+                            <Form.Check id="catalogo-con-imagen" type="radio" name="modoImagen" label="Utilizar URL de imagen personalizada" checked={usarImagen} disabled={saving} onChange={() => setUsarImagen(true)} />
+                        </fieldset>
+                        {usarImagen && <Form.Group className="mb-3">
                             <Form.Label htmlFor="imagen_url">
                                 URL de la imagen
                             </Form.Label>
@@ -590,18 +598,19 @@ export default function CatalogoAdminPage() {
                                 id="imagen_url"
                                 name="imagen_url"
                                 type="url"
+                                pattern="https://.*"
+                                maxLength={2048}
+                                required
                                 value={formData.imagen_url}
                                 onChange={handleChange}
                                 disabled={saving}
                                 placeholder="https://ejemplo.com/imagen.jpg"
                             />
 
-                            <Form.Text className="text-muted">
-                                Pega un enlace directo a una imagen.
-                            </Form.Text>
-                        </Form.Group>
+                            <Form.Control.Feedback type="invalid">Ingresa una URL HTTPS válida.</Form.Control.Feedback>
+                        </Form.Group>}
 
-                        {formData.imagen_url.trim() && (
+                        {usarImagen && /^https:\/\//i.test(formData.imagen_url.trim()) && (
                             <div className="mt-3">
                                 <Form.Label>Vista previa</Form.Label>
 
