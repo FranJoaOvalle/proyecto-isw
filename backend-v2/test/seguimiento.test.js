@@ -83,7 +83,7 @@ test("valida texto, enums y límites; rechaza autor o fecha enviados por el clie
 test("valida IDs, comentarios vacíos y rangos de fechas", () => {
     const editar = body => schema.editarEventoSchema.safeParse({ params: { id: 10 }, body });
     assert.equal(editar({ imagen_url: "https://example.test/image.jpg" }).success, true);
-    for (const body of [{ imagen_url: "javascript:alert(1)" }, { imagen_url: "archivo" }, { asistentes: 0 }, { presupuestoId: 99 }, { estado: "COMPLETADO" }, {}]) {
+    for (const body of [{ imagen_url: "http://example.test/image.jpg" }, { imagen_url: "javascript:alert(1)" }, { imagen_url: "archivo" }, { asistentes: 0 }, { presupuestoId: 99 }, { estado: "COMPLETADO" }, {}]) {
         assert.equal(editar(body).success, false);
     }
     for (const id of ["0", "-1", "1.5", "abc", "2147483648"]) {

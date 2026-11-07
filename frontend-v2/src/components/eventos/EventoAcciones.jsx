@@ -17,7 +17,9 @@ export default function EventoAcciones({ evento, onCambio }) {
     const [mensaje, setMensaje] = useState("");
     const [validated, setValidated] = useState(false);
     const [imagenError, setImagenError] = useState(false);
+    const [imagenPersonalizada, setImagenPersonalizada] = useState(false);
     const abrirEditar = () => {
+        setImagenPersonalizada(Boolean(evento.imagen_url));
         setForm({ inicio: fechaLocal(evento.inicio), fin: fechaLocal(evento.fin), lugar: evento.lugar,
             asistentes: evento.asistentes, observaciones: evento.observaciones ?? "", imagen_url: evento.imagen_url ?? "" });
         setValidated(false); setError(""); setImagenError(false); setAccion("editar");
@@ -49,7 +51,7 @@ export default function EventoAcciones({ evento, onCambio }) {
                 e.preventDefault(); setValidated(true);
                 if (!e.currentTarget.checkValidity() || !form.lugar.trim() || new Date(form.fin) <= new Date(form.inicio)) return;
                 ejecutar({ ...form, inicio: new Date(form.inicio).toISOString(), fin: new Date(form.fin).toISOString(),
-                    asistentes: Number(form.asistentes), observaciones: form.observaciones.trim() || null, imagen_url: form.imagen_url.trim() || null });
+                    asistentes: Number(form.asistentes), observaciones: form.observaciones.trim() || null, imagen_url: imagenPersonalizada ? form.imagen_url.trim() : null });
             }}>
                 <Modal.Header closeButton={!saving}><Modal.Title>Editar evento</Modal.Title></Modal.Header>
                 <Modal.Body>
@@ -63,11 +65,19 @@ export default function EventoAcciones({ evento, onCambio }) {
                         </Form.Group>)}
                     <Form.Group controlId="evento-observaciones" className="mb-3"><Form.Label>Observaciones</Form.Label>
                         <Form.Control as="textarea" name="observaciones" maxLength={5000} value={form.observaciones ?? ""} onChange={cambiar} disabled={saving} /></Form.Group>
-                    <Form.Group controlId="evento-imagen"><Form.Label>URL de imagen (opcional)</Form.Label>
-                        <Form.Control type="url" name="imagen_url" maxLength={2048} pattern="https?://.*" value={form.imagen_url ?? ""} onChange={cambiar} disabled={saving} />
-                        <Form.Text>Utiliza una URL HTTP o HTTPS, como en Catálogo. Deja vacío para quitar la imagen.</Form.Text>
-                    </Form.Group>
-                    {form.imagen_url && (/^https?:\/\//i.test(form.imagen_url)) && (imagenError ? <Alert variant="warning" className="mt-3">No fue posible cargar la vista previa. Comprueba la URL.</Alert> : <img src={form.imagen_url} alt="Vista previa del evento" className="img-fluid rounded mt-3" onError={() => setImagenError(true)} />)}
+                    <fieldset>
+                        <legend className="fs-6">Imagen del evento</legend>
+                        <Form.Check id="evento-imagen-heredada" type="radio" name="modoImagen" label="Utilizar imagen del tipo de evento" checked={!imagenPersonalizada} disabled={saving} onChange={() => { setImagenPersonalizada(false); setImagenError(false); }} />
+                        <Form.Check id="evento-imagen-personalizada" type="radio" name="modoImagen" label="Utilizar URL de imagen personalizada" checked={imagenPersonalizada} disabled={saving} onChange={() => { setImagenPersonalizada(true); setImagenError(false); }} />
+                        {imagenPersonalizada && <Form.Group controlId="evento-imagen" className="mt-3"><Form.Label>URL de imagen personalizada</Form.Label>
+                            <Form.Control type="url" name="imagen_url" maxLength={2048} pattern="https://.*" required value={form.imagen_url ?? ""} onChange={cambiar} disabled={saving} />
+                            <Form.Control.Feedback type="invalid">Ingresa una URL HTTPS válida.</Form.Control.Feedback>
+                        </Form.Group>}
+                        {!imagenPersonalizada && <Form.Text>Se utiliza la imagen actual de Catálogo sin copiarla al evento.</Form.Text>}
+                        {((imagenPersonalizada && /^https:\/\//i.test(form.imagen_url)) || (!imagenPersonalizada && evento.tipoEvento?.imagen_url)) && (imagenError
+                            ? <Alert variant="warning" className="mt-3">No fue posible cargar la vista previa. Se mostrará una alternativa si la imagen no está disponible.</Alert>
+                            : <img src={imagenPersonalizada ? form.imagen_url : evento.tipoEvento.imagen_url} alt="Vista previa del evento" className="img-fluid rounded mt-3" onError={() => setImagenError(true)} />)}
+                    </fieldset>
                 </Modal.Body>
                 <Modal.Footer><Button variant="secondary" disabled={saving} onClick={cerrar}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button></Modal.Footer>
             </Form>

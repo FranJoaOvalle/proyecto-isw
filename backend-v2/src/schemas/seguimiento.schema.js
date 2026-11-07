@@ -33,7 +33,7 @@ const comentarioSchema = detalleSchema.extend({ body: z.object({
 }).strict() });
 
 const editarEventoSchema = z.object({ params, body: z.object({
-    imagen_url: z.string().trim().max(2048).url("La URL de imagen no es válida.").refine(v => /^https?:\/\//i.test(v), "Utiliza una URL HTTP o HTTPS.").nullable().optional(),
+    imagen_url: z.string().trim().max(2048).url("La URL de imagen no es válida.").refine(v => /^https:\/\//i.test(v), "Utiliza una URL HTTPS.").nullable().optional(),
     inicio: z.iso.datetime({ offset: true }).transform(v => new Date(v)).optional(),
     fin: z.iso.datetime({ offset: true }).transform(v => new Date(v)).optional(),
     lugar: z.string().trim().min(2).max(200).optional(),

@@ -86,6 +86,14 @@ test("PostgreSQL: persiste, filtra, protege eventos y conserva comentarios indep
                 assert.equal(editado.cambios.length, 3);
                 await assert.rejects(eventos.eliminar(evento.id, admin), { statusCode: 409 });
                 await assert.rejects(eventos.cancelar(evento.id, usuarioProductor), { statusCode: 403 });
+                await tx.tipoEvento.update({ where: { id: tipo.id }, data: { imagen_url: "https://example.test/catalogo.jpg" } });
+                assert.equal((await service.evento(evento.id, admin)).imagen_url, "https://example.test/evento.jpg");
+                await eventos.actualizar(evento.id, { imagen_url: null }, admin);
+                const heredado = await service.evento(evento.id, admin);
+                assert.equal(heredado.imagen_url, null);
+                assert.equal(heredado.tipoEvento.imagen_url, "https://example.test/catalogo.jpg");
+                await tx.tipoEvento.update({ where: { id: tipo.id }, data: { imagen_url: "https://example.test/catalogo-nueva.jpg" } });
+                assert.equal((await service.evento(evento.id, admin)).tipoEvento.imagen_url, "https://example.test/catalogo-nueva.jpg");
                 await eventos.cancelar(evento.id, admin);
                 assert.equal((await tx.evento.findUnique({ where: { id: evento.id } })).estado, "CANCELADO");
                 assert.equal(await tx.seguimientoEvento.count({ where: { eventoId: evento.id } }), 2);

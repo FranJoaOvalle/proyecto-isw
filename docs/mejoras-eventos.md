@@ -20,7 +20,11 @@ DELETE `/api/v2/eventos/:id` comprueba rol y estado. En el schema actual todos l
 
 ## Imágenes
 
-Catálogo utiliza URL, no selección ni carga de archivos. Se reutiliza ese mecanismo mediante el campo opcional Evento.imagen_url, URL HTTP/HTTPS, vista previa, error de carga y sustitución. Editar otro campo conserva la imagen. Dejar el campo vacío permite quitarla. Las imágenes del listado y detalle usan altura uniforme, object-fit cover y un estado alternativo si no hay imagen o falla su carga. No se descargan, almacenan ni eliminan archivos externos.
+Catálogo utiliza URL, no selección ni carga de archivos. Evento reutiliza imagen_url como referencia personalizada opcional y obtiene la imagen heredada mediante tipoEvento.imagen_url, sin copiarla. La prioridad compartida en tarjetas y detalle es imagen propia, imagen del tipo y placeholder. Si una imagen falla, se prueba la siguiente alternativa.
+
+El formulario incluye Imagen del evento con opciones heredada (predeterminada) y personalizada. Solo muestra el campo URL cuando corresponde; exige HTTPS en React y Zod y ofrece vista previa. Guardar la opción heredada persiste null únicamente en Evento.imagen_url. No modifica Catálogo. Cambiar la imagen del catálogo se refleja al volver a consultar los eventos heredados; no altera las referencias personalizadas. Editar otros campos conserva el modo seleccionado.
+
+No hay nueva migración, almacenamiento ni endpoints de upload para esta mejora. Se mantienen las proporciones y el placeholder existentes.
 
 Migración aditiva aplicada: `20261107220000_add_evento_imagen`. No modifica migraciones anteriores ni datos históricos.
 

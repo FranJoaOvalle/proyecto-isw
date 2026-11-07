@@ -41,7 +41,7 @@ function Detalle({ id }) {
         {cargando ? <div role="status"><Spinner size="sm" /> Cargando evento...</div>
             : error ? <Alert variant="danger">{error} <Button variant="link" onClick={() => setRevision(v => v + 1)}>Reintentar</Button></Alert>
             : evento && <>
-                <Card className="shadow-sm mb-4"><EventoImagen url={evento.imagen_url} nombre={evento.tipoEvento.nombre} /><Card.Body className="p-4">
+                <Card className="shadow-sm mb-4"><EventoImagen url={evento.imagen_url} heredada={evento.tipoEvento?.imagen_url} nombre={evento.tipoEvento.nombre} /><Card.Body className="p-4">
                     <div className="d-flex justify-content-between gap-3 mb-3"><h2 className="h4">{evento.tipoEvento.nombre}</h2>
                         <Badge bg={varianteEstado[evento.estado]} className="align-self-start">{estadosEvento[evento.estado]}</Badge></div>
                     <Row className="g-3">
