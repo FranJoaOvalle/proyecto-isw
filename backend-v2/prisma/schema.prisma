@@ -90,6 +90,8 @@ model Usuario {
   productor Productor?
 
   cambiosEvento EventoCambio[]
+  seguimientosEvento SeguimientoEvento[]
+  comentariosSeguimiento ComentarioSeguimiento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -226,6 +228,7 @@ model Evento {
   tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id])
 
   cambios     EventoCambio[]
+  seguimientos SeguimientoEvento[]
   recursos    EventoRecurso[]
   actividades Actividad[]
 
@@ -391,4 +394,49 @@ model ActividadProductor {
   @@id([actividadId, productorId])
   @@index([productorId])
   @@index([actividadId, esResponsable])
+}
+
+enum TipoSeguimiento {
+  NOVEDAD
+  INCIDENCIA
+  OBSERVACION
+  MODIFICACION
+  HITO
+}
+
+enum ImportanciaSeguimiento {
+  BAJA
+  MEDIA
+  ALTA
+}
+
+model SeguimientoEvento {
+  id          Int @id @default(autoincrement())
+  eventoId    Int
+  usuarioId   Int
+  descripcion String @db.Text
+  tipo        TipoSeguimiento
+  importancia ImportanciaSeguimiento
+  createdAt   DateTime @default(now())
+
+  evento      Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuario     Usuario @relation(fields: [usuarioId], references: [id])
+  comentarios ComentarioSeguimiento[]
+
+  @@index([eventoId, createdAt, id])
+  @@index([usuarioId])
+}
+
+model ComentarioSeguimiento {
+  id            Int @id @default(autoincrement())
+  seguimientoId Int
+  usuarioId     Int
+  comentario    String @db.Text
+  createdAt     DateTime @default(now())
+
+  seguimiento SeguimientoEvento @relation(fields: [seguimientoId], references: [id], onDelete: Cascade)
+  usuario     Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([seguimientoId, createdAt, id])
+  @@index([usuarioId])
 }

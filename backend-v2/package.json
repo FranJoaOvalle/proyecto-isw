@@ -4,6 +4,8 @@
   "private": true,
   "main": "src/server.js",
   "scripts": {
+    "test:seguimiento": "node --test test/seguimiento.test.js",
+    "test:seguimiento:db": "tsx --test test/seguimiento.db.test.js",
     "dev": "tsx watch src/server.js",
     "start": "tsx src/server.js",
     "prisma:generate": "prisma generate",
