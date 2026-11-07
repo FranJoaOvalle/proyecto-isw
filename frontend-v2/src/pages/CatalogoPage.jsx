@@ -61,9 +61,13 @@ export default function CatalogoPage() {
             const descripcion =
                 tipoEvento.descripcion?.toLowerCase() ?? "";
 
+            const incluye =
+                tipoEvento.incluye?.toLowerCase() ?? "";
+
             return (
                 nombre.includes(texto) ||
-                descripcion.includes(texto)
+                descripcion.includes(texto) ||
+                incluye.includes(texto)
             );
         });
     }, [tiposEvento, busqueda]);

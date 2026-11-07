@@ -11,14 +11,18 @@ import {
     Form,
     Modal,
     Row,
-    Spinner
+    Spinner,
+    Toast,
+    ToastContainer
 } from "react-bootstrap";
 
 import CatalogoCard from "../../components/catalogo/CatalogoCard";
 import TableToolbar from "../../components/admin/TableToolbar";
+import ConfirmModal from "../../components/ConfirmModal";
 
 import {
     createTipoEvento,
+    deleteTipoEvento,
     getTiposEvento,
     updateTipoEvento,
     updateTipoEventoEstado
@@ -27,7 +31,10 @@ import {
 const initialFormData = {
     nombre: "",
     descripcion: "",
+    modalidadPrecio: "FIJO",
     precioBase: "",
+    tarifaHora: "",
+    incluye: "",
     cantidadPersonasBase: "",
     imagen_url: ""
 };
@@ -41,6 +48,7 @@ export default function CatalogoAdminPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [mensaje, setMensaje] = useState("");
 
     const [showForm, setShowForm] = useState(false);
     const [selectedTipoEvento, setSelectedTipoEvento] =
@@ -56,6 +64,10 @@ export default function CatalogoAdminPage() {
 
     const [cambiandoEstado, setCambiandoEstado] =
         useState(false);
+
+    const [tipoEventoEliminar, setTipoEventoEliminar] =
+        useState(null);
+    const [eliminando, setEliminando] = useState(false);
 
     const cargarCatalogo = async () => {
         try {
@@ -91,10 +103,14 @@ export default function CatalogoAdminPage() {
             const descripcion =
                 tipoEvento.descripcion?.toLowerCase() ?? "";
 
+            const incluye =
+                tipoEvento.incluye?.toLowerCase() ?? "";
+
             const coincideBusqueda =
                 !texto ||
                 nombre.includes(texto) ||
-                descripcion.includes(texto);
+                descripcion.includes(texto) ||
+                incluye.includes(texto);
 
             const coincideEstado =
                 estado === "TODOS" ||
@@ -132,7 +148,10 @@ export default function CatalogoAdminPage() {
         setFormData({
             nombre: tipoEvento.nombre ?? "",
             descripcion: tipoEvento.descripcion ?? "",
+            modalidadPrecio: tipoEvento.modalidadPrecio ?? "FIJO",
             precioBase: tipoEvento.precioBase ?? "",
+            tarifaHora: tipoEvento.tarifaHora ?? "",
+            incluye: tipoEvento.incluye ?? "",
             cantidadPersonasBase:
                 tipoEvento.cantidadPersonasBase ?? "",
             imagen_url: tipoEvento.imagen_url ?? ""
@@ -179,7 +198,14 @@ export default function CatalogoAdminPage() {
             const data = {
                 nombre: formData.nombre.trim(),
                 descripcion: formData.descripcion.trim(),
-                precioBase: Number(formData.precioBase),
+                modalidadPrecio: formData.modalidadPrecio,
+                precioBase: formData.modalidadPrecio === "FIJO"
+                    ? Number(formData.precioBase)
+                    : null,
+                tarifaHora: formData.modalidadPrecio === "POR_HORA"
+                    ? Number(formData.tarifaHora)
+                    : null,
+                incluye: formData.incluye.trim() || null,
                 cantidadPersonasBase: Number(formData.cantidadPersonasBase),
                 imagen_url: formData.imagen_url.trim() || null
             };
@@ -188,7 +214,9 @@ export default function CatalogoAdminPage() {
                 data.activo = true;
             }
 
-            if (selectedTipoEvento) {
+            const estabaEditando = Boolean(selectedTipoEvento);
+
+            if (estabaEditando) {
                 await updateTipoEvento(
                     selectedTipoEvento.id,
                     data
@@ -196,6 +224,10 @@ export default function CatalogoAdminPage() {
             } else {
                 await createTipoEvento(data);
             }
+
+            setMensaje(estabaEditando
+                ? "Tipo de evento actualizado correctamente."
+                : "Tipo de evento creado correctamente.");
 
             setShowForm(false);
             setSelectedTipoEvento(null);
@@ -229,12 +261,13 @@ export default function CatalogoAdminPage() {
         try {
             setCambiandoEstado(true);
 
-            await updateTipoEventoEstado(
-                tipoEventoEstado.id,
-                !tipoEventoEstado.activo
-            );
+            const activar = !tipoEventoEstado.activo;
+            await updateTipoEventoEstado(tipoEventoEstado.id, activar);
 
             setTipoEventoEstado(null);
+            setMensaje(activar
+                ? "Tipo de evento activado correctamente."
+                : "Tipo de evento desactivado correctamente.");
 
             await cargarCatalogo();
         } catch (error) {
@@ -247,8 +280,52 @@ export default function CatalogoAdminPage() {
         }
     };
 
+    const handleEliminarFisico = async () => {
+        if (!tipoEventoEliminar) return;
+
+        try {
+            setEliminando(true);
+            await deleteTipoEvento(tipoEventoEliminar.id);
+            setTipoEventoEliminar(null);
+            setMensaje("Tipo de evento eliminado correctamente.");
+            await cargarCatalogo();
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                "No fue posible eliminar el tipo de evento."
+            );
+            setTipoEventoEliminar(null);
+        } finally {
+            setEliminando(false);
+        }
+    };
+
     return (
         <Container className="py-5">
+            <ToastContainer
+                position="bottom-end"
+                className="position-fixed p-3"
+                style={{ zIndex: 1080 }}
+            >
+                {mensaje && (
+                    <Toast
+                        key={mensaje}
+                        bg="success"
+                        onClose={() => setMensaje("")}
+                        delay={4500}
+                        autohide
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <Toast.Header className="text-bg-success border-0">
+                            <i className="bi bi-check-circle-fill me-2" />
+                            <strong className="me-auto">Listo</strong>
+                        </Toast.Header>
+                        <Toast.Body className="text-white">{mensaje}</Toast.Body>
+                    </Toast>
+                )}
+            </ToastContainer>
+
             <div className="mb-4 d-flex flex-column flex-md-row justify-content-between gap-3">
                 <div>
                     <h1 className="fw-bold mb-2">
@@ -268,16 +345,6 @@ export default function CatalogoAdminPage() {
                     </Button>
                 </div>
             </div>
-
-            {error && (
-                <Alert
-                    variant="danger"
-                    dismissible
-                    onClose={() => setError("")}
-                >
-                    {error}
-                </Alert>
-            )}
 
             <TableToolbar
                 search={busqueda}
@@ -326,6 +393,9 @@ export default function CatalogoAdminPage() {
                                     abrirCambioEstado(
                                         tipoEvento
                                     )
+                                }
+                                onEliminarFisico={() =>
+                                    setTipoEventoEliminar(tipoEvento)
                                 }
                             />
                         </Col>
@@ -376,6 +446,23 @@ export default function CatalogoAdminPage() {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
+                            <Form.Label htmlFor="modalidadPrecio">
+                                Modalidad de precio
+                            </Form.Label>
+
+                            <Form.Select
+                                id="modalidadPrecio"
+                                name="modalidadPrecio"
+                                value={formData.modalidadPrecio}
+                                onChange={handleChange}
+                                disabled={saving}
+                            >
+                                <option value="FIJO">Precio fijo</option>
+                                <option value="POR_HORA">Tarifa por hora</option>
+                            </Form.Select>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
                             <Form.Label htmlFor="descripcion">
                                 Descripción
                             </Form.Label>
@@ -400,27 +487,76 @@ export default function CatalogoAdminPage() {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label htmlFor="precioBase">
-                                Precio base
+                            <Form.Label htmlFor="incluye">
+                                Incluye habitualmente (opcional)
                             </Form.Label>
 
                             <Form.Control
-                                id="precioBase"
-                                name="precioBase"
-                                type="number"
-                                value={formData.precioBase}
+                                as="textarea"
+                                id="incluye"
+                                name="incluye"
+                                value={formData.incluye}
                                 onChange={handleChange}
-                                min={0.01}
-                                step="any"
-                                required
+                                rows={3}
+                                maxLength={2000}
                                 disabled={saving}
-                                placeholder="500000"
+                                placeholder="Ej. sonido básico, iluminación y apoyo técnico"
                             />
 
-                            <Form.Control.Feedback type="invalid">
-                                Ingresa un precio mayor que cero.
-                            </Form.Control.Feedback>
+                            <Form.Text className="text-muted">
+                                Información referencial; los elementos finales se confirman en el presupuesto.
+                            </Form.Text>
                         </Form.Group>
+
+                        {formData.modalidadPrecio === "FIJO" && (
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="precioBase">
+                                    Precio base
+                                </Form.Label>
+
+                                <Form.Control
+                                    id="precioBase"
+                                    name="precioBase"
+                                    type="number"
+                                    value={formData.precioBase}
+                                    onChange={handleChange}
+                                    min={0.01}
+                                    step="any"
+                                    required
+                                    disabled={saving}
+                                    placeholder="500000"
+                                />
+
+                                <Form.Control.Feedback type="invalid">
+                                    Ingresa un precio mayor que cero.
+                                </Form.Control.Feedback>
+                            </Form.Group>
+                        )}
+
+                        {formData.modalidadPrecio === "POR_HORA" && (
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="tarifaHora">
+                                    Tarifa por hora
+                                </Form.Label>
+
+                                <Form.Control
+                                    id="tarifaHora"
+                                    name="tarifaHora"
+                                    type="number"
+                                    value={formData.tarifaHora}
+                                    onChange={handleChange}
+                                    min={0.01}
+                                    step="0.01"
+                                    required
+                                    disabled={saving}
+                                    placeholder="Ej. 25000"
+                                />
+
+                                <Form.Text className="text-muted">
+                                    El precio de este tipo se cotiza según la duración del evento.
+                                </Form.Text>
+                            </Form.Group>
+                        )}
 
                         <Form.Group className="mb-3">
                             <Form.Label htmlFor="cantidadPersonasBase">
@@ -597,6 +733,48 @@ export default function CatalogoAdminPage() {
                         ) : (
                             "Activar"
                         )}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            <ConfirmModal
+                show={!!tipoEventoEliminar}
+                onHide={() => !eliminando && setTipoEventoEliminar(null)}
+                onConfirm={handleEliminarFisico}
+                title="Eliminar tipo de evento"
+                confirmText="Eliminar"
+                loading={eliminando}
+            >
+                <p>
+                    ¿Eliminar permanentemente <strong>{tipoEventoEliminar?.nombre}</strong>?
+                </p>
+                <p className="mb-0">
+                    Solo se puede eliminar si no tiene eventos ni presupuestos relacionados. Esta acción no se puede deshacer.
+                </p>
+            </ConfirmModal>
+
+            <Modal
+                show={Boolean(error)}
+                onHide={() => setError("")}
+                centered
+                aria-labelledby="tipo-evento-error-title"
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title id="tipo-evento-error-title">
+                        <i className="bi bi-exclamation-triangle-fill text-danger me-2" />
+                        No se pudo completar la acción
+                    </Modal.Title>
+                </Modal.Header>
+
+                <Modal.Body>
+                    <Alert variant="danger" className="mb-0">
+                        {error}
+                    </Alert>
+                </Modal.Body>
+
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setError("")}>
+                        Cerrar
                     </Button>
                 </Modal.Footer>
             </Modal>

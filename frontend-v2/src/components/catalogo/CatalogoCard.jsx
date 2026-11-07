@@ -9,9 +9,12 @@ export default function CatalogoCard({
     admin = false,
     onEditar,
     onCambiarEstado,
+    onEliminarFisico,
     disabled = false
 }) {
-    const precioBase = Number(tipoEvento.precioBase);
+    const precio = Number(tipoEvento.modalidadPrecio === "POR_HORA"
+        ? tipoEvento.tarifaHora
+        : tipoEvento.precioBase);
     const cantidadPersonasBase = Number(
         tipoEvento.cantidadPersonasBase
     );
@@ -65,16 +68,30 @@ export default function CatalogoCard({
                     {tipoEvento.descripcion || "Sin descripción."}
                 </Card.Text>
 
+                {tipoEvento.incluye && (
+                    <div className="mb-2">
+                        <small className="text-secondary d-block mb-1">
+                            Incluye habitualmente
+                        </small>
+                        <div style={{ whiteSpace: "pre-line" }}>
+                            {tipoEvento.incluye}
+                        </div>
+                    </div>
+                )}
+
                 <div className="bg-body-tertiary rounded p-3 mt-2">
                     <small className="text-secondary d-block mb-1">
-                        Precio base
+                        {tipoEvento.modalidadPrecio === "POR_HORA"
+                            ? "Tarifa por hora"
+                            : "Precio fijo"}
                     </small>
 
                     <span className="fs-4 fw-bold">
                         $
-                        {Number.isFinite(precioBase)
-                            ? precioBase.toLocaleString("es-CL")
+                        {Number.isFinite(precio)
+                            ? precio.toLocaleString("es-CL")
                             : "0"}
+                        {tipoEvento.modalidadPrecio === "POR_HORA" && "/hora"}
                     </span>
 
                     <hr />
@@ -126,6 +143,18 @@ export default function CatalogoCard({
                                 : "Activar"}
                         </Button>
                     </div>
+                )}
+
+                {admin && !tipoEvento.activo && onEliminarFisico && (
+                    <Button
+                        variant="danger"
+                        className="w-100 mt-2"
+                        onClick={onEliminarFisico}
+                        disabled={disabled}
+                    >
+                        <i className="bi bi-trash me-2" />
+                        Eliminar
+                    </Button>
                 )}
             </Card.Body>
         </Card>

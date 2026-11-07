@@ -44,6 +44,11 @@ enum TipoPago {
   SALDO
 }
 
+enum ModalidadPrecioTipoEvento {
+  FIJO
+  POR_HORA
+}
+
 enum EstadoPago {
   PENDIENTE
   PAGADO
@@ -149,7 +154,10 @@ model TipoEvento {
   id                   Int     @id @default(autoincrement())
   nombre               String  @unique
   descripcion          String
-  precioBase           Decimal @db.Decimal(12, 2)
+  modalidadPrecio      ModalidadPrecioTipoEvento @default(FIJO)
+  precioBase           Decimal? @db.Decimal(12, 2)
+  tarifaHora           Decimal? @db.Decimal(12, 2)
+  incluye              String?  @db.Text
   imagen_url           String? @db.Text
   cantidadPersonasBase Int
   activo               Boolean @default(true)
