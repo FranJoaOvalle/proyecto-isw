@@ -742,7 +742,7 @@ export default function CatalogoAdminPage() {
                 onHide={() => !eliminando && setTipoEventoEliminar(null)}
                 onConfirm={handleEliminarFisico}
                 title="Eliminar tipo de evento"
-                confirmText="Eliminar"
+                confirmText="Sí, eliminar definitivamente"
                 loading={eliminando}
             >
                 <p>

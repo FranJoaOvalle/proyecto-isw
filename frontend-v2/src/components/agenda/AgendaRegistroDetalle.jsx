@@ -209,7 +209,7 @@ export default function AgendaRegistroDetalle({
                                 <i className="bi bi-check2-circle me-1" />Completar
                             </Button>
                         )}
-                        {!esAdmin && registro.estado === "COMPLETADA" && onSetPending && (
+                        {registro.estado === "COMPLETADA" && onSetPending && (
                             <Button variant="outline-secondary" className="rounded-3" onClick={() => onSetPending(registro)} disabled={changingStatus}>
                                 <i className="bi bi-arrow-counterclockwise me-1" />Marcar pendiente
                             </Button>
@@ -229,7 +229,7 @@ export default function AgendaRegistroDetalle({
                                 <i className="bi bi-arrow-counterclockwise me-1" />Reactivar
                             </Button>
                         )}
-                        {esAdmin && onDelete && (
+                        {!esEvento && esAdmin && registro.estado === "CANCELADA" && onDelete && (
                             <Button variant="danger" className="rounded-3" onClick={() => onDelete(registro)}>
                                 <i className="bi bi-trash me-1" />Eliminar
                             </Button>

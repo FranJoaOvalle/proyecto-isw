@@ -755,7 +755,7 @@ export default function AgendaMes({ agenda }) {
                                                         </Button>
                                                     )}
 
-                                                    {!esAdmin && registro.estado === "COMPLETADA" && (
+                                                    {registro.estado === "COMPLETADA" && (
                                                         <Button
                                                             variant="outline-secondary"
                                                             size="sm"
@@ -805,7 +805,7 @@ export default function AgendaMes({ agenda }) {
                                                         </Button>
                                                     )}
 
-                                                    {esAdmin && (
+                                                    {esAdmin && registro.estado === "CANCELADA" && (
                                                         <Button
                                                             variant="danger"
                                                             size="sm"
