@@ -49,9 +49,7 @@ const tipoEventoBaseSchema = z.object({
 
     imagen_url: z.string()
         .trim()
-        .max(2048, "La URL no puede exceder 2048 caracteres.")
         .url("La URL de la imagen no es válida.")
-        .refine(valor => /^https:\/\//i.test(valor), "Utiliza una URL HTTPS.")
         .optional()
         .nullable()
 });
