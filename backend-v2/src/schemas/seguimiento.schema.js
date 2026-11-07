@@ -32,4 +32,13 @@ const comentarioSchema = detalleSchema.extend({ body: z.object({
     comentario: z.string().trim().min(1).max(2000)
 }).strict() });
 
-module.exports = { eventoIdSchema, eventosSchema, historialSchema, registroSchema, detalleSchema, comentarioSchema };
+const editarEventoSchema = z.object({ params, body: z.object({
+    imagen_url: z.string().trim().max(2048).url("La URL de imagen no es válida.").refine(v => /^https?:\/\//i.test(v), "Utiliza una URL HTTP o HTTPS.").nullable().optional(),
+    inicio: z.iso.datetime({ offset: true }).transform(v => new Date(v)).optional(),
+    fin: z.iso.datetime({ offset: true }).transform(v => new Date(v)).optional(),
+    lugar: z.string().trim().min(2).max(200).optional(),
+    asistentes: z.number().int().positive().max(2147483647).optional(),
+    observaciones: z.string().trim().max(5000).nullable().optional()
+}).strict().refine(v => Object.keys(v).length > 0, "Debe proporcionar cambios.") });
+
+module.exports = { eventoIdSchema, eventosSchema, historialSchema, registroSchema, detalleSchema, comentarioSchema, editarEventoSchema };

@@ -220,6 +220,7 @@ model Evento {
   asistentes    Int
   estado        EstadoEvento @default(CONFIRMADO)
   observaciones String?
+  imagen_url    String? @db.Text
 
   calificacion Calificacion?
 

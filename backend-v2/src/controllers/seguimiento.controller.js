@@ -1,4 +1,5 @@
 const service = require("../services/seguimiento.service");
+const eventos = require("../services/evento.service");
 
 const responder = (accion, status = 200) => async (req, res, next) => {
     try {
@@ -9,6 +10,9 @@ const responder = (accion, status = 200) => async (req, res, next) => {
 };
 
 module.exports = {
+    editarEvento: responder((v, u) => eventos.actualizar(v.params.id, v.body, u)),
+    cancelarEvento: responder((v, u) => eventos.cancelar(v.params.id, u)),
+    eliminarEvento: responder((v, u) => eventos.eliminar(v.params.id, u)),
     eventos: responder((v, u) => service.eventos(v.query, u)),
     evento: responder((v, u) => service.evento(v.params.id, u)),
     historial: responder((v, u) => service.historial(v.params.id, v.query, u)),

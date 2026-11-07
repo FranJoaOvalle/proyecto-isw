@@ -81,6 +81,11 @@ test("valida texto, enums y límites; rechaza autor o fecha enviados por el clie
 });
 
 test("valida IDs, comentarios vacíos y rangos de fechas", () => {
+    const editar = body => schema.editarEventoSchema.safeParse({ params: { id: 10 }, body });
+    assert.equal(editar({ imagen_url: "https://example.test/image.jpg" }).success, true);
+    for (const body of [{ imagen_url: "javascript:alert(1)" }, { imagen_url: "archivo" }, { asistentes: 0 }, { presupuestoId: 99 }, { estado: "COMPLETADO" }, {}]) {
+        assert.equal(editar(body).success, false);
+    }
     for (const id of ["0", "-1", "1.5", "abc", "2147483648"]) {
         assert.equal(schema.eventoIdSchema.safeParse({ params: { id } }).success, false);
     }
@@ -135,7 +140,7 @@ test("ninguna operación permite acceder a eventos ajenos", async () => {
 test("HTTP exige JWT y rechaza CLIENTE en todas las rutas", async () => http(async request => {
     assert.equal((await request("/10/seguimiento")).status, 401);
     for (const [path, method, body] of [
-        ["", "GET"], ["/10", "GET"], ["/10/seguimiento", "GET"], ["/10/seguimiento/autores", "GET"],
+        ["", "GET"], ["/10", "GET"], ["/10", "PATCH", { lugar: "Nuevo lugar" }], ["/10/cancelar", "PATCH"], ["/10", "DELETE"], ["/10/seguimiento", "GET"], ["/10/seguimiento/autores", "GET"],
         ["/10/seguimiento", "POST", datos], ["/10/seguimiento/1", "GET"],
         ["/10/seguimiento/1/comentarios", "GET"], ["/10/seguimiento/1/comentarios", "POST", { comentario: "Hola" }]
     ]) assert.equal((await request(path, cliente, method, body)).status, 403);
