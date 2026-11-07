@@ -6,7 +6,8 @@ export default function TableToolbar({
                                          searchPlaceholder = "Buscar...",
                                          estado,
                                          onEstadoChange,
-                                         children
+                                         children,
+                                         opcionesEstado = { TODOS: "Todos", ACTIVOS: "Activos", INACTIVOS: "Inactivos" }
                                      }) {
     return (
         <div className="d-flex flex-column flex-lg-row gap-3 mb-4">
@@ -27,9 +28,7 @@ export default function TableToolbar({
                 onChange={(e) => onEstadoChange(e.target.value)}
                 style={{ maxWidth: 180 }}
             >
-                <option value="TODOS">Todos</option>
-                <option value="ACTIVOS">Activos</option>
-                <option value="INACTIVOS">Inactivos</option>
+                {Object.entries(opcionesEstado).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </Form.Select>
 
             {children}
