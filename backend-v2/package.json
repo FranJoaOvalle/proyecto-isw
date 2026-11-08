@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed:espacios-demo": "tsx prisma/seed-mapa-demo.js"
+    "seed:espacios-demo": "tsx prisma/seed-mapa-demo.js",
+    "seed:inventario-demo": "tsx prisma/seed-inventario-demo.js"
   },
   "type": "commonjs",
   "dependencies": {

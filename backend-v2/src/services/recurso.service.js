@@ -5,6 +5,34 @@ const ValidationException = require("../exceptions/ValidationException");
 
 const incluirDetalle = { material: true, humano: true };
 
+function calcularMaximoReservado(reservas, inicio, fin) {
+    const eventos = new Map();
+    const agregarEvento = (fecha, cantidad) => {
+        const instante = fecha.getTime();
+        eventos.set(instante, (eventos.get(instante) ?? 0) + cantidad);
+    };
+
+    for (const reserva of reservas) {
+        const pendienteAtrasada = reserva.estadoDevolucion === "PENDIENTE" && reserva.fin <= inicio;
+        const inicioEfectivo = reserva.inicio > inicio ? reserva.inicio : inicio;
+        const finEfectivo = pendienteAtrasada || reserva.fin > fin
+            ? fin
+            : reserva.fin;
+
+        if (inicioEfectivo >= finEfectivo) continue;
+        agregarEvento(inicioEfectivo, reserva.cantidad);
+        agregarEvento(finEfectivo, -reserva.cantidad);
+    }
+
+    let ocupadas = 0;
+    let maximo = 0;
+    for (const [, cambio] of [...eventos].sort(([a], [b]) => a - b)) {
+        ocupadas += cambio;
+        maximo = Math.max(maximo, ocupadas);
+    }
+    return maximo;
+}
+
 class RecursoService {
     async getAll(incluirInactivos = false, intervalo = null) {
         const recursos = await prisma.recurso.findMany({
@@ -12,7 +40,7 @@ class RecursoService {
                 tipo: "MATERIAL",
                 ...(incluirInactivos ? {} : { activo: true })
             },
-            include: incluirDetalle,
+            include: { ...incluirDetalle, _count: { select: { reservas: true, eventos: true, presupuestos: true } } },
             orderBy: { nombre: "asc" }
         });
 
@@ -26,15 +54,20 @@ class RecursoService {
                         { estadoDevolucion: "PENDIENTE", fin: { lte: intervalo.inicio } }
                     ]
                 },
-                select: { recursoId: true, cantidad: true }
+                select: {
+                    recursoId: true,
+                    cantidad: true,
+                    inicio: true,
+                    fin: true,
+                    estadoDevolucion: true
+                }
             })
             : [];
-        const reservadosPorRecurso = new Map();
+        const reservasPorRecurso = new Map();
         for (const reserva of reservas) {
-            reservadosPorRecurso.set(
-                reserva.recursoId,
-                (reservadosPorRecurso.get(reserva.recursoId) ?? 0) + reserva.cantidad
-            );
+            const lista = reservasPorRecurso.get(reserva.recursoId) ?? [];
+            lista.push(reserva);
+            reservasPorRecurso.set(reserva.recursoId, lista);
         }
 
         return recursos.map(recurso => ({
@@ -42,7 +75,13 @@ class RecursoService {
             cantidadDisponible: Math.max(
                 0,
                 recurso.stockTotal - recurso.cantidadEnMantencion - recurso.cantidadPerdida -
-                (reservadosPorRecurso.get(recurso.id) ?? 0)
+                (intervalo
+                    ? calcularMaximoReservado(
+                        reservasPorRecurso.get(recurso.id) ?? [],
+                        intervalo.inicio,
+                        intervalo.fin
+                    )
+                    : 0)
             )
         }));
     }
@@ -115,8 +154,13 @@ class RecursoService {
             prisma.eventoRecurso.count({ where: { recursoId } }),
             prisma.presupuestoRecurso.count({ where: { recursoId } })
         ]);
-        if (reservas + eventos + presupuestos > 0) {
-            throw new ConflictException("No se puede eliminar definitivamente este recurso porque tiene reservas, eventos o presupuestos asociados. Puedes desactivarlo para conservar su historial.");
+        const relaciones = [
+            reservas > 0 && `${reservas} ${reservas === 1 ? "reserva" : "reservas"}`,
+            eventos > 0 && `${eventos} ${eventos === 1 ? "evento" : "eventos"}`,
+            presupuestos > 0 && `${presupuestos} ${presupuestos === 1 ? "presupuesto" : "presupuestos"}`
+        ].filter(Boolean);
+        if (relaciones.length) {
+            throw new ConflictException(`No se puede eliminar definitivamente porque tiene ${relaciones.join(", ")} asociados. Desactívalo para conservar el historial.`);
         }
         return prisma.recurso.delete({ where: { id: recursoId } });
     }
@@ -141,7 +185,7 @@ class RecursoService {
                 throw new ConflictException("El recurso está inactivo y no admite reservas.");
             }
 
-            const reservas = await tx.reservaRecurso.aggregate({
+            const reservas = await tx.reservaRecurso.findMany({
                 where: {
                     recursoId,
                     cancelada: false,
@@ -150,10 +194,11 @@ class RecursoService {
                         { estadoDevolucion: "PENDIENTE", fin: { lte: data.inicio } }
                     ]
                 },
-                _sum: { cantidad: true }
+                select: { cantidad: true, inicio: true, fin: true, estadoDevolucion: true }
             });
+            const maximoReservado = calcularMaximoReservado(reservas, data.inicio, data.fin);
             const disponible = recurso.stockTotal - recurso.cantidadEnMantencion -
-                recurso.cantidadPerdida - (reservas._sum.cantidad ?? 0);
+                recurso.cantidadPerdida - maximoReservado;
             if (data.cantidad > disponible) {
                 throw new ConflictException(
                     `Stock insuficiente para ese horario. Unidades disponibles: ${Math.max(0, disponible)}.`

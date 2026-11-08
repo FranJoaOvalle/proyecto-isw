@@ -49,6 +49,7 @@ export default function VehiculosPanel() {
     const [success, setSuccess] = useState("");
     const [search, setSearch] = useState("");
     const [estadoFiltro, setEstadoFiltro] = useState("TODOS");
+    const [habilitacionFiltro, setHabilitacionFiltro] = useState("TODOS");
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState(inicial);
@@ -169,28 +170,34 @@ export default function VehiculosPanel() {
         return vehiculos.filter(vehiculo => {
             const texto = [vehiculo.patente, vehiculo.tipo, vehiculo.marca, vehiculo.modelo]
                 .some(valor => valor.toLowerCase().includes(termino));
-            return texto && (estadoFiltro === "TODOS" || vehiculo.estado === estadoFiltro);
+            const coincideHabilitacion = habilitacionFiltro === "TODOS" ||
+                (habilitacionFiltro === "HABILITADOS" && vehiculo.habilitado) ||
+                (habilitacionFiltro === "DESHABILITADOS" && !vehiculo.habilitado);
+            return texto && coincideHabilitacion && (estadoFiltro === "TODOS" || vehiculo.estado === estadoFiltro);
         });
-    }, [vehiculos, search, estadoFiltro]);
+    }, [vehiculos, search, estadoFiltro, habilitacionFiltro]);
 
     const resumenVehiculos = useMemo(() => {
         const total = vehiculos.length;
-        const enMantencion = vehiculos.filter(vehiculo => vehiculo.estado === "EN_MANTENCION").length;
-        const retirados = vehiculos.filter(vehiculo => vehiculo.estado === "RETIRADO").length;
+        const deshabilitados = vehiculos.filter(vehiculo => !vehiculo.habilitado).length;
+        const habilitados = vehiculos.filter(vehiculo => vehiculo.habilitado);
+        const enMantencion = habilitados.filter(vehiculo => vehiculo.estado === "EN_MANTENCION").length;
+        const retirados = habilitados.filter(vehiculo => vehiculo.estado === "RETIRADO").length;
         const reservadas = rangoAplicado
-            ? vehiculos.filter(vehiculo => vehiculo.estado === "DISPONIBLE" && vehiculo.reservado).length
+            ? habilitados.filter(vehiculo => vehiculo.estado === "DISPONIBLE" && vehiculo.reservado).length
             : null;
-        const disponibles = vehiculos.filter(vehiculo =>
+        const disponibles = habilitados.filter(vehiculo =>
             vehiculo.estado === "DISPONIBLE" && (!rangoAplicado || !vehiculo.reservado)
         ).length;
-        return { total, enMantencion, retirados, reservadas, disponibles };
+        return { total, deshabilitados, enMantencion, retirados, reservadas, disponibles };
     }, [vehiculos, rangoAplicado]);
 
     const segmentosFlota = [
         { clave: "reservados", etiqueta: "Reservados", valor: resumenVehiculos.reservadas, color: "var(--bs-primary)" },
         { clave: "mantenimiento", etiqueta: "En mantención", valor: resumenVehiculos.enMantencion, color: "var(--bs-warning)" },
         { clave: "retirados", etiqueta: "Retirados", valor: resumenVehiculos.retirados, color: "var(--bs-secondary)" },
-        { clave: "disponibles", etiqueta: "Disponibles", valor: resumenVehiculos.disponibles, color: "var(--bs-success)" }
+        { clave: "disponibles", etiqueta: rangoAplicado ? "Libres en período" : "Estado disponible", valor: resumenVehiculos.disponibles, color: "var(--bs-success)" },
+        { clave: "deshabilitados", etiqueta: "Deshabilitados", valor: resumenVehiculos.deshabilitados, color: "var(--bs-dark-border-subtle)" }
     ].filter(segmento => segmento.valor !== null && segmento.valor > 0);
 
     const totalSegmentos = segmentosFlota.reduce((suma, segmento) => suma + segmento.valor, 0);
@@ -212,8 +219,7 @@ export default function VehiculosPanel() {
                 await deleteVehiculo(vehiculo.id);
                 setSuccess(`Vehículo ${vehiculo.patente} eliminado definitivamente.`);
             } else {
-                const estado = tipo === "deshabilitar" ? "RETIRADO" : "DISPONIBLE";
-                await updateVehiculo(vehiculo.id, { estado });
+                await updateVehiculo(vehiculo.id, { habilitado: tipo !== "deshabilitar" });
                 setSuccess(tipo === "deshabilitar"
                     ? `Vehículo ${vehiculo.patente} deshabilitado; su historial se conserva.`
                     : `Vehículo ${vehiculo.patente} habilitado.`);
@@ -291,7 +297,8 @@ export default function VehiculosPanel() {
                                     <span>{segmento.etiqueta}: <strong>{segmento.valor}</strong></span>
                                 </div>
                             ))}
-                            {!rangoAplicado && <small className="text-secondary">Consulta una fecha para identificar los vehículos reservados.</small>}
+                            {!rangoAplicado && <small className="text-secondary">Vista general de la flota; las reservas aparecen al consultar una fecha.</small>}
+                            {rangoAplicado && <small className="text-secondary d-block mt-1">Disponibilidad para {new Date(rangoAplicado.inicio).toLocaleString("es-CL")} – {new Date(rangoAplicado.fin).toLocaleString("es-CL")}.</small>}
                             {rangoAplicado && !resumenVehiculos.reservadas && <small className="text-secondary">No hay vehículos reservados en el período consultado.</small>}
                         </div>
                     </div>
@@ -309,6 +316,11 @@ export default function VehiculosPanel() {
                     <option value="EN_MANTENCION">En mantención</option>
                     <option value="RETIRADO">Retirados</option>
                 </Form.Select>
+                <Form.Select value={habilitacionFiltro} onChange={event => setHabilitacionFiltro(event.target.value)} style={{ maxWidth: 220 }} aria-label="Filtrar por habilitación">
+                    <option value="TODOS">Habilitación: todos</option>
+                    <option value="HABILITADOS">Habilitados</option>
+                    <option value="DESHABILITADOS">Deshabilitados</option>
+                </Form.Select>
             </div>
 
             {loading ? <div className="d-flex justify-content-center py-5"><Spinner animation="border" /></div> : filtrados.length === 0 ? (
@@ -317,7 +329,7 @@ export default function VehiculosPanel() {
                 <div className="table-responsive">
                     <Table hover className="align-middle">
                         <caption className="caption-top text-secondary">{filtrados.length} vehículos</caption>
-                        <thead><tr><th>Vehículo</th><th>Tipo</th><th>Capacidad</th><th>Estado operativo</th><th>Disponibilidad</th><th className="text-end">Acciones</th></tr></thead>
+                        <thead><tr><th>Vehículo</th><th>Tipo</th><th>Capacidad</th><th>Estado operativo</th><th>Habilitación</th><th>Disponibilidad</th><th className="text-end">Acciones</th></tr></thead>
                         <tbody>{filtrados.map(vehiculo => {
                             const [texto, variant] = etiquetasEstado[vehiculo.estado] ?? etiquetasEstado.RETIRADO;
                             return (
@@ -326,18 +338,19 @@ export default function VehiculosPanel() {
                                     <td>{vehiculo.tipo}</td>
                                     <td>{vehiculo.capacidadPasajeros ? `${vehiculo.capacidadPasajeros} pasajeros` : "No informada"}</td>
                                     <td><Badge bg={variant} text={variant === "warning" ? "dark" : undefined}>{texto}</Badge></td>
-                                    <td>{vehiculo.estado !== "DISPONIBLE" ? <span className="text-secondary">No asignable</span> : rangoAplicado ? <Badge bg={vehiculo.disponible ? "success" : "warning"} text={vehiculo.disponible ? undefined : "dark"}>{vehiculo.disponible ? "Disponible" : "Ocupado"}</Badge> : <span className="text-secondary">Consulta un horario</span>}</td>
+                                    <td><Badge bg={vehiculo.habilitado ? "success" : "secondary"}>{vehiculo.habilitado ? "Habilitado" : "Deshabilitado"}</Badge></td>
+                                    <td>{!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE" ? <span className="text-secondary">No asignable</span> : rangoAplicado ? <Badge bg={vehiculo.disponible ? "success" : "warning"} text={vehiculo.disponible ? undefined : "dark"}>{vehiculo.disponible ? "Disponible" : "Ocupado"}</Badge> : <span className="text-secondary">Consulta un horario</span>}</td>
                                     <td className="text-end text-nowrap">
                                         <div className="d-inline-flex flex-wrap justify-content-end gap-2">
                                         <Button size="sm" variant="outline-secondary" onClick={() => setReservasVehiculo(vehiculo)}><i className="bi bi-calendar2-week me-1" />Agenda</Button>
                                         <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(vehiculo)}><i className="bi bi-pencil me-1" />Editar</Button>
                                         <Button
                                             size="sm"
-                                            variant={vehiculo.estado === "RETIRADO" ? "outline-success" : "outline-warning"}
+                                            variant={vehiculo.habilitado ? "outline-warning" : "outline-success"}
                                             disabled={changingId === vehiculo.id}
-                                            onClick={() => setVehiculoAccion({ vehiculo, tipo: vehiculo.estado === "RETIRADO" ? "habilitar" : "deshabilitar" })}
+                                            onClick={() => setVehiculoAccion({ vehiculo, tipo: vehiculo.habilitado ? "deshabilitar" : "habilitar" })}
                                         >
-                                            {vehiculo.estado === "RETIRADO" ? "Habilitar" : "Deshabilitar"}
+                                            {vehiculo.habilitado ? "Deshabilitar" : "Habilitar"}
                                         </Button>
                                         <Button
                                             size="sm"
@@ -422,21 +435,25 @@ export default function VehiculosPanel() {
             <ConfirmModal
                 show={Boolean(vehiculoAccion)}
                 onHide={() => changingId === null && setVehiculoAccion(null)}
-                onConfirm={confirmarAccionVehiculo}
+                onConfirm={vehiculoAccion?.tipo === "eliminar" && vehiculoAccion.vehiculo._count?.reservas
+                    ? () => setVehiculoAccion(null)
+                    : confirmarAccionVehiculo}
                 loading={Boolean(vehiculoAccion && changingId === vehiculoAccion.vehiculo.id)}
                 title={vehiculoAccion?.tipo === "eliminar"
                     ? "Eliminar vehículo definitivamente"
                     : vehiculoAccion?.tipo === "deshabilitar" ? "Deshabilitar vehículo" : "Habilitar vehículo"}
                 confirmText={vehiculoAccion?.tipo === "eliminar"
-                    ? "Eliminar definitivamente"
+                    ? vehiculoAccion.vehiculo._count?.reservas ? "Entendido" : "Eliminar definitivamente"
                     : vehiculoAccion?.tipo === "deshabilitar" ? "Deshabilitar" : "Habilitar"}
-                variant={vehiculoAccion?.tipo === "habilitar" ? "success" : "danger"}
+                variant={vehiculoAccion?.tipo === "habilitar" ? "success" : vehiculoAccion?.tipo === "eliminar" && vehiculoAccion.vehiculo._count?.reservas ? "secondary" : "danger"}
             >
                 {vehiculoAccion?.tipo === "eliminar"
-                    ? <>¿Eliminar <strong>{vehiculoAccion.vehiculo.patente}</strong>? Si tiene reservas asociadas, se conservará y te indicaremos que lo deshabilites.</>
+                    ? vehiculoAccion.vehiculo._count?.reservas
+                        ? <><strong>{vehiculoAccion.vehiculo.patente}</strong> no se puede eliminar porque tiene {vehiculoAccion.vehiculo._count.reservas} {vehiculoAccion.vehiculo._count.reservas === 1 ? "reserva" : "reservas"} asociadas. Deshabilítalo para conservar el historial.</>
+                        : <>¿Eliminar <strong>{vehiculoAccion.vehiculo.patente}</strong> definitivamente? Esta acción no se puede deshacer.</>
                     : vehiculoAccion?.tipo === "deshabilitar"
-                        ? <>¿Deshabilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Quedará retirado y conservará su historial.</>
-                        : <>¿Habilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Su estado volverá a disponible.</>}
+                        ? <>¿Deshabilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? No podrá recibir nuevas reservas y conservará su estado operativo e historial.</>
+                        : <>¿Habilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Podrá volver a reservarse si su estado operativo es disponible.</>}
             </ConfirmModal>
         </>
     );

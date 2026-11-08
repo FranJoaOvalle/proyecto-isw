@@ -14,6 +14,7 @@ const campos = {
     anio: z.coerce.number().int().min(1900).max(2200).nullable().optional(),
     capacidadPasajeros: z.coerce.number().int().positive().max(2147483647).nullable().optional(),
     estado: z.enum(["DISPONIBLE", "EN_MANTENCION", "RETIRADO"]).optional(),
+    habilitado: z.boolean().optional(),
     observaciones: z.string().trim().max(2000).nullable().optional()
 };
 

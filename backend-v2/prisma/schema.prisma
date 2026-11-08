@@ -265,6 +265,7 @@ model Vehiculo {
   anio                Int?
   capacidadPasajeros  Int?
   estado              EstadoVehiculo  @default(DISPONIBLE)
+  habilitado          Boolean         @default(true)
   observaciones       String?         @db.Text
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt

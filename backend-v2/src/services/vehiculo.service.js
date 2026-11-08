@@ -5,7 +5,11 @@ const ConflictException = require("../exceptions/ConflictException");
 class VehiculoService {
     async getAll(filtros = {}) {
         const vehiculos = await prisma.vehiculo.findMany({
-            where: filtros.incluirRetirados ? {} : { estado: { not: "RETIRADO" } },
+            where: filtros.incluirRetirados ? {} : {
+                habilitado: true,
+                estado: { not: "RETIRADO" }
+            },
+            include: { _count: { select: { reservas: true } } },
             orderBy: [{ estado: "asc" }, { patente: "asc" }]
         });
         if (!filtros.inicio) return vehiculos.map(v => ({ ...v, disponible: null, reservado: null }));
@@ -24,8 +28,8 @@ class VehiculoService {
         const ocupados = new Set(reservas.map(r => r.vehiculoId));
         return vehiculos.map(v => ({
             ...v,
-            reservado: v.estado === "DISPONIBLE" && ocupados.has(v.id),
-            disponible: v.estado === "DISPONIBLE" && !ocupados.has(v.id)
+            reservado: ocupados.has(v.id),
+            disponible: v.habilitado && v.estado === "DISPONIBLE" && !ocupados.has(v.id)
         }));
     }
 
@@ -52,7 +56,7 @@ class VehiculoService {
         await this.getById(vehiculoId);
         const reservas = await prisma.reservaVehiculo.count({ where: { vehiculoId } });
         if (reservas > 0) {
-            throw new ConflictException("No se puede eliminar definitivamente este vehículo porque tiene reservas asociadas. Puedes retirarlo para conservar su historial.");
+            throw new ConflictException(`No se puede eliminar definitivamente porque tiene ${reservas} ${reservas === 1 ? "reserva" : "reservas"} asociadas. Deshabilítalo para conservar el historial.`);
         }
         return prisma.vehiculo.delete({ where: { id: vehiculoId } });
     }
@@ -70,7 +74,7 @@ class VehiculoService {
         return prisma.$transaction(async tx => {
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})`;
             const vehiculo = await this.getById(vehiculoId, tx);
-            if (vehiculo.estado !== "DISPONIBLE") {
+            if (!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE") {
                 throw new ConflictException("El vehículo no está disponible para nuevas reservas.");
             }
             const conflicto = await tx.reservaVehiculo.findFirst({

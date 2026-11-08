@@ -280,7 +280,7 @@ export default function RecursosPanel() {
         { clave: "reservadas", etiqueta: "Reservadas", valor: resumenStock.reservadas, color: "var(--bs-primary)" },
         { clave: "perdidas", etiqueta: "Perdidas", valor: resumenStock.perdidas, color: "var(--bs-danger)" },
         { clave: "mantenimiento", etiqueta: "En mantención", valor: resumenStock.enMantencion, color: "var(--bs-warning)" },
-        { clave: "disponibles", etiqueta: "Disponibles", valor: resumenStock.disponibles, color: "var(--bs-success)" }
+        { clave: "disponibles", etiqueta: rangoAplicado ? "Disponibles en período" : "Stock operativo (sin reservas)", valor: resumenStock.disponibles, color: "var(--bs-success)" }
     ].filter(segmento => segmento.valor !== null && segmento.valor > 0);
 
     const totalSegmentos = segmentosStock.reduce((suma, segmento) => suma + segmento.valor, 0);
@@ -290,6 +290,14 @@ export default function RecursosPanel() {
         acumuladoSegmentos += segmento.valor;
         return `${segmento.color} ${totalSegmentos ? (inicio / totalSegmentos) * 100 : 0}% ${totalSegmentos ? (acumuladoSegmentos / totalSegmentos) * 100 : 0}%`;
     }).join(", ");
+
+    const relacionesRecursoEliminar = recursoEliminar
+        ? [
+            recursoEliminar._count?.reservas > 0 && `${recursoEliminar._count.reservas} ${recursoEliminar._count.reservas === 1 ? "reserva" : "reservas"}`,
+            recursoEliminar._count?.eventos > 0 && `${recursoEliminar._count.eventos} ${recursoEliminar._count.eventos === 1 ? "evento" : "eventos"}`,
+            recursoEliminar._count?.presupuestos > 0 && `${recursoEliminar._count.presupuestos} ${recursoEliminar._count.presupuestos === 1 ? "presupuesto" : "presupuestos"}`
+        ].filter(Boolean)
+        : [];
 
     return (
         <>
@@ -350,7 +358,12 @@ export default function RecursosPanel() {
                         </span>
                     </div>
                     <div className="flex-grow-1">
-                        <h3 className="h6 fw-bold mb-2">Distribución del stock</h3>
+                        <h3 className="h6 fw-bold mb-1">Distribución del stock</h3>
+                        <small className="text-secondary d-block mb-2">
+                            {rangoAplicado
+                                ? `Disponibilidad para ${new Date(rangoAplicado.inicio).toLocaleString("es-CL")} – ${new Date(rangoAplicado.fin).toLocaleString("es-CL")}.`
+                                : "Inventario general; las reservas no se descuentan hasta consultar un período."}
+                        </small>
                         <div className="d-flex flex-wrap gap-3">
                             {segmentosStock.map(segmento => (
                                 <div key={segmento.clave} className="d-flex align-items-center gap-2 small">
@@ -358,7 +371,6 @@ export default function RecursosPanel() {
                                     <span>{segmento.etiqueta}: <strong>{segmento.valor}</strong></span>
                                 </div>
                             ))}
-                            {!rangoAplicado && <small className="text-secondary">Consulta una fecha para incluir las unidades reservadas.</small>}
                             {rangoAplicado && !resumenStock.reservadas && <small className="text-secondary">No hay unidades reservadas en el período consultado.</small>}
                         </div>
                     </div>
@@ -522,12 +534,15 @@ export default function RecursosPanel() {
             <ConfirmModal
                 show={Boolean(recursoEliminar)}
                 onHide={() => setRecursoEliminar(null)}
-                onConfirm={confirmarEliminacion}
+                onConfirm={relacionesRecursoEliminar.length ? () => setRecursoEliminar(null) : confirmarEliminacion}
                 title="Eliminar recurso definitivamente"
-                confirmText="Eliminar definitivamente"
+                confirmText={relacionesRecursoEliminar.length ? "Entendido" : "Eliminar definitivamente"}
+                variant={relacionesRecursoEliminar.length ? "secondary" : "danger"}
                 loading={Boolean(recursoEliminar && changingId === recursoEliminar.id)}
             >
-                ¿Eliminar <strong>{recursoEliminar?.nombre}</strong>? Si tiene reservas, eventos o presupuestos asociados, se conservará y te indicaremos que lo desactives.
+                {relacionesRecursoEliminar.length
+                    ? <><strong>{recursoEliminar?.nombre}</strong> no se puede eliminar porque tiene {relacionesRecursoEliminar.join(", ")} vinculados. Desactívalo para conservar el historial.</>
+                    : <>¿Eliminar <strong>{recursoEliminar?.nombre}</strong> definitivamente? Esta acción no se puede deshacer.</>}
             </ConfirmModal>
 
             <ReservasRecursoModal
