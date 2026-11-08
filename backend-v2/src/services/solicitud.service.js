@@ -2,7 +2,8 @@ const prisma = require("../config/prisma");
 const ForbiddenException = require("../exceptions/ForbiddenException");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
-const comercial = require("./integracionPresupuestos.service");
+
+const IntegracionPresupuestosService = require("./integracionPresupuestos.service");
 
 const relaciones = {
     tipoEvento: {
@@ -185,7 +186,7 @@ class SolicitudService {
                 );
             // No existe todavía detector comercial fiable de emisión/versionado.
             if (actual.presupuestos.length)
-                await comercial.verificarEdicionSolicitud({
+                await IntegracionPresupuestosService.verificarEdicionSolicitud({
                     tx,
                     solicitudId: actual.id,
                     actorId: usuario.id,
@@ -268,7 +269,7 @@ class SolicitudService {
                     throw new ConflictException(
                         "No puedes retirar una solicitud que tiene propuestas vinculadas."
                     );
-                await comercial.verificarCierreSolicitud({
+                await IntegracionPresupuestosService.verificarCierreSolicitud({
                     tx,
                     solicitudId: actual.id,
                     actorId: usuario.id

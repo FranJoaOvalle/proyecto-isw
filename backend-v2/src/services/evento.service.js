@@ -1,11 +1,10 @@
-const {
-    bloquearRecursos,
-    verificarDisponibilidad
-} = require("./disponibilidad.service");
 const prisma = require("../config/prisma");
-const seguimiento = require("./seguimiento.service");
+
 const ForbiddenException = require("../exceptions/ForbiddenException");
 const ConflictException = require("../exceptions/ConflictException");
+
+const SeguimientoService = require("./seguimiento.service");
+const DisponibilidadService = require("./disponibilidad.service");
 
 const validarAdmin = (usuario) => {
     if (usuario?.rol !== "ADMIN")
@@ -19,9 +18,9 @@ class EventoService {
         validarAdmin(usuario);
         return prisma.$transaction(
             async (tx) => {
-                await seguimiento.evento(id, usuario, tx);
+                await SeguimientoService.evento(id, usuario, tx);
                 await tx.$queryRaw`SELECT "id" FROM "Evento" WHERE "id" = ${Number(id)} FOR UPDATE`;
-                const actual = await seguimiento.evento(id, usuario, tx);
+                const actual = await SeguimientoService.evento(id, usuario, tx);
                 if (["CANCELADO", "COMPLETADO"].includes(actual.estado)) {
                     throw new ConflictException(
                         "No se puede editar un evento cancelado o completado."
@@ -54,12 +53,12 @@ class EventoService {
                     datos.lugar ||
                     Object.hasOwn(datos, "productorId")
                 ) {
-                    await bloquearRecursos(
+                    await DisponibilidadService.bloquearRecursos(
                         tx,
                         [actual.lugar, datos.lugar ?? actual.lugar],
                         [actual.productorId, productorId]
                     );
-                    await verificarDisponibilidad(
+                    await DisponibilidadService.verificarDisponibilidad(
                         tx,
                         {
                             inicio,
@@ -106,15 +105,15 @@ class EventoService {
         validarAdmin(usuario);
         return prisma.$transaction(
             async (tx) => {
-                await seguimiento.evento(id, usuario, tx);
+                await SeguimientoService.evento(id, usuario, tx);
                 await tx.$queryRaw`SELECT "id" FROM "Evento" WHERE "id" = ${Number(id)} FOR UPDATE`;
-                const actual = await seguimiento.evento(id, usuario, tx);
+                const actual = await SeguimientoService.evento(id, usuario, tx);
                 if (!["CONFIRMADO", "POSPUESTO"].includes(actual.estado)) {
                     throw new ConflictException(
                         "Solo se pueden cancelar eventos confirmados o pospuestos."
                     );
                 }
-                await bloquearRecursos(
+                await DisponibilidadService.bloquearRecursos(
                     tx,
                     [actual.lugar],
                     [actual.productorId]
@@ -140,7 +139,7 @@ class EventoService {
 
     async eliminar(id, usuario) {
         validarAdmin(usuario);
-        const actual = await seguimiento.evento(id, usuario);
+        const actual = await SeguimientoService.evento(id, usuario);
         if (actual.estado !== "CANCELADO")
             throw new ConflictException(
                 "Solo se evalúa la eliminación de eventos cancelados."

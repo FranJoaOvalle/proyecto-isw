@@ -1,17 +1,26 @@
 const { z } = require("zod");
 
-const id = z.coerce.number().int().positive().max(2147483647);
-const tipos = ["NOVEDAD", "INCIDENCIA", "OBSERVACION", "MODIFICACION", "HITO"];
-const importancias = ["BAJA", "MEDIA", "ALTA"];
+const id = z.coerce.number()
+    .int()
+    .positive()
+    .max(2147483647);
+
+const tiposSeguimiento = ["NOVEDAD", "INCIDENCIA", "OBSERVACION", "MODIFICACION", "HITO"];
+
+const importanciasSeguimiento = ["BAJA", "MEDIA", "ALTA"];
+
 const params = z.object({ id, seguimientoId: id.optional() });
-const rango = {
+
+const rangoFechas = {
     desde: z.iso.datetime({ offset: true }).optional(),
     hasta: z.iso.datetime({ offset: true }).optional()
 };
+
 const validarRango = (data) =>
     !data.desde || !data.hasta || new Date(data.hasta) > new Date(data.desde);
 
 const eventoIdSchema = z.object({ params });
+
 const eventosSchema = z.object({
     query: z.object({
         buscar: z.string().trim().max(200).optional(),
@@ -26,29 +35,33 @@ const eventosSchema = z.object({
             .optional()
     })
 });
+
 const historialSchema = z.object({
     params,
     query: z
         .object({
             buscar: z.string().trim().max(200).optional(),
-            tipo: z.enum(tipos).optional(),
-            importancia: z.enum(importancias).optional(),
+            tipo: z.enum(tiposSeguimiento).optional(),
+            importancia: z.enum(importanciasSeguimiento).optional(),
             usuarioId: id.optional(),
-            ...rango
+            ...rangoFechas
         })
         .refine(validarRango, "El término debe ser posterior al inicio.")
 });
+
 const registroSchema = z.object({
     params,
     body: z
         .object({
             descripcion: z.string().trim().min(1).max(5000),
-            tipo: z.enum(tipos),
-            importancia: z.enum(importancias)
+            tipo: z.enum(tiposSeguimiento),
+            importancia: z.enum(importanciasSeguimiento)
         })
         .strict()
 });
+
 const detalleSchema = z.object({ params: z.object({ id, seguimientoId: id }) });
+
 const comentarioSchema = detalleSchema.extend({
     body: z
         .object({

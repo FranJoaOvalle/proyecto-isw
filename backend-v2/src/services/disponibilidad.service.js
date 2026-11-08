@@ -1,4 +1,5 @@
 const ConflictException = require("../exceptions/ConflictException");
+
 const normalizarRecinto = (texto) =>
     texto
         .normalize("NFD")

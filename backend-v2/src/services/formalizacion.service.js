@@ -1,17 +1,15 @@
 const ConflictException = require("../exceptions/ConflictException");
 const ForbiddenException = require("../exceptions/ForbiddenException");
 const NotFoundException = require("../exceptions/NotFoundException");
-const solicitudes = require("./solicitud.service");
-const {
-    bloquearRecursos,
-    verificarDisponibilidad
-} = require("./disponibilidad.service");
-const comercial = require("./integracionPresupuestos.service");
+
+const SolicitudService = require("./solicitud.service");
+const DisponibilidadService = require("./disponibilidad.service");
+const IntegracionPresupuestosService = require("./integracionPresupuestos.service");
 
 // El adaptador debe ser código servidor de Presupuestos y consultar evidencias en tx.
 // La implementación predeterminada falla cerrada; no existe ruta HTTP de formalización.
 function crearFormalizador({
-    verificarAceptacion = comercial.verificarAceptacion
+    verificarAceptacion = IntegracionPresupuestosService.verificarAceptacion
 } = {}) {
     return async function formalizarContratacion({
         tx,
@@ -33,7 +31,7 @@ function crearFormalizador({
             throw new ConflictException(
                 "El orquestador debe usar aislamiento ReadCommitted para las lecturas posteriores a los bloqueos."
             );
-        const solicitud = await solicitudes.bloquear(tx, solicitudId, actor);
+        const solicitud = await SolicitudService.bloquear(tx, solicitudId, actor);
         await tx.$queryRaw`SELECT "id" FROM "Presupuesto" WHERE "id" = ${Number(presupuestoId)} FOR UPDATE`;
         const presupuesto = await tx.presupuesto.findUnique({
             where: { id: Number(presupuestoId) },
@@ -98,14 +96,14 @@ function crearFormalizador({
             throw new ConflictException(
                 "Los datos definitivos del presupuesto son inválidos."
             );
-        await bloquearRecursos(tx, [datos.lugar]);
-        await verificarDisponibilidad(tx, datos);
+        await DisponibilidadService.bloquearRecursos(tx, [datos.lugar]);
+        await DisponibilidadService.verificarDisponibilidad(tx, datos);
         const evento = await tx.evento.create({ data: datos });
         await tx.solicitudEvento.update({
             where: { id: solicitud.id },
             data: { estado: "CONTRATADA" }
         });
-        await solicitudes.auditar(
+        await SolicitudService.auditar(
             tx,
             solicitud.id,
             actorId,
