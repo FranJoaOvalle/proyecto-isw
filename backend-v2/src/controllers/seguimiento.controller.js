@@ -1,24 +1,166 @@
-const service = require("../services/seguimiento.service");
-const eventos = require("../services/evento.service");
+const SeguimientoService = require("../services/seguimiento.service");
+const EventoService = require("../services/evento.service");
 
-const responder = (accion, status = 200) => async (req, res, next) => {
+const editarEvento = async (req, res, next) => {
     try {
-        res.status(status).json(await accion(req.validated, req.usuario));
+        const resultado = await EventoService.actualizar(
+            req.validated.params.id,
+            req.validated.body,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const cancelarEvento = async (req, res, next) => {
+    try {
+        const resultado = await EventoService.cancelar(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const eliminarEvento = async (req, res, next) => {
+    try {
+        const resultado = await EventoService.eliminar(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const eventos = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.eventos(
+            req.validated.query,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const evento = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.evento(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const historial = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.historial(
+            req.validated.params.id,
+            req.validated.query,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const autores = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.autores(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const crear = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.crear(
+            req.validated.params.id,
+            req.validated.body,
+            req.usuario
+        );
+
+        return res.status(201).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const registro = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.registro(
+            req.validated.params.id,
+            req.validated.params.seguimientoId,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const comentarios = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.comentarios(
+            req.validated.params.id,
+            req.validated.params.seguimientoId,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const comentar = async (req, res, next) => {
+    try {
+        const resultado = await SeguimientoService.comentar(
+            req.validated.params.id,
+            req.validated.params.seguimientoId,
+            req.validated.body,
+            req.usuario
+        );
+
+        return res.status(201).json(resultado);
     } catch (error) {
         next(error);
     }
 };
 
 module.exports = {
-    editarEvento: responder((v, u) => eventos.actualizar(v.params.id, v.body, u)),
-    cancelarEvento: responder((v, u) => eventos.cancelar(v.params.id, u)),
-    eliminarEvento: responder((v, u) => eventos.eliminar(v.params.id, u)),
-    eventos: responder((v, u) => service.eventos(v.query, u)),
-    evento: responder((v, u) => service.evento(v.params.id, u)),
-    historial: responder((v, u) => service.historial(v.params.id, v.query, u)),
-    autores: responder((v, u) => service.autores(v.params.id, u)),
-    crear: responder((v, u) => service.crear(v.params.id, v.body, u), 201),
-    registro: responder((v, u) => service.registro(v.params.id, v.params.seguimientoId, u)),
-    comentarios: responder((v, u) => service.comentarios(v.params.id, v.params.seguimientoId, u)),
-    comentar: responder((v, u) => service.comentar(v.params.id, v.params.seguimientoId, v.body, u), 201)
+    editarEvento,
+    cancelarEvento,
+    eliminarEvento,
+    eventos,
+    evento,
+    historial,
+    autores,
+    crear,
+    registro,
+    comentarios,
+    comentar
 };

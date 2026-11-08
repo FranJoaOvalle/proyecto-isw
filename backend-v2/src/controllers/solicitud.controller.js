@@ -1,15 +1,120 @@
-const servicio = require("../services/solicitud.service");
-const responder = (accion, status = 200) => async (req, res, next) => {
-    try { res.status(status).json(await accion(req.validated, req.usuario)); }
-    catch (error) { next(error); }
+const SolicitudService = require("../services/solicitud.service");
+
+const crear = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.crear(
+            req.validated.body,
+            req.usuario
+        );
+
+        return res.status(201).json(resultado);
+    } catch (error) {
+        next(error);
+    }
 };
+
+const listar = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.listar(
+            req.validated.query,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const detalle = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.detalle(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const historial = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.historial(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const editar = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.editar(
+            req.validated.params.id,
+            req.validated.body,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const revisar = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.revisar(
+            req.validated.params.id,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const rechazar = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.cerrar(
+            req.validated.params.id,
+            req.validated.body.motivo,
+            req.usuario
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const retirar = async (req, res, next) => {
+    try {
+        const resultado = await SolicitudService.cerrar(
+            req.validated.params.id,
+            req.validated.body.motivo,
+            req.usuario,
+            true
+        );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
-    crear: responder((v, u) => servicio.crear(v.body, u), 201),
-    listar: responder((v, u) => servicio.listar(v.query, u)),
-    detalle: responder((v, u) => servicio.detalle(v.params.id, u)),
-    historial: responder((v, u) => servicio.historial(v.params.id, u)),
-    editar: responder((v, u) => servicio.editar(v.params.id, v.body, u)),
-    revisar: responder((v, u) => servicio.revisar(v.params.id, u)),
-    rechazar: responder((v, u) => servicio.cerrar(v.params.id, v.body.motivo, u)),
-    retirar: responder((v, u) => servicio.cerrar(v.params.id, v.body.motivo, u, true))
+    crear,
+    listar,
+    detalle,
+    historial,
+    editar,
+    revisar,
+    rechazar,
+    retirar
 };

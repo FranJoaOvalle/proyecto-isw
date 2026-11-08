@@ -1,21 +1,106 @@
-const router = require("express").Router();
-const auth = require("../middlewares/auth.middleware");
+const express = require("express");
+const seguimientoController = require("../controllers/seguimiento.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 const authorize = require("../middlewares/authorize.middleware");
 const validator = require("../middlewares/validator.middleware");
-const schema = require("../schemas/seguimiento.schema");
-const controller = require("../controllers/seguimiento.controller");
+const {
+    eventosSchema,
+    eventoIdSchema,
+    editarEventoSchema,
+    historialSchema,
+    registroSchema,
+    detalleSchema,
+    comentarioSchema
+} = require("../schemas/seguimiento.schema");
 
-router.use(auth, authorize("ADMIN", "PRODUCTOR"));
-router.get("/", validator(schema.eventosSchema), controller.eventos);
-router.get("/:id", validator(schema.eventoIdSchema), controller.evento);
-router.patch("/:id", authorize("ADMIN"), validator(schema.editarEventoSchema), controller.editarEvento);
-router.patch("/:id/cancelar", authorize("ADMIN"), validator(schema.eventoIdSchema), controller.cancelarEvento);
-router.delete("/:id", authorize("ADMIN"), validator(schema.eventoIdSchema), controller.eliminarEvento);
-router.get("/:id/seguimiento", validator(schema.historialSchema), controller.historial);
-router.get("/:id/seguimiento/autores", validator(schema.eventoIdSchema), controller.autores);
-router.post("/:id/seguimiento", validator(schema.registroSchema), controller.crear);
-router.get("/:id/seguimiento/:seguimientoId", validator(schema.detalleSchema), controller.registro);
-router.get("/:id/seguimiento/:seguimientoId/comentarios", validator(schema.detalleSchema), controller.comentarios);
-router.post("/:id/seguimiento/:seguimientoId/comentarios", validator(schema.comentarioSchema), controller.comentar);
+const router = express.Router();
+
+router.get(
+    "/",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(eventosSchema),
+    seguimientoController.eventos
+);
+
+router.get(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(eventoIdSchema),
+    seguimientoController.evento
+);
+
+router.patch(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    validator(editarEventoSchema),
+    seguimientoController.editarEvento
+);
+
+router.patch(
+    "/:id/cancelar",
+    authMiddleware,
+    authorize("ADMIN"),
+    validator(eventoIdSchema),
+    seguimientoController.cancelarEvento
+);
+
+router.delete(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    validator(eventoIdSchema),
+    seguimientoController.eliminarEvento
+);
+
+router.get(
+    "/:id/seguimiento",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(historialSchema),
+    seguimientoController.historial
+);
+
+router.get(
+    "/:id/seguimiento/autores",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(eventoIdSchema),
+    seguimientoController.autores
+);
+
+router.post(
+    "/:id/seguimiento",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(registroSchema),
+    seguimientoController.crear
+);
+
+router.get(
+    "/:id/seguimiento/:seguimientoId",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(detalleSchema),
+    seguimientoController.registro
+);
+
+router.get(
+    "/:id/seguimiento/:seguimientoId/comentarios",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(detalleSchema),
+    seguimientoController.comentarios
+);
+
+router.post(
+    "/:id/seguimiento/:seguimientoId/comentarios",
+    authMiddleware,
+    authorize("ADMIN", "PRODUCTOR"),
+    validator(comentarioSchema),
+    seguimientoController.comentar
+);
 
 module.exports = router;
