@@ -13,6 +13,7 @@ module.exports = {
     getById: responder(req => vehiculoService.getById(req.validated.params.id)),
     create: responder(req => vehiculoService.create(req.validated.body), 201),
     update: responder(req => vehiculoService.update(req.validated.params.id, req.validated.body)),
+    eliminar: responder(req => vehiculoService.eliminar(req.validated.params.id)),
     reservas: responder(req => vehiculoService.getReservas(req.validated.params.id)),
     reservar: responder(req => vehiculoService.reservar(req.validated.params.id, req.validated.body), 201),
     cancelarReserva: responder(req => vehiculoService.cancelarReserva(req.validated.params.id)),

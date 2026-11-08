@@ -8,7 +8,7 @@ class VehiculoService {
             where: filtros.incluirRetirados ? {} : { estado: { not: "RETIRADO" } },
             orderBy: [{ estado: "asc" }, { patente: "asc" }]
         });
-        if (!filtros.inicio) return vehiculos.map(v => ({ ...v, disponible: null }));
+        if (!filtros.inicio) return vehiculos.map(v => ({ ...v, disponible: null, reservado: null }));
 
         const reservas = await prisma.reservaVehiculo.findMany({
             where: {
@@ -24,6 +24,7 @@ class VehiculoService {
         const ocupados = new Set(reservas.map(r => r.vehiculoId));
         return vehiculos.map(v => ({
             ...v,
+            reservado: v.estado === "DISPONIBLE" && ocupados.has(v.id),
             disponible: v.estado === "DISPONIBLE" && !ocupados.has(v.id)
         }));
     }
@@ -44,6 +45,16 @@ class VehiculoService {
             where: { id: Number(id) },
             data: { ...data, ...(data.patente ? { patente: data.patente.toUpperCase() } : {}) }
         });
+    }
+
+    async eliminar(id) {
+        const vehiculoId = Number(id);
+        await this.getById(vehiculoId);
+        const reservas = await prisma.reservaVehiculo.count({ where: { vehiculoId } });
+        if (reservas > 0) {
+            throw new ConflictException("No se puede eliminar definitivamente este vehículo porque tiene reservas asociadas. Puedes retirarlo para conservar su historial.");
+        }
+        return prisma.vehiculo.delete({ where: { id: vehiculoId } });
     }
 
     async getReservas(id) {

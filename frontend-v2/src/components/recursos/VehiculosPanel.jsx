@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Form, InputGroup, Modal, Spinner, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Form, InputGroup, Modal, Spinner, Table } from "react-bootstrap";
 
+import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import ReservasVehiculoModal from "./ReservasVehiculoModal";
-import { createVehiculo, getVehiculos, updateVehiculo } from "../../services/vehiculo.service";
+import { createVehiculo, deleteVehiculo, getVehiculos, updateVehiculo } from "../../services/vehiculo.service";
 
 const inicial = {
     patente: "",
@@ -53,6 +54,8 @@ export default function VehiculosPanel() {
     const [form, setForm] = useState(inicial);
     const [validated, setValidated] = useState(false);
     const [reservasVehiculo, setReservasVehiculo] = useState(null);
+    const [vehiculoAccion, setVehiculoAccion] = useState(null);
+    const [changingId, setChangingId] = useState(null);
     const [rango, setRango] = useState({ inicio: "", fin: "" });
     const [rangoAplicado, setRangoAplicado] = useState(null);
 
@@ -170,6 +173,61 @@ export default function VehiculosPanel() {
         });
     }, [vehiculos, search, estadoFiltro]);
 
+    const resumenVehiculos = useMemo(() => {
+        const total = vehiculos.length;
+        const enMantencion = vehiculos.filter(vehiculo => vehiculo.estado === "EN_MANTENCION").length;
+        const retirados = vehiculos.filter(vehiculo => vehiculo.estado === "RETIRADO").length;
+        const reservadas = rangoAplicado
+            ? vehiculos.filter(vehiculo => vehiculo.estado === "DISPONIBLE" && vehiculo.reservado).length
+            : null;
+        const disponibles = vehiculos.filter(vehiculo =>
+            vehiculo.estado === "DISPONIBLE" && (!rangoAplicado || !vehiculo.reservado)
+        ).length;
+        return { total, enMantencion, retirados, reservadas, disponibles };
+    }, [vehiculos, rangoAplicado]);
+
+    const segmentosFlota = [
+        { clave: "reservados", etiqueta: "Reservados", valor: resumenVehiculos.reservadas, color: "var(--bs-primary)" },
+        { clave: "mantenimiento", etiqueta: "En mantención", valor: resumenVehiculos.enMantencion, color: "var(--bs-warning)" },
+        { clave: "retirados", etiqueta: "Retirados", valor: resumenVehiculos.retirados, color: "var(--bs-secondary)" },
+        { clave: "disponibles", etiqueta: "Disponibles", valor: resumenVehiculos.disponibles, color: "var(--bs-success)" }
+    ].filter(segmento => segmento.valor !== null && segmento.valor > 0);
+
+    const totalSegmentos = segmentosFlota.reduce((suma, segmento) => suma + segmento.valor, 0);
+    let acumuladoSegmentos = 0;
+    const graficoFlota = segmentosFlota.map(segmento => {
+        const inicio = acumuladoSegmentos;
+        acumuladoSegmentos += segmento.valor;
+        return `${segmento.color} ${totalSegmentos ? (inicio / totalSegmentos) * 100 : 0}% ${totalSegmentos ? (acumuladoSegmentos / totalSegmentos) * 100 : 0}%`;
+    }).join(", ");
+
+    const confirmarAccionVehiculo = async () => {
+        if (!vehiculoAccion) return;
+        const { vehiculo, tipo } = vehiculoAccion;
+        setChangingId(vehiculo.id);
+        setError("");
+        setSuccess("");
+        try {
+            if (tipo === "eliminar") {
+                await deleteVehiculo(vehiculo.id);
+                setSuccess(`Vehículo ${vehiculo.patente} eliminado definitivamente.`);
+            } else {
+                const estado = tipo === "deshabilitar" ? "RETIRADO" : "DISPONIBLE";
+                await updateVehiculo(vehiculo.id, { estado });
+                setSuccess(tipo === "deshabilitar"
+                    ? `Vehículo ${vehiculo.patente} deshabilitado; su historial se conserva.`
+                    : `Vehículo ${vehiculo.patente} habilitado.`);
+            }
+            setVehiculoAccion(null);
+            await cargar(rangoAplicado);
+        } catch (err) {
+            setError(err.response?.data?.error?.message ?? "No fue posible completar la acción.");
+            setVehiculoAccion(null);
+        } finally {
+            setChangingId(null);
+        }
+    };
+
     return (
         <>
             <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
@@ -203,6 +261,43 @@ export default function VehiculosPanel() {
                 {rangoAplicado && <small className="text-secondary d-block mt-2">Mostrando disponibilidad para {rango.fin ? "el horario seleccionado" : "todo el día"}.</small>}
             </Form>
 
+            <Card className="shadow-sm mb-4">
+                <Card.Body className="d-flex align-items-center gap-3">
+                    <div
+                        role="img"
+                        aria-label={resumenVehiculos.total
+                            ? "Distribución de la flota: " + segmentosFlota.map(segmento => `${segmento.valor} ${segmento.etiqueta.toLowerCase()}`).join(", ")
+                            : "Sin vehículos registrados"}
+                        style={{
+                            width: 96,
+                            height: 96,
+                            flex: "0 0 96px",
+                            borderRadius: "50%",
+                            background: `conic-gradient(${graficoFlota || "var(--bs-tertiary-bg) 0% 100%"})`,
+                            display: "grid",
+                            placeItems: "center"
+                        }}
+                    >
+                        <span className="d-flex align-items-center justify-content-center rounded-circle fw-bold bg-body" style={{ width: 68, height: 68 }}>
+                            {resumenVehiculos.total || "—"}
+                        </span>
+                    </div>
+                    <div className="flex-grow-1">
+                        <h3 className="h6 fw-bold mb-2">Distribución de la flota</h3>
+                        <div className="d-flex flex-wrap gap-3">
+                            {segmentosFlota.map(segmento => (
+                                <div key={segmento.clave} className="d-flex align-items-center gap-2 small">
+                                    <span className="rounded-circle" aria-hidden="true" style={{ width: 10, height: 10, backgroundColor: segmento.color }} />
+                                    <span>{segmento.etiqueta}: <strong>{segmento.valor}</strong></span>
+                                </div>
+                            ))}
+                            {!rangoAplicado && <small className="text-secondary">Consulta una fecha para identificar los vehículos reservados.</small>}
+                            {rangoAplicado && !resumenVehiculos.reservadas && <small className="text-secondary">No hay vehículos reservados en el período consultado.</small>}
+                        </div>
+                    </div>
+                </Card.Body>
+            </Card>
+
             <div className="d-flex flex-column flex-lg-row gap-3 mb-4">
                 <InputGroup className="flex-grow-1">
                     <InputGroup.Text><i className="bi bi-search" /></InputGroup.Text>
@@ -233,8 +328,26 @@ export default function VehiculosPanel() {
                                     <td><Badge bg={variant} text={variant === "warning" ? "dark" : undefined}>{texto}</Badge></td>
                                     <td>{vehiculo.estado !== "DISPONIBLE" ? <span className="text-secondary">No asignable</span> : rangoAplicado ? <Badge bg={vehiculo.disponible ? "success" : "warning"} text={vehiculo.disponible ? undefined : "dark"}>{vehiculo.disponible ? "Disponible" : "Ocupado"}</Badge> : <span className="text-secondary">Consulta un horario</span>}</td>
                                     <td className="text-end text-nowrap">
-                                        <Button size="sm" variant="outline-secondary" className="me-2" onClick={() => setReservasVehiculo(vehiculo)}><i className="bi bi-calendar2-week me-1" />Agenda</Button>
+                                        <div className="d-inline-flex flex-wrap justify-content-end gap-2">
+                                        <Button size="sm" variant="outline-secondary" onClick={() => setReservasVehiculo(vehiculo)}><i className="bi bi-calendar2-week me-1" />Agenda</Button>
                                         <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(vehiculo)}><i className="bi bi-pencil me-1" />Editar</Button>
+                                        <Button
+                                            size="sm"
+                                            variant={vehiculo.estado === "RETIRADO" ? "outline-success" : "outline-warning"}
+                                            disabled={changingId === vehiculo.id}
+                                            onClick={() => setVehiculoAccion({ vehiculo, tipo: vehiculo.estado === "RETIRADO" ? "habilitar" : "deshabilitar" })}
+                                        >
+                                            {vehiculo.estado === "RETIRADO" ? "Habilitar" : "Deshabilitar"}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline-danger"
+                                            disabled={changingId === vehiculo.id}
+                                            onClick={() => setVehiculoAccion({ vehiculo, tipo: "eliminar" })}
+                                        >
+                                            <i className="bi bi-trash me-1" />Eliminar
+                                        </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             );
@@ -305,6 +418,26 @@ export default function VehiculosPanel() {
                 onHide={() => setReservasVehiculo(null)}
                 onChanged={cargar}
             />
+
+            <ConfirmModal
+                show={Boolean(vehiculoAccion)}
+                onHide={() => changingId === null && setVehiculoAccion(null)}
+                onConfirm={confirmarAccionVehiculo}
+                loading={Boolean(vehiculoAccion && changingId === vehiculoAccion.vehiculo.id)}
+                title={vehiculoAccion?.tipo === "eliminar"
+                    ? "Eliminar vehículo definitivamente"
+                    : vehiculoAccion?.tipo === "deshabilitar" ? "Deshabilitar vehículo" : "Habilitar vehículo"}
+                confirmText={vehiculoAccion?.tipo === "eliminar"
+                    ? "Eliminar definitivamente"
+                    : vehiculoAccion?.tipo === "deshabilitar" ? "Deshabilitar" : "Habilitar"}
+                variant={vehiculoAccion?.tipo === "habilitar" ? "success" : "danger"}
+            >
+                {vehiculoAccion?.tipo === "eliminar"
+                    ? <>¿Eliminar <strong>{vehiculoAccion.vehiculo.patente}</strong>? Si tiene reservas asociadas, se conservará y te indicaremos que lo deshabilites.</>
+                    : vehiculoAccion?.tipo === "deshabilitar"
+                        ? <>¿Deshabilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Quedará retirado y conservará su historial.</>
+                        : <>¿Habilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Su estado volverá a disponible.</>}
+            </ConfirmModal>
         </>
     );
 }

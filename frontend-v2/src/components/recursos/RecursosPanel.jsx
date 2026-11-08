@@ -3,6 +3,7 @@ import {
     Alert,
     Badge,
     Button,
+    Card,
     Form,
     Modal,
     Spinner,
@@ -14,6 +15,7 @@ import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
 import {
     createRecurso,
+    deleteRecurso,
     getRecursos,
     updateRecurso,
     updateRecursoEstado
@@ -68,6 +70,7 @@ export default function RecursosPanel() {
     const [form, setForm] = useState(initialForm);
     const [validated, setValidated] = useState(false);
     const [recursoEstado, setRecursoEstado] = useState(null);
+    const [recursoEliminar, setRecursoEliminar] = useState(null);
     const [recursoReservado, setRecursoReservado] = useState(null);
     const [rango, setRango] = useState({ inicio: "", fin: "" });
     const [rangoAplicado, setRangoAplicado] = useState(null);
@@ -218,6 +221,24 @@ export default function RecursosPanel() {
         }
     };
 
+    const confirmarEliminacion = async () => {
+        if (!recursoEliminar) return;
+        setChangingId(recursoEliminar.id);
+        setError("");
+        setSuccess("");
+        try {
+            await deleteRecurso(recursoEliminar.id);
+            setSuccess(`Recurso ${recursoEliminar.nombre} eliminado definitivamente.`);
+            setRecursoEliminar(null);
+            await loadRecursos(rangoAplicado);
+        } catch (err) {
+            setError(err.response?.data?.error?.message ?? "No fue posible eliminar el recurso.");
+            setRecursoEliminar(null);
+        } finally {
+            setChangingId(null);
+        }
+    };
+
     const filtrados = useMemo(() => {
         const termino = search.trim().toLowerCase();
         return recursos.filter(recurso => {
@@ -232,6 +253,43 @@ export default function RecursosPanel() {
             return coincideTexto && coincideEstado;
         });
     }, [recursos, search, estado]);
+
+    const resumenStock = useMemo(() => {
+        const total = recursos.reduce((suma, recurso) => suma + Number(recurso.stockTotal || 0), 0);
+        const enMantencion = recursos.reduce(
+            (suma, recurso) => suma + Number(recurso.cantidadEnMantencion || 0),
+            0
+        );
+        const perdidas = recursos.reduce(
+            (suma, recurso) => suma + Number(recurso.cantidadPerdida || 0),
+            0
+        );
+        const disponibles = recursos.reduce(
+            (suma, recurso) => suma + Number(recurso.cantidadDisponible ?? (
+                recurso.stockTotal - recurso.cantidadEnMantencion - recurso.cantidadPerdida
+            )),
+            0
+        );
+        const reservadas = rangoAplicado
+            ? Math.max(0, total - enMantencion - perdidas - disponibles)
+            : null;
+        return { total, enMantencion, perdidas, disponibles, reservadas };
+    }, [recursos, rangoAplicado]);
+
+    const segmentosStock = [
+        { clave: "reservadas", etiqueta: "Reservadas", valor: resumenStock.reservadas, color: "var(--bs-primary)" },
+        { clave: "perdidas", etiqueta: "Perdidas", valor: resumenStock.perdidas, color: "var(--bs-danger)" },
+        { clave: "mantenimiento", etiqueta: "En mantención", valor: resumenStock.enMantencion, color: "var(--bs-warning)" },
+        { clave: "disponibles", etiqueta: "Disponibles", valor: resumenStock.disponibles, color: "var(--bs-success)" }
+    ].filter(segmento => segmento.valor !== null && segmento.valor > 0);
+
+    const totalSegmentos = segmentosStock.reduce((suma, segmento) => suma + segmento.valor, 0);
+    let acumuladoSegmentos = 0;
+    const graficoStock = segmentosStock.map(segmento => {
+        const inicio = acumuladoSegmentos;
+        acumuladoSegmentos += segmento.valor;
+        return `${segmento.color} ${totalSegmentos ? (inicio / totalSegmentos) * 100 : 0}% ${totalSegmentos ? (acumuladoSegmentos / totalSegmentos) * 100 : 0}%`;
+    }).join(", ");
 
     return (
         <>
@@ -270,6 +328,43 @@ export default function RecursosPanel() {
                 {rangoAplicado && <small className="text-secondary d-block mt-2">Las cantidades consideran reservas activas en {rango.fin ? "el horario seleccionado" : "todo el día"}.</small>}
             </Form>
 
+            <Card className="shadow-sm mb-4">
+                <Card.Body className="d-flex align-items-center gap-3">
+                    <div
+                        role="img"
+                        aria-label={resumenStock.total
+                            ? "Distribución del stock: " + segmentosStock.map(segmento => `${segmento.valor} ${segmento.etiqueta.toLowerCase()}`).join(", ")
+                            : "Sin unidades registradas"}
+                        style={{
+                            width: 96,
+                            height: 96,
+                            flex: "0 0 96px",
+                            borderRadius: "50%",
+                            background: `conic-gradient(${graficoStock || "var(--bs-tertiary-bg) 0% 100%"})`,
+                            display: "grid",
+                            placeItems: "center"
+                        }}
+                    >
+                        <span className="d-flex align-items-center justify-content-center rounded-circle fw-bold bg-body" style={{ width: 68, height: 68 }}>
+                            {resumenStock.total || "—"}
+                        </span>
+                    </div>
+                    <div className="flex-grow-1">
+                        <h3 className="h6 fw-bold mb-2">Distribución del stock</h3>
+                        <div className="d-flex flex-wrap gap-3">
+                            {segmentosStock.map(segmento => (
+                                <div key={segmento.clave} className="d-flex align-items-center gap-2 small">
+                                    <span className="rounded-circle" aria-hidden="true" style={{ width: 10, height: 10, backgroundColor: segmento.color }} />
+                                    <span>{segmento.etiqueta}: <strong>{segmento.valor}</strong></span>
+                                </div>
+                            ))}
+                            {!rangoAplicado && <small className="text-secondary">Consulta una fecha para incluir las unidades reservadas.</small>}
+                            {rangoAplicado && !resumenStock.reservadas && <small className="text-secondary">No hay unidades reservadas en el período consultado.</small>}
+                        </div>
+                    </div>
+                </Card.Body>
+            </Card>
+
             <TableToolbar
                 search={search}
                 onSearchChange={setSearch}
@@ -294,7 +389,7 @@ export default function RecursosPanel() {
                         <caption className="caption-top text-secondary">{filtrados.length} recursos</caption>
                         <thead>
                             <tr>
-                                <th>Equipo o material</th><th>Stock</th><th>Estado operativo</th>
+                                <th>Equipo o material</th><th className="text-center">Stock</th><th>Estado operativo</th>
                                 <th>Precio unitario</th><th>Estado</th><th className="text-end">Acciones</th>
                             </tr>
                         </thead>
@@ -305,11 +400,16 @@ export default function RecursosPanel() {
                                         <div className="fw-semibold">{recurso.nombre}</div>
                                         <small className="text-secondary">{recurso.descripcion || "Sin descripción"}</small>
                                     </td>
-                                    <td>
-                                        {recurso.stockTotal} {recurso.material?.unidad || "unidades"}
-                                        <small className="d-block text-secondary">
-                                            {recurso.cantidadDisponible ?? (recurso.stockTotal - recurso.cantidadEnMantencion - recurso.cantidadPerdida)} {rangoAplicado ? "disponibles en el período" : "operativas antes de reservas"}
-                                        </small>
+                                    <td className="text-center">
+                                        <div className="d-flex flex-column align-items-center">
+                                            <div className="d-flex align-items-baseline gap-2 text-nowrap">
+                                                <span className="fw-semibold fs-5">{recurso.stockTotal}</span>
+                                                <span className="text-secondary">{recurso.material?.unidad || "unidades"}</span>
+                                            </div>
+                                            <small className="text-secondary">
+                                                {recurso.cantidadDisponible ?? (recurso.stockTotal - recurso.cantidadEnMantencion - recurso.cantidadPerdida)} disponibles
+                                            </small>
+                                        </div>
                                     </td>
                                     <td>
                                         {recurso.cantidadEnMantencion > 0 && <Badge bg="warning" text="dark" className="me-1">{recurso.cantidadEnMantencion} en mantención</Badge>}
@@ -319,20 +419,30 @@ export default function RecursosPanel() {
                                     <td>{moneda.format(Number(recurso.precioUnitario))}</td>
                                     <td><Badge bg={recurso.activo ? "success" : "secondary"}>{recurso.activo ? "Activo" : "Inactivo"}</Badge></td>
                                     <td className="text-end text-nowrap">
-                                        <Button size="sm" variant="outline-secondary" className="me-2" onClick={() => setRecursoReservado(recurso)}>
-                                            <i className="bi bi-calendar2-week me-1" />Reservas
+                                        <div className="d-inline-flex flex-wrap justify-content-end gap-2">
+                                        <Button size="sm" variant="outline-secondary" onClick={() => setRecursoReservado(recurso)}>
+                                            <i className="bi bi-calendar2-week me-1" />Agenda
                                         </Button>
-                                        <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirEditar(recurso)}>
+                                        <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(recurso)}>
                                             <i className="bi bi-pencil me-1" />Editar
                                         </Button>
                                         <Button
                                             size="sm"
-                                            variant={recurso.activo ? "outline-danger" : "outline-success"}
+                                            variant={recurso.activo ? "outline-warning" : "outline-success"}
                                             disabled={changingId === recurso.id}
                                             onClick={() => setRecursoEstado(recurso)}
                                         >
-                                            {recurso.activo ? "Desactivar" : "Activar"}
+                                            {recurso.activo ? "Deshabilitar" : "Habilitar"}
                                         </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline-danger"
+                                            disabled={changingId === recurso.id}
+                                            onClick={() => setRecursoEliminar(recurso)}
+                                        >
+                                            <i className="bi bi-trash me-1" />Eliminar
+                                        </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -400,13 +510,24 @@ export default function RecursosPanel() {
                 onHide={() => changingId === null && setRecursoEstado(null)}
                 onConfirm={confirmarEstado}
                 loading={changingId !== null}
-                title={recursoEstado?.activo ? "Desactivar recurso" : "Activar recurso"}
-                confirmText={recursoEstado?.activo ? "Desactivar" : "Activar"}
+                title={recursoEstado?.activo ? "Deshabilitar recurso" : "Habilitar recurso"}
+                confirmText={recursoEstado?.activo ? "Deshabilitar" : "Habilitar"}
                 variant={recursoEstado?.activo ? "danger" : "success"}
             >
                 {recursoEstado?.activo
-                    ? <>¿Desactivar <strong>{recursoEstado.nombre}</strong>? Se conservará en presupuestos y eventos existentes.</>
-                    : <>¿Activar <strong>{recursoEstado?.nombre}</strong> para nuevos presupuestos y eventos?</>}
+                    ? <>¿Deshabilitar <strong>{recursoEstado.nombre}</strong>? Se conservará en presupuestos y eventos existentes.</>
+                    : <>¿Habilitar <strong>{recursoEstado?.nombre}</strong> para nuevos presupuestos y eventos?</>}
+            </ConfirmModal>
+
+            <ConfirmModal
+                show={Boolean(recursoEliminar)}
+                onHide={() => setRecursoEliminar(null)}
+                onConfirm={confirmarEliminacion}
+                title="Eliminar recurso definitivamente"
+                confirmText="Eliminar definitivamente"
+                loading={Boolean(recursoEliminar && changingId === recursoEliminar.id)}
+            >
+                ¿Eliminar <strong>{recursoEliminar?.nombre}</strong>? Si tiene reservas, eventos o presupuestos asociados, se conservará y te indicaremos que lo desactives.
             </ConfirmModal>
 
             <ReservasRecursoModal

@@ -19,6 +19,7 @@ router.patch(
 router.patch("/reservas/:id/cancelar", validator(schema.reservaIdSchema), controller.cancelarReserva);
 router.get("/:id", validator(schema.vehiculoIdSchema), controller.getById);
 router.post("/", validator(schema.createVehiculoSchema), controller.create);
+router.delete("/:id", validator(schema.vehiculoIdSchema), controller.eliminar);
 router.patch("/:id", validator(schema.updateVehiculoSchema), controller.update);
 
 module.exports = router;

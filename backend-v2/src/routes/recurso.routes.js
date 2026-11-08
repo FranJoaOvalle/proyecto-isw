@@ -24,6 +24,7 @@ router.patch(
 );
 router.get("/:id", validator(schema.recursoIdSchema), controller.getById);
 router.post("/", validator(schema.createRecursoSchema), controller.create);
+router.delete("/:id", validator(schema.recursoIdSchema), controller.eliminar);
 router.patch("/:id", validator(schema.updateRecursoSchema), controller.update);
 router.patch(
     "/:id/estado",

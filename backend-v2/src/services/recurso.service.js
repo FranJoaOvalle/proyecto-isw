@@ -107,6 +107,20 @@ class RecursoService {
         });
     }
 
+    async eliminar(id) {
+        const recursoId = Number(id);
+        await this.getById(recursoId);
+        const [reservas, eventos, presupuestos] = await Promise.all([
+            prisma.reservaRecurso.count({ where: { recursoId } }),
+            prisma.eventoRecurso.count({ where: { recursoId } }),
+            prisma.presupuestoRecurso.count({ where: { recursoId } })
+        ]);
+        if (reservas + eventos + presupuestos > 0) {
+            throw new ConflictException("No se puede eliminar definitivamente este recurso porque tiene reservas, eventos o presupuestos asociados. Puedes desactivarlo para conservar su historial.");
+        }
+        return prisma.recurso.delete({ where: { id: recursoId } });
+    }
+
     async getReservas(id) {
         await this.getById(id);
         return prisma.reservaRecurso.findMany({
