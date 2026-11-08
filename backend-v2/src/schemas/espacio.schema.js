@@ -58,6 +58,14 @@ const estadoEspacioSchema = z.object({
     body: z.object({ habilitado: z.boolean() }).strict()
 });
 
+const ubicacionEspacioSchema = z.object({
+    params,
+    body: z.object({
+        latitud: z.number().finite().min(-90).max(90),
+        longitud: z.number().finite().min(-180).max(180)
+    }).strict()
+});
+
 const espacioIdSchema = z.object({ params });
 
 const reservaSchema = z.object({
@@ -83,6 +91,7 @@ module.exports = {
     disponibilidadSchema,
     getEspaciosSchema,
     estadoEspacioSchema,
+    ubicacionEspacioSchema,
     espacioIdSchema,
     reservaSchema,
     reservaIdSchema

@@ -12,6 +12,7 @@ import {
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
+import MapaEspacios from "./MapaEspacios";
 import {
     cancelarReservaEspacio,
     createEspacio,
@@ -77,6 +78,7 @@ export default function EspaciosPanel() {
     const [success, setSuccess] = useState("");
     const [search, setSearch] = useState("");
     const [estado, setEstado] = useState("TODOS");
+    const [vista, setVista] = useState("lista");
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState(initialSpace);
@@ -356,6 +358,15 @@ export default function EspaciosPanel() {
                 </small>}
             </Form>
 
+            <div className="d-flex gap-2 mb-3" role="group" aria-label="Vista de espacios">
+                <Button type="button" variant={vista === "lista" ? "primary" : "outline-primary"} aria-pressed={vista === "lista"} onClick={() => setVista("lista")}>
+                    <i className="bi bi-list-ul me-2" />Lista
+                </Button>
+                <Button type="button" variant={vista === "mapa" ? "primary" : "outline-primary"} aria-pressed={vista === "mapa"} onClick={() => setVista("mapa")}>
+                    <i className="bi bi-map me-2" />Mapa
+                </Button>
+            </div>
+
             <TableToolbar
                 search={search}
                 onSearchChange={setSearch}
@@ -366,6 +377,8 @@ export default function EspaciosPanel() {
 
             {loading ? (
                 <div className="d-flex justify-content-center py-5"><Spinner animation="border" /></div>
+            ) : vista === "mapa" ? (
+                <MapaEspacios espacios={filtrados} onReservas={abrirReservas} onUbicacionGuardada={() => cargarEspacios()} />
             ) : filtrados.length === 0 ? (
                 <EmptyState
                     icon="bi-building"

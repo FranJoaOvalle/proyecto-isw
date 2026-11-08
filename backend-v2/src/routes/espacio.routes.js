@@ -21,6 +21,11 @@ router.patch(
     validator(schema.estadoEspacioSchema),
     controller.cambiarEstado
 );
+router.patch(
+    "/:id/ubicacion",
+    validator(schema.ubicacionEspacioSchema),
+    controller.guardarUbicacion
+);
 router.get(
     "/:id/reservas",
     validator(schema.espacioIdSchema),

@@ -22,6 +22,10 @@ module.exports = {
         req.validated.params.id,
         req.validated.body.habilitado
     )),
+    guardarUbicacion: responder(req => espacioService.guardarUbicacion(
+        req.validated.params.id,
+        req.validated.body
+    )),
     reservas: responder(req => espacioService.getReservas(req.validated.params.id)),
     reservar: responder(req => espacioService.reservar(
         req.validated.params.id,

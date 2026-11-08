@@ -8,7 +8,8 @@
     "start": "tsx src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "seed:espacios-demo": "tsx prisma/seed-mapa-demo.js"
   },
   "type": "commonjs",
   "dependencies": {
