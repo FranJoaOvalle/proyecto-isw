@@ -18,12 +18,13 @@ const local = (v) =>
         : "";
 export default function SolicitudFormulario({
     solicitud,
+    tipoEventoIdInicial,
     esAdmin,
     onHide,
     onGuardado
 }) {
     const [form, setForm] = useState(() => ({
-        tipoEventoId: solicitud?.tipoEventoId ?? "",
+        tipoEventoId: solicitud?.tipoEventoId ?? tipoEventoIdInicial ?? "",
         clienteId: "",
         inicio: local(solicitud?.inicio),
         fin: local(solicitud?.fin),

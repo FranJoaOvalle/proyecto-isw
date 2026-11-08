@@ -11,7 +11,7 @@ import {
     Row,
     Spinner
 } from "react-bootstrap";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../PageHeader";
 import EmptyState from "../EmptyState";
@@ -45,14 +45,17 @@ const etapa = (s) =>
           : estados[s.estado];
 export default function SolicitudesPanel() {
     const { id } = useParams();
+    const { state } = useLocation();
+    const tipoEventoId = state?.tipoEventoId;
     return (
         <Panel
-            key={id ?? "lista"}
+            key={id ?? `lista-${tipoEventoId ?? ""}`}
             id={id}
+            tipoEventoId={tipoEventoId}
         />
     );
 }
-function Panel({ id }) {
+function Panel({ id, tipoEventoId }) {
     const { usuario } = useAuth();
     const esAdmin = usuario?.rol === "ADMIN";
     const base = esAdmin ? "/admin/solicitudes" : "/cliente/solicitudes";
@@ -66,7 +69,9 @@ function Panel({ id }) {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
     const [mensaje, setMensaje] = useState("");
-    const [formulario, setFormulario] = useState(false);
+    const [formulario, setFormulario] = useState(
+        !id && !esAdmin && Number.isInteger(tipoEventoId) && tipoEventoId > 0
+    );
     const [confirmacion, setConfirmacion] = useState("");
     const [motivo, setMotivo] = useState("");
     const [saving, setSaving] = useState(false);
@@ -468,6 +473,7 @@ function Panel({ id }) {
             )}
             {formulario && (
                 <SolicitudFormulario
+                    tipoEventoIdInicial={!esAdmin ? tipoEventoId : undefined}
                     solicitud={id ? solicitud : null}
                     esAdmin={esAdmin}
                     onHide={() => setFormulario(false)}

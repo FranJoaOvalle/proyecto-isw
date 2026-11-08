@@ -10,6 +10,7 @@ export default function CatalogoCard({
     onEditar,
     onCambiarEstado,
     onEliminarFisico,
+    onSolicitar,
     disabled = false
 }) {
     const precio = Number(tipoEvento.modalidadPrecio === "POR_HORA"
@@ -143,6 +144,17 @@ export default function CatalogoCard({
                                 : "Activar"}
                         </Button>
                     </div>
+                )}
+
+                {!admin && tipoEvento.activo && onSolicitar && (
+                    <Button
+                        className="w-100 mt-3"
+                        onClick={onSolicitar}
+                        disabled={disabled}
+                    >
+                        <i className="bi bi-calendar-plus me-2" aria-hidden="true" />
+                        Solicitar evento
+                    </Button>
                 )}
 
                 {admin && !tipoEvento.activo && onEliminarFisico && (
