@@ -169,8 +169,8 @@ export default function SolicitudFormulario({
                         </Form.Group>
                     )}
                     {[
-                        ["inicio", "Inicio tentativo", "datetime-local"],
-                        ["fin", "Término tentativo", "datetime-local"],
+                        ["inicio", "Inicio propuesto", "datetime-local"],
+                        ["fin", "Término propuesto", "datetime-local"],
                         ["asistentes", "Asistentes estimados", "number"],
                         ["lugar", "Lugar preferido (opcional)", "text"]
                     ].map(([name, label, type]) => (
