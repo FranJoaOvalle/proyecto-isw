@@ -45,11 +45,12 @@ const etapa = (s) =>
           : estados[s.estado];
 export default function SolicitudesPanel() {
     const { id } = useParams();
+    const { usuario } = useAuth();
     const { state } = useLocation();
     const tipoEventoId = state?.tipoEventoId;
     return (
         <Panel
-            key={id ?? `lista-${tipoEventoId ?? ""}`}
+            key={`${usuario?.id}-${usuario?.rol}-${id ?? `lista-${tipoEventoId ?? ""}`}`}
             id={id}
             tipoEventoId={tipoEventoId}
         />
