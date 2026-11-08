@@ -30,8 +30,8 @@ class SeguimientoService {
             : { productor: { usuarioId: usuario.id } };
     }
 
-    async evento(id, usuario, db = prisma) {
-        const evento = await db.evento.findFirst({
+    async evento(id, usuario) {
+        const evento = await prisma.evento.findFirst({
             where: { id: Number(id), ...this.alcance(usuario) },
             include: eventoInclude
         });
@@ -128,9 +128,9 @@ class SeguimientoService {
         });
     }
 
-    async registro(eventoId, seguimientoId, usuario, db = prisma) {
-        await this.evento(eventoId, usuario, db);
-        const registro = await db.seguimientoEvento.findFirst({
+    async registro(eventoId, seguimientoId, usuario) {
+        await this.evento(eventoId, usuario);
+        const registro = await prisma.seguimientoEvento.findFirst({
             where: {
                 id: Number(seguimientoId),
                 eventoId: Number(eventoId),
@@ -147,22 +147,17 @@ class SeguimientoService {
     }
 
     async crear(eventoId, data, usuario) {
-        return prisma.$transaction(
-            async (db) => {
-                await this.evento(eventoId, usuario, db);
-                return db.seguimientoEvento.create({
-                    data: {
-                        eventoId: Number(eventoId),
-                        usuarioId: usuario.id,
-                        descripcion: data.descripcion,
-                        tipo: data.tipo,
-                        importancia: data.importancia
-                    },
-                    include: { usuario: autor }
-                });
+        await this.evento(eventoId, usuario);
+        return prisma.seguimientoEvento.create({
+            data: {
+                eventoId: Number(eventoId),
+                usuarioId: usuario.id,
+                descripcion: data.descripcion,
+                tipo: data.tipo,
+                importancia: data.importancia
             },
-            { isolationLevel: "Serializable" }
-        );
+            include: { usuario: autor }
+        });
     }
 
     async comentarios(eventoId, seguimientoId, usuario) {
@@ -181,20 +176,15 @@ class SeguimientoService {
     }
 
     async comentar(eventoId, seguimientoId, data, usuario) {
-        return prisma.$transaction(
-            async (db) => {
-                await this.registro(eventoId, seguimientoId, usuario, db);
-                return db.comentarioSeguimiento.create({
-                    data: {
-                        seguimientoId: Number(seguimientoId),
-                        usuarioId: usuario.id,
-                        comentario: data.comentario
-                    },
-                    include: { usuario: autor }
-                });
+        await this.registro(eventoId, seguimientoId, usuario);
+        return prisma.comentarioSeguimiento.create({
+            data: {
+                seguimientoId: Number(seguimientoId),
+                usuarioId: usuario.id,
+                comentario: data.comentario
             },
-            { isolationLevel: "Serializable" }
-        );
+            include: { usuario: autor }
+        });
     }
 }
 
