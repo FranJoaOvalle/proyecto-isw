@@ -47,6 +47,21 @@ function fechaIso(value) {
     return date.toISOString();
 }
 
+function intervaloDia(value) {
+    const [year, month, day] = value.split("-").map(Number);
+    const inicio = new Date(year, month - 1, day);
+    const fin = new Date(year, month - 1, day + 1);
+    return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+}
+
+function intervaloHora(dia, hora) {
+    const [year, month, day] = dia.split("-").map(Number);
+    const [hours, minutes] = hora.split(":").map(Number);
+    const inicio = new Date(year, month - 1, day, hours, minutes);
+    const fin = new Date(inicio.getTime() + 60 * 60 * 1000);
+    return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+}
+
 function textoTarifa(espacio) {
     if (espacio.costoArriendo == null) return "Costo de arriendo sin informar";
     const unidad = unidades[espacio.unidadArriendo] ?? espacio.unidadArriendo;
@@ -93,7 +108,7 @@ export default function EspaciosPanel() {
     useEffect(() => {
         // Initial data loading belongs to an effect; state updates happen after the request resolves.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        void cargarEspacios(null);
+        void cargarEspacios();
     }, [cargarEspacios]);
 
     const abrirCrear = () => {
@@ -175,14 +190,13 @@ export default function EspaciosPanel() {
         event.preventDefault();
         setError("");
         try {
-            if (!rango.inicio || !rango.fin) throw new Error("Indica el inicio y el término del horario.");
-            const intervalo = { inicio: fechaIso(rango.inicio), fin: fechaIso(rango.fin) };
-            if (new Date(intervalo.fin) <= new Date(intervalo.inicio)) {
-                throw new Error("La fecha de término debe ser posterior a la de inicio.");
-            }
-            setRangoAplicado(intervalo);
+            if (!rango.inicio) throw new Error("Selecciona el día que quieres consultar.");
+            const intervalo = rango.fin
+                ? intervaloHora(rango.inicio, rango.fin)
+                : intervaloDia(rango.inicio);
             setLoading(true);
             await cargarEspacios(intervalo);
+            setRangoAplicado(intervalo);
         } catch (err) {
             setError(err.message || "No fue posible consultar la disponibilidad.");
         }
@@ -318,21 +332,28 @@ export default function EspaciosPanel() {
                     <i className="bi bi-calendar2-check text-primary" />
                     <strong>Consultar disponibilidad</strong>
                 </div>
-                <div className="row align-items-end g-3">
+                <div className="row align-items-start g-3">
                     <Form.Group className="col-md-4">
-                        <Form.Label>Desde</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
+                        <Form.Label>Día del evento</Form.Label>
+                        <Form.Control type="date" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
                     </Form.Group>
                     <Form.Group className="col-md-4">
-                        <Form.Label>Hasta</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} required />
+                        <Form.Label>Hora (opcional)</Form.Label>
+                        <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
+                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
                     </Form.Group>
-                    <div className="col-md-4 d-flex gap-2">
+                    <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
                         {rangoAplicado && <Button type="button" variant="outline-secondary" onClick={limpiarDisponibilidad} disabled={loading}>Ver todos</Button>}
                     </div>
                 </div>
-                {rangoAplicado && <small className="text-secondary d-block mt-2">Mostrando disponibilidad entre {fechaLocal(rangoAplicado.inicio)} y {fechaLocal(rangoAplicado.fin)}.</small>}
+                {rangoAplicado && <small className="text-secondary d-block mt-2">
+                    {rango.fin
+                        ? "Mostrando disponibilidad el " + new Date(rangoAplicado.inicio).toLocaleDateString("es-CL") + " entre " +
+                            new Date(rangoAplicado.inicio).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) + " y " +
+                            new Date(rangoAplicado.fin).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) + "."
+                        : "Mostrando disponibilidad para el día " + new Date(rangoAplicado.inicio).toLocaleDateString("es-CL") + "."}
+                </small>}
             </Form>
 
             <TableToolbar

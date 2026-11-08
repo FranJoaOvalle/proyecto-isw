@@ -22,6 +22,24 @@ const etiquetasEstado = {
     RETIRADO: ["Retirado", "secondary"]
 };
 
+const intervaloDia = value => {
+    const [year, month, day] = value.split("-").map(Number);
+    return {
+        inicio: new Date(year, month - 1, day).toISOString(),
+        fin: new Date(year, month - 1, day + 1).toISOString()
+    };
+};
+
+const intervaloHora = (dia, hora) => {
+    const [year, month, day] = dia.split("-").map(Number);
+    const [hours, minutes] = hora.split(":").map(Number);
+    const inicio = new Date(year, month - 1, day, hours, minutes);
+    return {
+        inicio: inicio.toISOString(),
+        fin: new Date(inicio.getTime() + 60 * 60 * 1000).toISOString()
+    };
+};
+
 export default function VehiculosPanel() {
     const [vehiculos, setVehiculos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -58,17 +76,13 @@ export default function VehiculosPanel() {
     const buscarDisponibilidad = async event => {
         event.preventDefault();
         setError("");
-        if (!rango.inicio || !rango.fin) {
-            setError("Indica el inicio y término del período.");
+        if (!rango.inicio) {
+            setError("Selecciona el día que quieres consultar.");
             return;
         }
-        const inicio = new Date(rango.inicio);
-        const fin = new Date(rango.fin);
-        if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin <= inicio) {
-            setError("La fecha de término debe ser posterior al inicio.");
-            return;
-        }
-        const intervalo = { inicio: inicio.toISOString(), fin: fin.toISOString() };
+        const intervalo = rango.fin
+            ? intervaloHora(rango.inicio, rango.fin)
+            : intervaloDia(rango.inicio);
         setRangoAplicado(intervalo);
         setLoading(true);
         await cargar(intervalo);
@@ -171,21 +185,22 @@ export default function VehiculosPanel() {
 
             <Form onSubmit={buscarDisponibilidad} className="border rounded-3 p-3 mb-4 bg-body-tertiary">
                 <div className="d-flex align-items-center gap-2 mb-3"><i className="bi bi-calendar2-check text-primary" /><strong>Consultar vehículos disponibles</strong></div>
-                <div className="row align-items-end g-3">
+                <div className="row align-items-start g-3">
                     <Form.Group className="col-md-4">
-                        <Form.Label>Desde</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
+                        <Form.Label>Día del evento</Form.Label>
+                        <Form.Control type="date" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
                     </Form.Group>
                     <Form.Group className="col-md-4">
-                        <Form.Label>Hasta</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} required />
+                        <Form.Label>Hora (opcional)</Form.Label>
+                        <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
+                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
                     </Form.Group>
-                    <div className="col-md-4 d-flex gap-2">
+                    <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
                         {rangoAplicado && <Button type="button" variant="outline-secondary" onClick={limpiarDisponibilidad} disabled={loading}>Ver flota</Button>}
                     </div>
                 </div>
-                {rangoAplicado && <small className="text-secondary d-block mt-2">Mostrando disponibilidad para el horario seleccionado.</small>}
+                {rangoAplicado && <small className="text-secondary d-block mt-2">Mostrando disponibilidad para {rango.fin ? "el horario seleccionado" : "todo el día"}.</small>}
             </Form>
 
             <div className="d-flex flex-column flex-lg-row gap-3 mb-4">

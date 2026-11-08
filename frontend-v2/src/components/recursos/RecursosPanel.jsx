@@ -36,10 +36,22 @@ const moneda = new Intl.NumberFormat("es-CL", {
     maximumFractionDigits: 0
 });
 
-const fechaIso = value => {
-    const fecha = new Date(value);
-    if (Number.isNaN(fecha.getTime())) throw new Error("La fecha indicada no es válida.");
-    return fecha.toISOString();
+const intervaloDia = value => {
+    const [year, month, day] = value.split("-").map(Number);
+    return {
+        inicio: new Date(year, month - 1, day).toISOString(),
+        fin: new Date(year, month - 1, day + 1).toISOString()
+    };
+};
+
+const intervaloHora = (dia, hora) => {
+    const [year, month, day] = dia.split("-").map(Number);
+    const [hours, minutes] = hora.split(":").map(Number);
+    const inicio = new Date(year, month - 1, day, hours, minutes);
+    return {
+        inicio: inicio.toISOString(),
+        fin: new Date(inicio.getTime() + 60 * 60 * 1000).toISOString()
+    };
 };
 
 export default function RecursosPanel() {
@@ -84,9 +96,10 @@ export default function RecursosPanel() {
         event.preventDefault();
         setError("");
         try {
-            if (!rango.inicio || !rango.fin) throw new Error("Indica el inicio y término del período.");
-            const intervalo = { inicio: fechaIso(rango.inicio), fin: fechaIso(rango.fin) };
-            if (new Date(intervalo.fin) <= new Date(intervalo.inicio)) throw new Error("El término debe ser posterior al inicio.");
+            if (!rango.inicio) throw new Error("Selecciona el día que quieres consultar.");
+            const intervalo = rango.fin
+                ? intervaloHora(rango.inicio, rango.fin)
+                : intervaloDia(rango.inicio);
             setRangoAplicado(intervalo);
             setLoading(true);
             await loadRecursos(intervalo);
@@ -239,21 +252,22 @@ export default function RecursosPanel() {
 
             <Form onSubmit={buscarDisponibilidad} className="border rounded-3 p-3 mb-4 bg-body-tertiary">
                 <div className="d-flex align-items-center gap-2 mb-3"><i className="bi bi-calendar2-check text-primary" /><strong>Consultar disponibilidad de equipos</strong></div>
-                <div className="row align-items-end g-3">
+                <div className="row align-items-start g-3">
                     <Form.Group className="col-md-4">
-                        <Form.Label>Desde</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
+                        <Form.Label>Día del evento</Form.Label>
+                        <Form.Control type="date" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
                     </Form.Group>
                     <Form.Group className="col-md-4">
-                        <Form.Label>Hasta</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} required />
+                        <Form.Label>Hora (opcional)</Form.Label>
+                        <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
+                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
                     </Form.Group>
-                    <div className="col-md-4 d-flex gap-2">
+                    <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
                         {rangoAplicado && <Button type="button" variant="outline-secondary" onClick={limpiarDisponibilidad} disabled={loading}>Ver stock operativo</Button>}
                     </div>
                 </div>
-                {rangoAplicado && <small className="text-secondary d-block mt-2">Las cantidades consideran reservas activas en el período consultado.</small>}
+                {rangoAplicado && <small className="text-secondary d-block mt-2">Las cantidades consideran reservas activas en {rango.fin ? "el horario seleccionado" : "todo el día"}.</small>}
             </Form>
 
             <TableToolbar
