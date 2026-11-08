@@ -1,3 +1,4 @@
+import SolicitudesPanel from "./components/solicitudes/SolicitudesPanel";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
@@ -54,6 +55,8 @@ export default function App() {
                             path="/admin/eventos/:id"
                             element={<EventoDetallePage />}
                         />
+                        <Route path="/admin/solicitudes" element={<SolicitudesPanel />} />
+                        <Route path="/admin/solicitudes/:id" element={<SolicitudesPanel />} />
                         <Route path="/admin" element={<AdminPage />} />
                         <Route path="/admin/agenda" element={<AgendaPage />} />
                         <Route path="/admin/clientes" element={<ClientesPage />} />
@@ -96,6 +99,8 @@ export default function App() {
                         path="/cliente/eventos/:id"
                         element={<EventoClienteDetallePage />}
                     />
+                    <Route path="/cliente/solicitudes" element={<SolicitudesPanel />} />
+                    <Route path="/cliente/solicitudes/:id" element={<SolicitudesPanel />} />
                     <Route path="/cliente" element={<ClientePage />} />
                     <Route
                         path="/cliente/compra"
