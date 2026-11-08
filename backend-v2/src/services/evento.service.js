@@ -6,21 +6,28 @@ const ConflictException = require("../exceptions/ConflictException");
 const SeguimientoService = require("./seguimiento.service");
 const DisponibilidadService = require("./disponibilidad.service");
 
-const validarAdmin = (usuario) => {
-    if (usuario?.rol !== "ADMIN")
-        throw new ForbiddenException(
-            "Solo un administrador puede gestionar eventos."
-        );
-};
-
 class EventoService {
+
+    validarAdmin(usuario) {
+        if (usuario?.rol !== "ADMIN") {
+            throw new ForbiddenException(
+                "Solo un administrador puede gestionar eventos."
+            );
+        }
+    }
+
+    async bloquear(tx, id, usuario) {
+        await SeguimientoService.evento(id, usuario, tx);
+        // FOR UPDATE serializa cambios sobre el mismo evento; findUnique no bloquea.
+        await tx.$queryRaw`SELECT "id" FROM "Evento" WHERE "id" = ${Number(id)} FOR UPDATE`;
+        return SeguimientoService.evento(id, usuario, tx);
+    }
+
     async actualizar(id, datos, usuario) {
-        validarAdmin(usuario);
+        this.validarAdmin(usuario);
         return prisma.$transaction(
             async (tx) => {
-                await SeguimientoService.evento(id, usuario, tx);
-                await tx.$queryRaw`SELECT "id" FROM "Evento" WHERE "id" = ${Number(id)} FOR UPDATE`;
-                const actual = await SeguimientoService.evento(id, usuario, tx);
+                const actual = await this.bloquear(tx, id, usuario);
                 if (["CANCELADO", "COMPLETADO"].includes(actual.estado)) {
                     throw new ConflictException(
                         "No se puede editar un evento cancelado o completado."
@@ -28,10 +35,11 @@ class EventoService {
                 }
                 const inicio = datos.inicio ?? actual.inicio;
                 const fin = datos.fin ?? actual.fin;
-                if (fin <= inicio)
+                if (fin <= inicio) {
                     throw new ConflictException(
                         "El término debe ser posterior al inicio."
                     );
+                }
                 const productorId = Object.hasOwn(datos, "productorId")
                     ? datos.productorId
                     : actual.productorId;
@@ -42,10 +50,11 @@ class EventoService {
                             usuario: { activo: true, rol: "PRODUCTOR" }
                         }
                     });
-                    if (!productor)
+                    if (!productor) {
                         throw new ConflictException(
                             "El productor seleccionado no existe o está inactivo."
                         );
+                    }
                 }
                 if (
                     datos.inicio ||
@@ -102,12 +111,10 @@ class EventoService {
     }
 
     async cancelar(id, usuario) {
-        validarAdmin(usuario);
+        this.validarAdmin(usuario);
         return prisma.$transaction(
             async (tx) => {
-                await SeguimientoService.evento(id, usuario, tx);
-                await tx.$queryRaw`SELECT "id" FROM "Evento" WHERE "id" = ${Number(id)} FOR UPDATE`;
-                const actual = await SeguimientoService.evento(id, usuario, tx);
+                const actual = await this.bloquear(tx, id, usuario);
                 if (!["CONFIRMADO", "POSPUESTO"].includes(actual.estado)) {
                     throw new ConflictException(
                         "Solo se pueden cancelar eventos confirmados o pospuestos."
@@ -138,16 +145,18 @@ class EventoService {
     }
 
     async eliminar(id, usuario) {
-        validarAdmin(usuario);
+        this.validarAdmin(usuario);
         const actual = await SeguimientoService.evento(id, usuario);
-        if (actual.estado !== "CANCELADO")
+        if (actual.estado !== "CANCELADO") {
             throw new ConflictException(
                 "Solo se evalúa la eliminación de eventos cancelados."
             );
+        }
         // En V2 todo evento conserva un presupuesto obligatorio. Nunca borrar en cascada sus antecedentes.
         throw new ConflictException(
             "No se puede eliminar definitivamente: el evento conserva un presupuesto contratado y antecedentes que deben mantenerse. La cancelación conserva su historial."
         );
     }
 }
+
 module.exports = new EventoService();

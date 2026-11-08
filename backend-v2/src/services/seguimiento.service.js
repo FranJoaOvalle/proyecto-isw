@@ -18,6 +18,7 @@ const eventoInclude = {
 };
 
 class SeguimientoService {
+
     alcance(usuario) {
         if (!usuario || !["ADMIN", "PRODUCTOR"].includes(usuario.rol)) {
             throw new ForbiddenException(
@@ -34,7 +35,9 @@ class SeguimientoService {
             where: { id: Number(id), ...this.alcance(usuario) },
             include: eventoInclude
         });
-        if (!evento) throw new NotFoundException("Evento no encontrado.");
+        if (!evento) {
+            throw new NotFoundException("Evento no encontrado.");
+        }
         return evento;
     }
 
@@ -135,10 +138,11 @@ class SeguimientoService {
             },
             include: { usuario: autor }
         });
-        if (!registro)
+        if (!registro) {
             throw new NotFoundException(
                 "Registro de seguimiento no encontrado."
             );
+        }
         return registro;
     }
 

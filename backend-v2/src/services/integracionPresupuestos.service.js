@@ -1,27 +1,25 @@
 const ConflictException = require("../exceptions/ConflictException");
 
-// Puntos de integración exclusivamente servidor. Presupuestos debe sustituir
-// estas guardas por consultas de sus evidencias persistidas dentro del mismo tx.
-const verificarAceptacion = async () => {
-    throw new ConflictException(
-        "Integración de aceptación con Presupuestos pendiente."
-    );
-};
+// Presupuestos debe implementar estas verificaciones con evidencias del servidor.
+class IntegracionPresupuestosService {
 
-const verificarCierreSolicitud = async () => {
-    throw new ConflictException(
-        "Cierre bloqueado: falta la certificación de propuestas y compromisos por Presupuestos."
-    );
-};
+    async verificarAceptacion() {
+        throw new ConflictException(
+            "Integración de aceptación con Presupuestos pendiente."
+        );
+    }
 
-const verificarEdicionSolicitud = async () => {
-    throw new ConflictException(
-        "La solicitud tiene propuestas. Presupuestos debe verificar su emisión o versionado antes de modificarla."
-    );
-};
+    async verificarCierreSolicitud() {
+        throw new ConflictException(
+            "Cierre bloqueado: falta la certificación de propuestas y compromisos por Presupuestos."
+        );
+    }
 
-module.exports = {
-    verificarAceptacion,
-    verificarCierreSolicitud,
-    verificarEdicionSolicitud
-};
+    async verificarEdicionSolicitud() {
+        throw new ConflictException(
+            "La solicitud tiene propuestas. Presupuestos debe verificar su emisión o versionado antes de modificarla."
+        );
+    }
+}
+
+module.exports = new IntegracionPresupuestosService();
