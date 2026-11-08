@@ -89,6 +89,8 @@ model Usuario {
   cliente   Cliente?
   productor Productor?
 
+  solicitudesCreadas SolicitudEvento[] @relation("AutorSolicitud")
+  cambiosSolicitud SolicitudEventoCambio[]
   cambiosEvento EventoCambio[]
   seguimientosEvento SeguimientoEvento[]
   comentariosSeguimiento ComentarioSeguimiento[]
@@ -108,6 +110,7 @@ model Cliente {
   empresa      ClienteEmpresa?
   eventos      Evento[]
   presupuestos Presupuesto[]
+  solicitudes SolicitudEvento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -166,6 +169,7 @@ model TipoEvento {
 
   eventos      Evento[]
   presupuestos Presupuesto[]
+  solicitudes SolicitudEvento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -212,7 +216,7 @@ model RecursoHumano {
 model Evento {
   id            Int          @id @default(autoincrement())
   clienteId     Int
-  productorId   Int
+  productorId   Int?
   tipoEventoId  Int
   inicio        DateTime
   fin           DateTime
@@ -225,7 +229,7 @@ model Evento {
   calificacion Calificacion?
 
   cliente   Cliente   @relation(fields: [clienteId], references: [id])
-  productor Productor @relation(fields: [productorId], references: [id])
+  productor Productor? @relation(fields: [productorId], references: [id], onDelete: Restrict)
   tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id])
 
   cambios     EventoCambio[]
@@ -233,6 +237,8 @@ model Evento {
   recursos    EventoRecurso[]
   actividades Actividad[]
 
+  solicitudId Int? @unique
+  solicitud SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
   presupuestoId Int         @unique
   presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
 
@@ -258,6 +264,8 @@ model EventoRecurso {
 }
 
 model Presupuesto {
+  solicitudId Int?
+  solicitud SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
   id           Int @id @default(autoincrement())
   clienteId    Int
   tipoEventoId Int
@@ -290,6 +298,7 @@ model Presupuesto {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([solicitudId])
   @@index([clienteId])
   @@index([tipoEventoId])
 }
@@ -440,4 +449,52 @@ model ComentarioSeguimiento {
 
   @@index([seguimientoId, createdAt, id])
   @@index([usuarioId])
+}
+
+enum EstadoSolicitudEvento {
+  PENDIENTE
+  EN_REVISION
+  CONTRATADA
+  RECHAZADA
+}
+
+model SolicitudEvento {
+  id Int @id @default(autoincrement())
+  clienteId Int
+  tipoEventoId Int
+  autorId Int
+  inicio DateTime
+  fin DateTime
+  asistentes Int
+  lugar String? @db.VarChar(200)
+  observaciones String? @db.Text
+  estado EstadoSolicitudEvento @default(PENDIENTE)
+  tipoCierre String?
+  motivoCierre String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id], onDelete: Restrict)
+  autor Usuario @relation("AutorSolicitud", fields: [autorId], references: [id], onDelete: Restrict)
+  presupuestos Presupuesto[]
+  evento Evento?
+  cambios SolicitudEventoCambio[]
+  @@index([clienteId, createdAt])
+  @@index([estado, createdAt])
+  @@index([tipoEventoId])
+}
+
+model SolicitudEventoCambio {
+  id Int @id @default(autoincrement())
+  solicitudId Int
+  actorId Int
+  accion String
+  motivo String? @db.Text
+  anterior Json?
+  nuevo Json?
+  createdAt DateTime @default(now())
+  solicitud SolicitudEvento @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  actor Usuario @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([solicitudId, createdAt])
+  @@index([actorId])
 }

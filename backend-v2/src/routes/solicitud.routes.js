@@ -1,0 +1,16 @@
+const router = require("express").Router();
+const auth = require("../middlewares/auth.middleware");
+const authorize = require("../middlewares/authorize.middleware");
+const validator = require("../middlewares/validator.middleware");
+const s = require("../schemas/solicitud.schema");
+const c = require("../controllers/solicitud.controller");
+router.use(auth, authorize("ADMIN", "CLIENTE"));
+router.get("/", validator(s.listar), c.listar);
+router.post("/", validator(s.crear), c.crear);
+router.get("/:id", validator(s.detalle), c.detalle);
+router.get("/:id/historial", validator(s.detalle), c.historial);
+router.patch("/:id", validator(s.editar), c.editar);
+router.post("/:id/revision", authorize("ADMIN"), validator(s.detalle), c.revisar);
+router.post("/:id/rechazo", authorize("ADMIN"), validator(s.cerrar), c.rechazar);
+router.post("/:id/retiro", authorize("CLIENTE"), validator(s.cerrar), c.retirar);
+module.exports = router;

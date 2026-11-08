@@ -4,6 +4,7 @@
   "private": true,
   "main": "src/server.js",
   "scripts": {
+    "test:solicitudes": "node --test test/solicitudes.test.js",
     "test:seguimiento": "node --test test/seguimiento.test.js",
     "test:seguimiento:db": "tsx --test test/seguimiento.db.test.js",
     "dev": "tsx watch src/server.js",

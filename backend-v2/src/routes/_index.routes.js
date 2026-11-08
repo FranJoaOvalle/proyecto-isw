@@ -16,5 +16,6 @@ router.use("/usuarios", usuarioRoutes);
 router.use("/tipos-evento", tipoEventoRoutes);
 router.use("/actividades", actividadRoutes);
 router.use("/eventos", require("./seguimiento.routes"));
+router.use("/solicitudes", require("./solicitud.routes"));
 
 module.exports = router;
