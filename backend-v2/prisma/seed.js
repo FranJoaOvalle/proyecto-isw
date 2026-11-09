@@ -161,7 +161,15 @@ const crearPresupuesto = async ({
     porcentajeAnticipo = 30,
     createdAt
 }) => {
-    const precioBase = Number(tipoEvento.precioBase);
+    const precioTipoEvento = Number(
+        tipoEvento.modalidadPrecio === "POR_HORA"
+            ? tipoEvento.tarifaHora
+            : tipoEvento.precioBase
+    );
+    const horasEvento = (fin.getTime() - inicio.getTime()) / (60 * 60 * 1000);
+    const costoTipoEvento = tipoEvento.modalidadPrecio === "POR_HORA"
+        ? precioTipoEvento * horasEvento
+        : precioTipoEvento;
 
     const recursosSnapshot = recursos.map(({ recurso, cantidad }) => {
         const precioUnitario = Number(recurso.precioUnitario);
@@ -181,7 +189,7 @@ const crearPresupuesto = async ({
         0
     );
 
-    const subtotal = precioBase + subtotalRecursos;
+    const subtotal = costoTipoEvento + subtotalRecursos;
     const recargoCliente = subtotal * recargoClientePct;
     const total = subtotal + recargoCliente;
     const montoAnticipo = total * (porcentajeAnticipo / 100);
@@ -196,7 +204,7 @@ const crearPresupuesto = async ({
             asistentes,
             venceAt,
             nombreTipoEvento: tipoEvento.nombre,
-            precioBaseTipoEvento: tipoEvento.precioBase,
+            precioBaseTipoEvento: dinero(precioTipoEvento),
             subtotal: dinero(subtotal),
             recargoCliente: dinero(recargoCliente),
             total: dinero(total),
@@ -357,7 +365,10 @@ const main = async () => {
         data: {
             nombre: "Matrimonio",
             descripcion: "Celebración de matrimonio con coordinación integral, montaje y producción del evento.",
+            modalidadPrecio: "FIJO",
             precioBase: "1200000.00",
+            tarifaHora: null,
+            incluye: "Coordinación general, montaje, sonido ambiental e iluminación decorativa. La banquetería y otros requerimientos se cotizan según el evento.",
             cantidadPersonasBase: 120,
             imagen_url: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -368,7 +379,10 @@ const main = async () => {
         data: {
             nombre: "Cumpleaños",
             descripcion: "Celebración de cumpleaños adaptable a distintos tamaños, edades y formatos.",
+            modalidadPrecio: "FIJO",
             precioBase: "450000.00",
+            tarifaHora: null,
+            incluye: "Montaje básico, sonido ambiental y coordinación de la celebración. Decoración y equipamiento adicional se cotizan según los requerimientos.",
             cantidadPersonasBase: 50,
             imagen_url: "https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=1200",
             activo: true
@@ -379,7 +393,10 @@ const main = async () => {
         data: {
             nombre: "Evento corporativo",
             descripcion: "Producción de aniversarios, lanzamientos, jornadas internas y celebraciones de empresa.",
-            precioBase: "850000.00",
+            modalidadPrecio: "POR_HORA",
+            precioBase: null,
+            tarifaHora: "35000.00",
+            incluye: "Coordinación de producción, sonido e iluminación funcional. Pantallas, mobiliario y apoyo técnico especializado se cotizan según el formato.",
             cantidadPersonasBase: 90,
             imagen_url: "https://images.unsplash.com/photo-1561489396-888724a1543d?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -390,7 +407,10 @@ const main = async () => {
         data: {
             nombre: "Graduación",
             descripcion: "Ceremonias y celebraciones de licenciatura o graduación para instituciones educacionales.",
+            modalidadPrecio: "FIJO",
             precioBase: "700000.00",
+            tarifaHora: null,
+            incluye: "Coordinación de ceremonia, montaje de escenario, sonido e iluminación funcional. Mobiliario y servicios adicionales se ajustan al aforo.",
             cantidadPersonasBase: 150,
             imagen_url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -401,7 +421,10 @@ const main = async () => {
         data: {
             nombre: "Seminario y conferencia",
             descripcion: "Producción técnica y logística para seminarios, charlas, congresos y conferencias.",
-            precioBase: "650000.00",
+            modalidadPrecio: "POR_HORA",
+            precioBase: null,
+            tarifaHora: "25000.00",
+            incluye: "Sonido básico, iluminación funcional y coordinación técnica. Pantalla, proyector, mobiliario y acreditación se cotizan según asistentes y recinto.",
             cantidadPersonasBase: 80,
             imagen_url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: false
@@ -412,7 +435,10 @@ const main = async () => {
         data: {
             nombre: "Gala institucional",
             descripcion: "Formato formal de gran escala para cenas, premiaciones y ceremonias institucionales.",
-            precioBase: "1500000.00",
+            modalidadPrecio: "POR_HORA",
+            precioBase: null,
+            tarifaHora: "45000.00",
+            incluye: "Coordinación de producción, montaje formal, sonido e iluminación. Banquetería, mobiliario y personal adicional se cotizan según invitados y programa.",
             cantidadPersonasBase: 100,
             imagen_url: "https://images.unsplash.com/photo-1516997121675-4c2d1684aa3e?q=80&w=1172&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true

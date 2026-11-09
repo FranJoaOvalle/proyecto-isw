@@ -60,4 +60,12 @@ router.patch(
     tipoEventoController.cambiarEstado
 );
 
+router.delete(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    validator(tipoEventoIdSchema),
+    tipoEventoController.removePhysical
+);
+
 module.exports = router;

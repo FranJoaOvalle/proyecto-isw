@@ -180,9 +180,16 @@ Contiene información como:
 ```text
 nombre
 descripcion
-precioBase
+modalidadPrecio (FIJO o POR_HORA)
+precioBase (solo para modalidad FIJO)
+tarifaHora (solo para modalidad POR_HORA)
+incluye (texto opcional con elementos habituales, solo informativo)
 activo
 ```
+
+Cada tipo de evento usa una sola modalidad de precio: `FIJO` utiliza `precioBase` y `POR_HORA` utiliza `tarifaHora`. La duración se define en cada presupuesto o evento; los dos precios no se suman.
+
+`incluye` es una descripción orientativa sin relación con otra entidad. Los recursos efectivamente cotizados se detallan en el presupuesto.
 
 Es lo que aparece en:
 
@@ -200,6 +207,7 @@ crear
 editar
 activar
 desactivar
+eliminar físicamente si está inactivo y no tiene eventos ni presupuestos asociados
 ```
 
 ### Evento

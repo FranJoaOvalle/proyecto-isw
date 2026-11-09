@@ -30,13 +30,7 @@ class TipoEventoService {
     }
 
     async update(id, data) {
-        const tipoEvento = await this.getById(id);
-
-        if (!tipoEvento.activo) {
-            throw new ConflictException(
-                "No se puede modificar un tipo de evento desactivado."
-            );
-        }
+        await this.getById(id);
 
         return prisma.tipoEvento.update({
             where: { id: Number(id) },
@@ -75,7 +69,32 @@ class TipoEventoService {
     }
 
     async removePhysical(id) {
-        await this.getById(id);
+        const tipoEvento = await this.getById(id);
+
+        if (tipoEvento.activo) {
+            throw new ConflictException(
+                "Desactiva el tipo de evento antes de eliminarlo."
+            );
+        }
+
+        const [eventos, presupuestos] = await Promise.all([
+            prisma.evento.count({
+                where: { tipoEventoId: Number(id) }
+            }),
+            prisma.presupuesto.count({
+                where: { tipoEventoId: Number(id) }
+            })
+        ]);
+
+        if (eventos > 0 || presupuestos > 0) {
+            const relaciones = [];
+            if (eventos > 0) relaciones.push(`${eventos} ${eventos === 1 ? "evento" : "eventos"}`);
+            if (presupuestos > 0) relaciones.push(`${presupuestos} ${presupuestos === 1 ? "presupuesto" : "presupuestos"}`);
+
+            throw new ConflictException(
+                `No se puede eliminar el tipo de evento porque está asociado a ${relaciones.join(" y ")}.`
+            );
+        }
 
         try {
             return await prisma.tipoEvento.delete({
@@ -84,7 +103,7 @@ class TipoEventoService {
         } catch (error) {
             if (error.code === "P2003" || error.code === "P2014") {
                 throw new ConflictException(
-                    "No se puede eliminar físicamente el tipo de evento porque tiene registros relacionados."
+                    "No se puede eliminar el tipo de evento porque tiene registros relacionados."
                 );
             }
 

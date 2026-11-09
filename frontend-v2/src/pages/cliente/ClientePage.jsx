@@ -32,6 +32,7 @@ export default function ClientePage() {
             </div>
 
             <Row className="g-4">
+                <Col md={6}><Card className="h-100 shadow-sm"><Card.Body className="p-4"><Card.Title className="fw-bold">Mis solicitudes</Card.Title><Card.Text>Solicita un evento y consulta su revisión o contratación.</Card.Text><Button as={Link} to="/cliente/solicitudes">Ver solicitudes</Button></Card.Body></Card></Col>
                 <Col md={6}>
                     <Card className="h-100 shadow-sm">
                         <Card.Body className="p-4">

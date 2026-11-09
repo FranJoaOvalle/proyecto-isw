@@ -77,11 +77,24 @@ const cambiarEstado = async (req, res, next) => {
     }
 };
 
+const removePhysical = async (req, res, next) => {
+    try {
+        const tipoEvento = await TipoEventoService.removePhysical(
+            req.validated.params.id
+        );
+
+        return res.status(200).json(tipoEvento);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getAllAdmin,
     getById,
     create,
     update,
-    cambiarEstado
+    cambiarEstado,
+    removePhysical
 };

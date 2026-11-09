@@ -53,3 +53,8 @@ export const updateTipoEventoEstado = async (
 
     return response.data;
 };
+
+export const deleteTipoEvento = async (id) => {
+    const response = await api.delete(`/tipos-evento/${id}`);
+    return response.data;
+};
