@@ -12,8 +12,8 @@ class DisponibilidadService {
             .replace(/\s+/g, " ");
     }
 
-    async verificarDisponibilidad(datos, excluirId = null) {
-        const { inicio, fin, lugar, productorId } = datos;
+    async verificarDisponibilidad(datos, excluirId = null, cliente = prisma) {
+        const { inicio, fin, lugar, productorId, espacioId } = datos;
         if (
             !(inicio instanceof Date) ||
             !(fin instanceof Date) ||
@@ -24,7 +24,7 @@ class DisponibilidadService {
                 "Fechas o recinto definitivos inválidos."
             );
         }
-        const coincidentes = await prisma.evento.findMany({
+        const coincidentes = await cliente.evento.findMany({
             where: {
                 ...(excluirId ? { id: { not: Number(excluirId) } } : {}),
                 estado: { not: "CANCELADO" },
@@ -52,8 +52,45 @@ class DisponibilidadService {
                 "El productor ya tiene un evento en ese horario."
             );
         }
+        const espacios = await cliente.espacio.findMany({
+            select: { id: true, nombre: true, direccion: true }
+        });
+        const ids = espacios
+            .filter(
+                (espacio) =>
+                    espacio.id === espacioId ||
+                    [espacio.nombre, espacio.direccion].some(
+                        (valor) =>
+                            this.normalizarRecinto(valor) ===
+                            this.normalizarRecinto(lugar)
+                    )
+            )
+            .map((espacio) => espacio.id);
+        if (
+            ids.length &&
+            (await cliente.reservaEspacio.findFirst({
+                where: {
+                    espacioId: { in: ids },
+                    cancelada: false,
+                    inicio: { lt: fin },
+                    fin: { gt: inicio },
+                    ...(excluirId
+                        ? {
+                              OR: [
+                                  { eventoId: null },
+                                  { eventoId: { not: Number(excluirId) } }
+                              ]
+                          }
+                        : {})
+                }
+            }))
+        ) {
+            throw new ConflictException(
+                "El espacio tiene una reserva en ese horario."
+            );
+        }
         // Se conserva la validación operativa de Agenda; no representa reserva física.
-        const actividad = await prisma.actividad.findFirst({
+        const actividad = await cliente.actividad.findFirst({
             where: {
                 estado: { not: "CANCELADA" },
                 inicio: { lt: fin },

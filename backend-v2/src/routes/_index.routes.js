@@ -9,6 +9,10 @@ const actividadRoutes = require("./actividad.routes");
 const eventoRoutes = require("./seguimiento.routes");
 const solicitudRoutes = require("./solicitud.routes");
 
+const recursoRoutes = require("./recurso.routes");
+const espacioRoutes = require("./espacio.routes");
+const vehiculoRoutes = require("./vehiculo.routes");
+
 const router = express.Router();
 
 router.use("/auth", authRoutes);
@@ -19,5 +23,9 @@ router.use("/tipos-evento", tipoEventoRoutes);
 router.use("/actividades", actividadRoutes);
 router.use("/eventos", eventoRoutes);
 router.use("/solicitudes", solicitudRoutes);
+
+router.use("/recursos", recursoRoutes);
+router.use("/espacios", espacioRoutes);
+router.use("/vehiculos", vehiculoRoutes);
 
 module.exports = router;

@@ -1,3 +1,4 @@
+import EventoReservas from "./EventoReservas";
 import AsignarProductor from "./AsignarProductor";
 import EventoImagen from "./EventoImagen";
 import { useEffect, useState } from "react";
@@ -184,6 +185,7 @@ function Detalle({ id }) {
                                 )}
                             </Card.Body>
                         </Card>
+                        <EventoReservas evento={evento} administrar={usuario?.rol === "ADMIN"} />
                         <SeguimientoPanel eventoId={id} />
                     </>
                 )

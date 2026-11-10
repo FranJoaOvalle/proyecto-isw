@@ -144,7 +144,7 @@ export default function EventoAcciones({ evento, onCambio }) {
                             new Date(form.fin) <= new Date(form.inicio)
                         )
                             return;
-                        ejecutar({
+                        const datos = {
                             ...form,
                             inicio: new Date(form.inicio).toISOString(),
                             fin: new Date(form.fin).toISOString(),
@@ -153,7 +153,17 @@ export default function EventoAcciones({ evento, onCambio }) {
                             imagen_url: imagenPersonalizada
                                 ? form.imagen_url.trim()
                                 : null
-                        });
+                        };
+                        if (form.inicio === fechaLocal(evento.inicio)) delete datos.inicio;
+                        if (form.fin === fechaLocal(evento.fin)) delete datos.fin;
+                        for (const campo of ["lugar", "asistentes", "observaciones", "imagen_url"]) {
+                            if (datos[campo] === (evento[campo] ?? null)) delete datos[campo];
+                        }
+                        if (!Object.keys(datos).length) {
+                            setError("No hay cambios para guardar.");
+                            return;
+                        }
+                        ejecutar(datos);
                     }}
                 >
                     <Modal.Header closeButton={!saving}>
@@ -183,7 +193,7 @@ export default function EventoAcciones({ evento, onCambio }) {
                                     min={type === "number" ? 1 : undefined}
                                     step={type === "number" ? 1 : undefined}
                                     maxLength={
-                                        name === "lugar" ? 200 : undefined
+                                        name === "lugar" ? 250 : undefined
                                     }
                                     isInvalid={
                                         validated &&

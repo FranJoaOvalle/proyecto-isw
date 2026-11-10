@@ -31,6 +31,24 @@ enum OrigenRecursoHumano {
   EXTERNO
 }
 
+enum UnidadArriendo {
+  HORA
+  DIA
+  EVENTO
+}
+
+enum EstadoDevolucionActivo {
+  PENDIENTE
+  CONFORME
+  CON_OBSERVACIONES
+}
+
+enum EstadoVehiculo {
+  DISPONIBLE
+  EN_MANTENCION
+  RETIRADO
+}
+
 enum EstadoEvento {
   CONFIRMADO
   POSPUESTO
@@ -183,6 +201,8 @@ model Recurso {
 
   precioUnitario Decimal @db.Decimal(12, 2)
   stockTotal     Int
+  cantidadEnMantencion Int @default(0)
+  cantidadPerdida Int @default(0)
   activo         Boolean @default(true)
 
   material RecursoMaterial?
@@ -193,8 +213,103 @@ model Recurso {
 
   eventos      EventoRecurso[]
   presupuestos PresupuestoRecurso[]
+  reservas ReservaRecurso[]
 
   @@unique([nombre, tipo])
+}
+
+model Espacio {
+  id             Int             @id @default(autoincrement())
+  nombre         String          @db.VarChar(100)
+  direccion      String          @db.VarChar(250)
+  capacidad      Int
+  costoArriendo  Decimal?        @db.Decimal(12, 2)
+  unidadArriendo UnidadArriendo?
+  habilitado     Boolean         @default(true)
+  observaciones  String?         @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  reservas ReservaEspacio[]
+  eventos  Evento[]
+
+  @@index([nombre])
+}
+
+model ReservaEspacio {
+  id         Int      @id @default(autoincrement())
+  espacioId  Int
+  referencia String   @db.VarChar(150)
+  inicio     DateTime @db.Timestamptz(3)
+  fin        DateTime @db.Timestamptz(3)
+  cancelada  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  eventoId   Int?
+  evento     Evento?  @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+
+  @@index([eventoId])
+  @@index([espacioId, inicio, fin])
+}
+
+model ReservaRecurso {
+  id                      Int                    @id @default(autoincrement())
+  recursoId               Int
+  referencia              String                 @db.VarChar(150)
+  cantidad                Int
+  inicio                  DateTime               @db.Timestamptz(3)
+  fin                     DateTime               @db.Timestamptz(3)
+  cancelada               Boolean                @default(false)
+  estadoDevolucion        EstadoDevolucionActivo @default(PENDIENTE)
+  cantidadDanada          Int                    @default(0)
+  cantidadPerdida         Int                    @default(0)
+  observacionesDevolucion String?                @db.Text
+  createdAt               DateTime               @default(now())
+
+  eventoId                Int?
+  evento                  Evento?                @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  recurso Recurso @relation(fields: [recursoId], references: [id], onDelete: Restrict)
+
+  @@index([eventoId])
+  @@index([recursoId, inicio, fin])
+}
+
+model Vehiculo {
+  id                 Int            @id @default(autoincrement())
+  patente            String         @unique @db.VarChar(15)
+  tipo               String         @db.VarChar(60)
+  marca              String         @db.VarChar(60)
+  modelo             String         @db.VarChar(80)
+  anio               Int?
+  capacidadPasajeros Int?
+  estado             EstadoVehiculo @default(DISPONIBLE)
+  observaciones      String?        @db.Text
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  reservas ReservaVehiculo[]
+
+  @@index([estado, tipo])
+}
+
+model ReservaVehiculo {
+  id                      Int                    @id @default(autoincrement())
+  vehiculoId              Int
+  referencia              String                 @db.VarChar(150)
+  inicio                  DateTime               @db.Timestamptz(3)
+  fin                     DateTime               @db.Timestamptz(3)
+  cancelada               Boolean                @default(false)
+  estadoDevolucion        EstadoDevolucionActivo @default(PENDIENTE)
+  observacionesDevolucion String?                @db.Text
+  createdAt               DateTime               @default(now())
+
+  eventoId                Int?
+  evento                  Evento?                @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  vehiculo Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Restrict)
+
+  @@index([eventoId])
+  @@index([vehiculoId, inicio, fin])
 }
 
 model RecursoMaterial {
@@ -236,6 +351,11 @@ model Evento {
   seguimientos SeguimientoEvento[]
   recursos    EventoRecurso[]
   actividades Actividad[]
+  espacioId Int?
+  espacio Espacio? @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  reservasEspacio ReservaEspacio[]
+  reservasRecurso ReservaRecurso[]
+  reservasVehiculo ReservaVehiculo[]
 
   solicitudId Int? @unique
   solicitud SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
@@ -245,6 +365,7 @@ model Evento {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([espacioId])
   @@index([clienteId])
   @@index([productorId])
   @@index([tipoEventoId])

@@ -12,6 +12,7 @@ const autor = {
     }
 };
 const eventoInclude = {
+    espacio: true,
     tipoEvento: true,
     productor: { select: { id: true, nombres: true, apellidos: true } },
     cliente: { select: { persona: true, empresa: true } }
@@ -33,7 +34,25 @@ class SeguimientoService {
     async evento(id, usuario) {
         const evento = await prisma.evento.findFirst({
             where: { id: Number(id), ...this.alcance(usuario) },
-            include: eventoInclude
+            include: {
+                ...eventoInclude,
+                reservasEspacio: {
+                    include: { espacio: true },
+                    orderBy: { inicio: "asc" }
+                },
+                reservasRecurso: {
+                    include: {
+                        recurso: { select: { id: true, nombre: true } }
+                    },
+                    orderBy: { inicio: "asc" }
+                },
+                reservasVehiculo: {
+                    include: {
+                        vehiculo: { select: { id: true, patente: true } }
+                    },
+                    orderBy: { inicio: "asc" }
+                }
+            }
         });
         if (!evento) {
             throw new NotFoundException("Evento no encontrado.");

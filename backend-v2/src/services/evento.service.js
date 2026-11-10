@@ -6,6 +6,8 @@ const ConflictException = require("../exceptions/ConflictException");
 const SeguimientoService = require("./seguimiento.service");
 const DisponibilidadService = require("./disponibilidad.service");
 
+const ReservaService = require("./reserva.service");
+
 class EventoService {
 
     validarAdmin(usuario) {
@@ -64,7 +66,11 @@ class EventoService {
                     inicio,
                     fin,
                     lugar: datos.lugar ?? actual.lugar,
-                    productorId
+                    productorId,
+                    espacioId:
+                        datos.lugar && datos.lugar !== actual.lugar
+                            ? null
+                            : actual.espacioId
                 },
                 id
             );
@@ -94,6 +100,9 @@ class EventoService {
                           : String(valor)
             }));
 
+        if (cambios.some(cambio => ["inicio", "fin", "lugar", "asistentes"].includes(cambio.campo))) {
+            return ReservaService.actualizarEvento(actual, datos, cambios);
+        }
         return prisma.evento.update({
             where: { id: Number(id) },
             data: { ...datos, cambios: { create: cambios } }
@@ -103,27 +112,23 @@ class EventoService {
     async cancelar(id, usuario) {
         this.validarAdmin(usuario);
         const actual = await SeguimientoService.evento(id, usuario);
-
         if (!["CONFIRMADO", "POSPUESTO"].includes(actual.estado)) {
             throw new ConflictException(
                 "Solo se pueden cancelar eventos confirmados o pospuestos."
             );
         }
-
-        return prisma.evento.update({
-            where: { id: Number(id) },
-            data: {
-                estado: "CANCELADO",
-                cambios: {
-                    create: {
-                        usuarioId: usuario.id,
-                        campo: "estado",
-                        valorAnterior: actual.estado,
-                        valorNuevo: "CANCELADO"
-                    }
+        return ReservaService.actualizarEvento(
+            actual,
+            { estado: "CANCELADO" },
+            [
+                {
+                    usuarioId: usuario.id,
+                    campo: "estado",
+                    valorAnterior: actual.estado,
+                    valorNuevo: "CANCELADO"
                 }
-            }
-        });
+            ]
+        );
     }
 
     async eliminar(id, usuario) {
