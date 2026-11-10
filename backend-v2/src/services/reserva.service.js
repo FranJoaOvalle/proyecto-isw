@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
+const UbicacionService = require("./ubicacion.service");
 const DisponibilidadService = require("./disponibilidad.service");
 
 class ReservaService {
@@ -54,6 +55,7 @@ class ReservaService {
                     "El evento cambió. Actualiza la página antes de continuar."
                 );
             }
+            datos = await UbicacionService.preparar(evento, datos, tx);
             const lugares = [evento.lugar, datos.lugar ?? evento.lugar].map(
                 (lugar) => DisponibilidadService.normalizarRecinto(lugar)
             );
@@ -64,6 +66,7 @@ class ReservaService {
                 .filter(
                     (espacio) =>
                         espacio.id === evento.espacioId ||
+                        espacio.id === datos.espacioId ||
                         [espacio.nombre, espacio.direccion].some((valor) =>
                             lugares.includes(
                                 DisponibilidadService.normalizarRecinto(valor)
@@ -74,6 +77,7 @@ class ReservaService {
                 .sort((a, b) => a - b);
             for (const id of ids)
                 await tx.$queryRaw`SELECT pg_advisory_xact_lock(${id})::text`;
+            datos = await UbicacionService.preparar(evento, datos, tx);
             const [espacios, recursos, vehiculos] = await Promise.all([
                 tx.reservaEspacio.findMany({
                     where: { eventoId: actual.id, cancelada: false }
@@ -85,8 +89,17 @@ class ReservaService {
                     where: { eventoId: actual.id, cancelada: false }
                 })
             ]);
+            const completarUbicacion =
+                evento.espacioId != null &&
+                datos.espacioId === evento.espacioId &&
+                !(evento.direccion && evento.comuna) &&
+                datos.direccion &&
+                !datos.inicio &&
+                !datos.fin &&
+                !datos.asistentes;
             if (
                 datos.estado !== "CANCELADO" &&
+                !completarUbicacion &&
                 (espacios.length || recursos.length || vehiculos.length)
             ) {
                 throw new ConflictException(
@@ -110,11 +123,13 @@ class ReservaService {
                         inicio: datos.inicio ?? evento.inicio,
                         fin: datos.fin ?? evento.fin,
                         lugar: datos.lugar ?? evento.lugar,
+                        direccion: datos.direccion ?? evento.direccion,
                         productorId: evento.productorId,
-                        espacioId:
-                            datos.lugar && datos.lugar !== evento.lugar
-                                ? null
-                                : evento.espacioId
+                        espacioId: Object.hasOwn(datos, "espacioId")
+                            ? datos.espacioId
+                            : datos.lugar && datos.lugar !== evento.lugar
+                              ? null
+                              : evento.espacioId
                     },
                     evento.id,
                     tx
@@ -124,27 +139,7 @@ class ReservaService {
                 where: { id: actual.id },
                 data: {
                     ...datos,
-                    ...(datos.lugar && datos.lugar !== actual.lugar
-                        ? { espacioId: null }
-                        : {}),
-                    cambios: {
-                        create:
-                            datos.lugar &&
-                            datos.lugar !== actual.lugar &&
-                            actual.espacioId != null
-                                ? [
-                                      ...cambios,
-                                      {
-                                          usuarioId: cambios[0].usuarioId,
-                                          campo: "espacioId",
-                                          valorAnterior: String(
-                                              actual.espacioId
-                                          ),
-                                          valorNuevo: null
-                                      }
-                                  ]
-                                : cambios
-                    },
+                    cambios: { create: cambios },
                     ...(datos.estado === "CANCELADO"
                         ? {
                               reservasEspacio: {

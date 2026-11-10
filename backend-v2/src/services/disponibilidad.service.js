@@ -13,7 +13,7 @@ class DisponibilidadService {
     }
 
     async verificarDisponibilidad(datos, excluirId = null, cliente = prisma) {
-        const { inicio, fin, lugar, productorId, espacioId } = datos;
+        const { inicio, fin, lugar, productorId, espacioId, direccion } = datos;
         if (
             !(inicio instanceof Date) ||
             !(fin instanceof Date) ||
@@ -31,13 +31,47 @@ class DisponibilidadService {
                 inicio: { lt: fin },
                 fin: { gt: inicio }
             },
-            select: { id: true, lugar: true, productorId: true }
+            select: {
+                id: true,
+                lugar: true,
+                productorId: true,
+                espacioId: true,
+                direccion: true
+            }
         });
+        const espacios = await cliente.espacio.findMany({
+            select: { id: true, nombre: true, direccion: true }
+        });
+        const ids = espacios
+            .filter(
+                (espacio) =>
+                    espacio.id === espacioId ||
+                    (!direccion &&
+                        [espacio.nombre, espacio.direccion].some(
+                            (valor) =>
+                                this.normalizarRecinto(valor) ===
+                                this.normalizarRecinto(lugar)
+                        ))
+            )
+            .map((espacio) => espacio.id);
         if (
             coincidentes.some(
                 (v) =>
-                    this.normalizarRecinto(v.lugar) ===
-                    this.normalizarRecinto(lugar)
+                    (v.espacioId != null && ids.includes(v.espacioId)) ||
+                    (!v.direccion &&
+                        (ids.length
+                            ? espacios
+                                  .filter((e) => ids.includes(e.id))
+                                  .some((e) =>
+                                      [e.nombre, e.direccion].some(
+                                          (valor) =>
+                                              this.normalizarRecinto(valor) ===
+                                              this.normalizarRecinto(v.lugar)
+                                      )
+                                  )
+                            : !direccion &&
+                              this.normalizarRecinto(v.lugar) ===
+                                  this.normalizarRecinto(lugar)))
             )
         ) {
             throw new ConflictException(
@@ -52,20 +86,6 @@ class DisponibilidadService {
                 "El productor ya tiene un evento en ese horario."
             );
         }
-        const espacios = await cliente.espacio.findMany({
-            select: { id: true, nombre: true, direccion: true }
-        });
-        const ids = espacios
-            .filter(
-                (espacio) =>
-                    espacio.id === espacioId ||
-                    [espacio.nombre, espacio.direccion].some(
-                        (valor) =>
-                            this.normalizarRecinto(valor) ===
-                            this.normalizarRecinto(lugar)
-                    )
-            )
-            .map((espacio) => espacio.id);
         if (
             ids.length &&
             (await cliente.reservaEspacio.findFirst({
@@ -111,7 +131,12 @@ class DisponibilidadService {
                     ...(productorId != null
                         ? [{ productores: { some: { productorId } } }]
                         : []),
-                    { lugar: { equals: lugar.trim(), mode: "insensitive" } }
+                    {
+                        lugar: {
+                            equals: (direccion || lugar).trim(),
+                            mode: "insensitive"
+                        }
+                    }
                 ]
             }
         });

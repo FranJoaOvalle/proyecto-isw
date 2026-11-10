@@ -174,7 +174,6 @@ export default function EventoAcciones({ evento, onCambio }) {
                         {[
                             ["inicio", "Inicio", "datetime-local"],
                             ["fin", "Término", "datetime-local"],
-                            ["lugar", "Lugar", "text"],
                             ["asistentes", "Asistentes", "number"]
                         ].map(([name, label, type]) => (
                             <Form.Group

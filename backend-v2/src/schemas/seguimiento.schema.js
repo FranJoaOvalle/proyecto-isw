@@ -75,6 +75,10 @@ const editarEventoSchema = z.object({
     body: z
         .object({
             productorId: id.nullable().optional(),
+            espacioId: id.nullable().optional(),
+            direccion: z.string().trim().min(2).max(250).optional(),
+            comuna: z.string().trim().min(2).max(100).optional(),
+            referenciaDireccion: z.string().trim().max(500).nullable().optional(),
             imagen_url: z
                 .string()
                 .trim()

@@ -1,0 +1,6 @@
+ALTER TABLE "Evento"
+ADD COLUMN "direccion" VARCHAR(250),
+ADD COLUMN "comuna" VARCHAR(100),
+ADD COLUMN "referenciaDireccion" VARCHAR(500);
+
+ALTER TABLE "Espacio" ADD COLUMN "comuna" VARCHAR(100);

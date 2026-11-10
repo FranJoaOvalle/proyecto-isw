@@ -11,6 +11,7 @@ const intervalo = {
 };
 
 const campos = {
+    comuna: z.string().trim().min(2).max(100).nullable().optional(),
     nombre: z.string().trim().min(2).max(100),
     direccion: z.string().trim().min(2).max(250),
     capacidad: z.coerce.number().int().positive().max(2147483647),
@@ -22,6 +23,7 @@ const campos = {
 
 const espacioSchema = z.object({
     body: z.object({
+        comuna: campos.comuna,
         nombre: campos.nombre,
         direccion: campos.direccion,
         capacidad: campos.capacidad,

@@ -4,6 +4,7 @@ const ConflictException = require("../exceptions/ConflictException");
 const ValidationException = require("../exceptions/ValidationException");
 
 const DisponibilidadService = require("./disponibilidad.service");
+const UbicacionService = require("./ubicacion.service");
 const ReservaService = require("./reserva.service");
 
 const validarTarifa = ({ costoArriendo, unidadArriendo }) => {
@@ -41,10 +42,10 @@ class EspacioService {
             ocupados = new Set(reservas.map(reserva => reserva.espacioId));
             const eventos = await prisma.evento.findMany({
                 where: { estado: { not: "CANCELADO" }, inicio: { lt: intervalo.fin }, fin: { gt: intervalo.inicio } },
-                select: { espacioId: true, lugar: true }
+                select: { espacioId: true, lugar: true, direccion: true }
             });
             for (const espacio of espacios) {
-                if (eventos.some(evento => evento.espacioId === espacio.id ||
+                if (eventos.some(evento => evento.espacioId === espacio.id || !evento.direccion &&
                     [espacio.nombre, espacio.direccion].some(valor =>
                         DisponibilidadService.normalizarRecinto(valor) === DisponibilidadService.normalizarRecinto(evento.lugar)))) {
                     ocupados.add(espacio.id);
@@ -78,7 +79,8 @@ class EspacioService {
             const actual = await this.getById(id, tx);
             validarTarifa({ ...actual, ...data });
             if ((data.capacidad !== undefined && data.capacidad < actual.capacidad) ||
-                (data.direccion !== undefined && data.direccion !== actual.direccion)) {
+                (data.direccion !== undefined && data.direccion !== actual.direccion) ||
+                (data.comuna !== undefined && data.comuna !== actual.comuna)) {
                 const comprometida = await tx.reservaEspacio.findFirst({ where: {
                     espacioId: Number(id), cancelada: false, fin: { gt: new Date() }
                 } });
@@ -131,9 +133,9 @@ class EspacioService {
             const eventos = await tx.evento.findMany({
                 where: { estado: { not: "CANCELADO" }, inicio: { lt: data.fin }, fin: { gt: data.inicio },
                     ...(evento ? { id: { not: evento.id } } : {}) },
-                select: { espacioId: true, lugar: true }
+                select: { espacioId: true, lugar: true, direccion: true }
             });
-            if (eventos.some(e => e.espacioId === espacioId || [espacio.nombre, espacio.direccion].some(v =>
+            if (eventos.some(e => e.espacioId === espacioId || !e.direccion && [espacio.nombre, espacio.direccion].some(v =>
                 DisponibilidadService.normalizarRecinto(v) === DisponibilidadService.normalizarRecinto(e.lugar)))) {
                 throw new ConflictException("Ya existe un evento en ese espacio y horario.");
             }
@@ -151,16 +153,11 @@ class EspacioService {
             }
 
             if (evento) {
-                await tx.evento.update({
-                    where: { id: evento.id },
-                    data: {
-                        espacioId, lugar: espacio.direccion,
-                        cambios: { create: [
-                            { usuarioId: usuario.id, campo: "espacioId", valorAnterior: evento.espacioId == null ? null : String(evento.espacioId), valorNuevo: String(espacioId) },
-                            { usuarioId: usuario.id, campo: "lugar", valorAnterior: evento.lugar, valorNuevo: espacio.direccion }
-                        ] }
-                    }
-                });
+                const ubicacion = UbicacionService.desdeEspacio(espacio, evento);
+                const cambios = Object.entries(ubicacion).filter(([campo, valor]) => (evento[campo] ?? null) !== (valor ?? null)).map(([campo, valor]) => ({
+                    usuarioId: usuario.id, campo, valorAnterior: evento[campo] == null ? null : String(evento[campo]), valorNuevo: valor == null ? null : String(valor)
+                }));
+                await tx.evento.update({ where: { id: evento.id }, data: { ...ubicacion, cambios: { create: cambios } } });
             }
             return tx.reservaEspacio.create({
                 data: { ...data, espacioId }

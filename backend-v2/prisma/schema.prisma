@@ -222,6 +222,7 @@ model Espacio {
   id             Int             @id @default(autoincrement())
   nombre         String          @db.VarChar(100)
   direccion      String          @db.VarChar(250)
+  comuna String? @db.VarChar(100)
   capacidad      Int
   costoArriendo  Decimal?        @db.Decimal(12, 2)
   unidadArriendo UnidadArriendo?
@@ -336,6 +337,9 @@ model Evento {
   inicio        DateTime
   fin           DateTime
   lugar         String
+  direccion String? @db.VarChar(250)
+  comuna String? @db.VarChar(100)
+  referenciaDireccion String? @db.VarChar(500)
   asistentes    Int
   estado        EstadoEvento @default(CONFIRMADO)
   observaciones String?

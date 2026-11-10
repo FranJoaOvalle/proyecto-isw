@@ -28,6 +28,7 @@ import {
 const initialSpace = {
     nombre: "",
     direccion: "",
+    comuna: "",
     capacidad: "",
     costoArriendo: "",
     unidadArriendo: "",
@@ -112,6 +113,7 @@ export default function EspaciosPanel({ eventoInicial }) {
         setForm({
             nombre: espacio.nombre,
             direccion: espacio.direccion,
+            comuna: espacio.comuna ?? "",
             capacidad: String(espacio.capacidad),
             costoArriendo: espacio.costoArriendo == null ? "" : String(espacio.costoArriendo),
             unidadArriendo: espacio.unidadArriendo ?? "",
@@ -150,6 +152,7 @@ export default function EspaciosPanel({ eventoInicial }) {
         const data = {
             nombre: form.nombre.trim(),
             direccion: form.direccion.trim(),
+            comuna: form.comuna.trim() || null,
             capacidad: Number(form.capacidad),
             costoArriendo: form.costoArriendo === "" ? null : Number(form.costoArriendo),
             unidadArriendo: form.unidadArriendo || null,
@@ -294,7 +297,8 @@ export default function EspaciosPanel({ eventoInicial }) {
         return espacios.filter(espacio => {
             const coincideTexto = !termino ||
                 espacio.nombre.toLowerCase().includes(termino) ||
-                espacio.direccion.toLowerCase().includes(termino);
+                espacio.direccion.toLowerCase().includes(termino) ||
+                (espacio.comuna ?? "").toLowerCase().includes(termino);
             const coincideEstado = estado === "TODOS" ||
                 (estado === "ACTIVOS" && espacio.habilitado) ||
                 (estado === "INACTIVOS" && !espacio.habilitado);
@@ -369,7 +373,7 @@ export default function EspaciosPanel({ eventoInicial }) {
                                 <tr key={espacio.id}>
                                     <td>
                                         <div className="fw-semibold">{espacio.nombre}</div>
-                                        <small className="text-secondary">{espacio.direccion}</small>
+                                        <small className="text-secondary">{espacio.direccion}{espacio.comuna ? `, ${espacio.comuna}` : ""}</small>
                                         {espacio.observaciones && <div className="small text-secondary">{espacio.observaciones}</div>}
                                     </td>
                                     <td>{espacio.capacidad.toLocaleString("es-CL")} personas</td>
@@ -418,6 +422,11 @@ export default function EspaciosPanel({ eventoInicial }) {
                         <Form.Group className="mb-3">
                             <Form.Label>Dirección</Form.Label>
                             <Form.Control value={form.direccion} onChange={event => setForm(current => ({ ...current, direccion: event.target.value }))} minLength={2} maxLength={250} required disabled={saving} />
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="espacio-comuna">
+                            <Form.Label>Comuna (opcional)</Form.Label>
+                            <Form.Control value={form.comuna} onChange={event => setForm(current => ({ ...current, comuna: event.target.value }))} minLength={2} maxLength={100} disabled={saving} />
+                            <Form.Text>Se utilizará al confirmar la ubicación de un evento.</Form.Text>
                         </Form.Group>
                         <div className="row">
                             <Form.Group className="col-md-6 mb-3">

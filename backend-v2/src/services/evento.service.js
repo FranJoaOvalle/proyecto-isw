@@ -7,6 +7,7 @@ const SeguimientoService = require("./seguimiento.service");
 const DisponibilidadService = require("./disponibilidad.service");
 
 const ReservaService = require("./reserva.service");
+const UbicacionService = require("./ubicacion.service");
 
 class EventoService {
 
@@ -27,6 +28,7 @@ class EventoService {
                 "No se puede editar un evento cancelado o completado."
             );
         }
+        datos = await UbicacionService.preparar(actual, datos);
 
         const inicio = datos.inicio ?? actual.inicio;
         const fin = datos.fin ?? actual.fin;
@@ -59,6 +61,7 @@ class EventoService {
             datos.inicio ||
             datos.fin ||
             datos.lugar ||
+            Object.hasOwn(datos, "espacioId") ||
             Object.hasOwn(datos, "productorId")
         ) {
             await DisponibilidadService.verificarDisponibilidad(
@@ -66,11 +69,13 @@ class EventoService {
                     inicio,
                     fin,
                     lugar: datos.lugar ?? actual.lugar,
+                    direccion: datos.direccion ?? actual.direccion,
                     productorId,
-                    espacioId:
-                        datos.lugar && datos.lugar !== actual.lugar
-                            ? null
-                            : actual.espacioId
+                    espacioId: Object.hasOwn(datos, "espacioId")
+                        ? datos.espacioId
+                        : datos.lugar && datos.lugar !== actual.lugar
+                          ? null
+                          : actual.espacioId
                 },
                 id
             );
@@ -100,7 +105,19 @@ class EventoService {
                           : String(valor)
             }));
 
-        if (cambios.some(cambio => ["inicio", "fin", "lugar", "asistentes"].includes(cambio.campo))) {
+        if (
+            cambios.some((cambio) =>
+                [
+                    "inicio",
+                    "fin",
+                    "lugar",
+                    "asistentes",
+                    "espacioId",
+                    "direccion",
+                    "comuna"
+                ].includes(cambio.campo)
+            )
+        ) {
             return ReservaService.actualizarEvento(actual, datos, cambios);
         }
         return prisma.evento.update({

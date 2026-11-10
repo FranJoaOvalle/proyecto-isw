@@ -26,9 +26,10 @@ export default function EventoReservas({ evento, administrar }) {
                 <h2 className="h5">Recinto y reservas</h2>
                 {evento.espacio && (
                     <p>
-                        {evento.espacio.nombre} · {evento.espacio.direccion}
+                        {evento.lugar} · {evento.direccion || evento.espacio.direccion}{evento.comuna ? `, ${evento.comuna}` : ""}
                     </p>
                 )}
+                {evento.espacioId && !evento.reservasEspacio?.some(reserva => !reserva.cancelada && reserva.espacioId === evento.espacioId) && <p className="text-warning">Recinto seleccionado · Sin reserva de espacio.</p>}
                 {reservas.length ? (
                     <div className="table-responsive">
                         <Table size="sm">

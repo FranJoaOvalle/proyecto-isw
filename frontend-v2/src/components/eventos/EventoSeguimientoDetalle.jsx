@@ -1,3 +1,4 @@
+import EventoUbicacion from "./EventoUbicacion";
 import EventoReservas from "./EventoReservas";
 import AsignarProductor from "./AsignarProductor";
 import EventoImagen from "./EventoImagen";
@@ -141,6 +142,12 @@ function Detalle({ id }) {
                                             `${evento.cliente.persona?.nombres || ""} ${evento.cliente.persona?.apellidos || ""}`}
                                     </Col>
                                 </Row>
+                                <div className="mt-3">
+                                    {evento.direccion && <p className="mb-1"><strong>Dirección:</strong> {evento.direccion}{evento.comuna ? ', '+evento.comuna : ''}</p>}
+                                    {!(evento.direccion && evento.comuna) && <p className="text-warning mb-1">Ubicación por completar. Se conserva el lugar histórico.</p>}
+                                    {evento.referenciaDireccion && <p className="mb-1 text-break"><strong>Acceso:</strong> {evento.referenciaDireccion}</p>}
+                                    {usuario?.rol === "ADMIN" && <EventoUbicacion evento={evento} onCambio={async () => setEvento(await getEventoSeguimiento(id))} />}
+                                </div>
                                 {evento.observaciones && (
                                     <p
                                         className="mt-3 mb-0 text-break"
