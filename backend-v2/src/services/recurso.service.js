@@ -66,7 +66,7 @@ class RecursoService {
 
     async update(id, data) {
         return prisma.$transaction(async (tx) => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})::text`;
             const actual = await this.getById(id, tx);
             const cantidadEnMantencion =
                 data.cantidadEnMantencion ?? actual.cantidadEnMantencion;
@@ -124,7 +124,7 @@ class RecursoService {
 
     async cambiarEstado(id, activo) {
         return prisma.$transaction(async (tx) => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})::text`;
             const recurso = await this.getById(id, tx);
             if (recurso.activo === activo) {
                 throw new ConflictException(
@@ -154,7 +154,7 @@ class RecursoService {
         const recursoId = Number(id);
         return prisma.$transaction(async tx => {
             await ReservaService.bloquearEvento(tx, data.eventoId);
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${recursoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${recursoId})::text`;
             const recurso = await tx.recurso.findUnique({ where: { id: recursoId } });
             if (!recurso || recurso.tipo !== "MATERIAL") {
                 throw new NotFoundException("Recurso material no encontrado.");
@@ -192,7 +192,7 @@ class RecursoService {
         return prisma.$transaction(async tx => {
             let reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(id) } });
             if (!reserva) throw new NotFoundException("Reserva de recurso no encontrada.");
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})::text`;
             reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(id) } });
             if (reserva.inicio <= new Date()) throw new ConflictException("Registra la devolución para liberar un equipo cuya reserva ya comenzó.");
             if (reserva.cancelada) {
@@ -214,7 +214,7 @@ class RecursoService {
             if (!reserva || reserva.recursoId !== Number(id)) {
                 throw new NotFoundException("Reserva de recurso no encontrada.");
             }
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})::text`;
             reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(reservaId) } });
             if (reserva.inicio > new Date()) throw new ConflictException("La reserva aún no ha comenzado.");
             if (reserva.cancelada || reserva.estadoDevolucion !== "PENDIENTE") {

@@ -73,7 +73,7 @@ class ReservaService {
                 .map((espacio) => espacio.id)
                 .sort((a, b) => a - b);
             for (const id of ids)
-                await tx.$queryRaw`SELECT pg_advisory_xact_lock(${id})`;
+                await tx.$queryRaw`SELECT pg_advisory_xact_lock(${id})::text`;
             const [espacios, recursos, vehiculos] = await Promise.all([
                 tx.reservaEspacio.findMany({
                     where: { eventoId: actual.id, cancelada: false }

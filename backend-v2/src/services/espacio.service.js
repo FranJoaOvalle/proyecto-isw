@@ -74,7 +74,7 @@ class EspacioService {
 
     async update(id, data) {
         return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})::text`;
             const actual = await this.getById(id, tx);
             validarTarifa({ ...actual, ...data });
             if ((data.capacidad !== undefined && data.capacidad < actual.capacidad) ||
@@ -90,7 +90,7 @@ class EspacioService {
 
     async cambiarEstado(id, habilitado) {
         return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})::text`;
             const actual = await this.getById(id, tx);
             if (actual.habilitado === habilitado) {
                 throw new ConflictException(habilitado
@@ -116,7 +116,7 @@ class EspacioService {
         return prisma.$transaction(async tx => {
             const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
             const espacioId = Number(id);
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})::text`;
             const espacio = await this.getById(espacioId, tx);
             if (!espacio.habilitado) {
                 throw new ConflictException("El espacio está deshabilitado para nuevas reservas.");
@@ -175,7 +175,7 @@ class EspacioService {
             });
             if (!reserva) throw new NotFoundException("Reserva no encontrada.");
 
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.espacioId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.espacioId})::text`;
             reserva = await tx.reservaEspacio.findUnique({ where: { id: Number(id) } });
             if (reserva.cancelada) {
                 throw new ConflictException("La reserva ya está cancelada.");
