@@ -9,6 +9,7 @@ const actividadRoutes = require("./actividad.routes");
 const eventoRoutes = require("./seguimiento.routes");
 const solicitudRoutes = require("./solicitud.routes");
 const presupuestoRoutes = require("./presupuesto.routes");
+const recursoRoutes = require("./recurso.routes");
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use("/actividades", actividadRoutes);
 router.use("/eventos", eventoRoutes);
 router.use("/solicitudes", solicitudRoutes);
 router.use("/presupuestos", presupuestoRoutes);
+router.use("/recursos", recursoRoutes);
 
 module.exports = router;

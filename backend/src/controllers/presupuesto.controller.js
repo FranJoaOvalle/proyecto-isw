@@ -2,6 +2,7 @@ const service = require('../services/presupuesto.service');
 const responder = (accion, status = 200) => async (req, res, next) => {
     try { res.status(status).json(await accion(req)); } catch (error) { next(error); }
 };
+
 module.exports = {
     getAll: responder(() => service.getAll()),
     getById: responder(req => service.getById(req.validated.params.id)),
