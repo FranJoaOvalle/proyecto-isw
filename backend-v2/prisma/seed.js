@@ -17,6 +17,8 @@ const wipeDatabase = async () => {
         TRUNCATE TABLE
             "EventoCambio",
             "Calificacion",
+            "ActividadProductor",
+            "Actividad",
             "EventoRecurso",
             "Evento",
             "Pago",
@@ -944,6 +946,158 @@ const main = async () => {
         createdAt: fecha("2026-09-22T10:00:00-03:00")
     });
 
+    console.log("Creando actividades de prueba...");
+
+    const actividadesPrueba = [
+        {
+            titulo: "Reunión de coordinación con los novios",
+            descripcion: "Revisar programa, distribución de mesas y requerimientos de la ceremonia.",
+            tipo: "REUNION",
+            inicio: fecha("2026-11-03T18:00:00-03:00"),
+            fin: fecha("2026-11-03T19:00:00-03:00"),
+            lugar: "Oficina NES, Concepción",
+            estado: "COMPLETADA",
+            eventoId: evento1.id,
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true },
+                { productorId: productor3.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Visita técnica al Hotel MDS",
+            descripcion: "Confirmar accesos, puntos eléctricos y ubicación del escenario.",
+            tipo: "VISITA_RECINTO",
+            inicio: fecha("2026-11-18T11:00:00-03:00"),
+            fin: fecha("2026-11-18T12:30:00-03:00"),
+            lugar: "Hotel MDS, Talcahuano",
+            estado: "PENDIENTE",
+            eventoId: evento2.id,
+            productores: [
+                { productorId: productor2.productor.id, esResponsable: true },
+                { productorId: productor4.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Preparar lista de montaje y proveedores",
+            descripcion: "Validar mobiliario, sonido y horario de ingreso al recinto.",
+            tipo: "TAREA",
+            inicio: fecha("2026-11-19T09:00:00-03:00"),
+            fin: fecha("2026-11-19T10:00:00-03:00"),
+            lugar: null,
+            estado: "PENDIENTE",
+            eventoId: evento3.id,
+            productores: [
+                { productorId: productor3.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Reunión de cierre de producción",
+            descripcion: "Registrar observaciones del equipo y cerrar pendientes posteriores al evento.",
+            tipo: "REUNION",
+            inicio: fecha("2026-09-28T10:00:00-03:00"),
+            fin: fecha("2026-09-28T10:45:00-03:00"),
+            lugar: "Centro Español, Concepción",
+            estado: "COMPLETADA",
+            eventoId: evento4.id,
+            productores: [
+                { productorId: productor4.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Actualizar minuta de producción",
+            descripcion: "Se canceló la jornada y se documentaron los acuerdos con el cliente.",
+            tipo: "TAREA",
+            inicio: fecha("2026-10-05T09:00:00-03:00"),
+            fin: fecha("2026-10-05T09:30:00-03:00"),
+            lugar: null,
+            estado: "CANCELADA",
+            eventoId: evento5.id,
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Revisar requerimientos de audio e iluminación",
+            descripcion: "Confirmar equipos disponibles y necesidades técnicas para la jornada corporativa.",
+            tipo: "TAREA",
+            inicio: fecha("2026-11-24T10:00:00-03:00"),
+            fin: fecha("2026-11-24T11:00:00-03:00"),
+            lugar: null,
+            estado: "PENDIENTE",
+            eventoId: evento2.id,
+            productores: [
+                { productorId: productor2.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Visita de reconocimiento al Club de Campo",
+            descripcion: "Revisar accesos, espacios para fotografías y distribución del montaje.",
+            tipo: "VISITA_RECINTO",
+            inicio: fecha("2026-11-17T16:00:00-03:00"),
+            fin: fecha("2026-11-17T17:00:00-03:00"),
+            lugar: "Club de Campo Bellavista, Concepción",
+            estado: "COMPLETADA",
+            eventoId: evento3.id,
+            productores: [
+                { productorId: productor3.productor.id, esResponsable: true },
+                { productorId: productor1.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Reunión de seguimiento de producción",
+            descripcion: "Revisar avances generales y distribuir tareas de la semana.",
+            tipo: "REUNION",
+            inicio: fecha("2026-11-25T09:30:00-03:00"),
+            fin: fecha("2026-11-25T10:15:00-03:00"),
+            lugar: "Oficina NES, Concepción",
+            estado: "PENDIENTE",
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true },
+                { productorId: productor2.productor.id, esResponsable: false },
+                { productorId: productor4.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Preparar pauta de ceremonia de graduación",
+            descripcion: "Ordenar los hitos de la ceremonia y validar tiempos con el equipo.",
+            tipo: "TAREA",
+            inicio: fecha("2026-09-24T15:00:00-03:00"),
+            fin: fecha("2026-09-24T16:00:00-03:00"),
+            lugar: null,
+            estado: "COMPLETADA",
+            eventoId: evento4.id,
+            productores: [
+                { productorId: productor4.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Coordinación de agenda del equipo",
+            descripcion: "Actividad interna de prueba sin asociación a un evento contratado.",
+            tipo: "REUNION",
+            inicio: fecha("2026-12-02T11:00:00-03:00"),
+            fin: fecha("2026-12-02T11:45:00-03:00"),
+            lugar: "Oficina NES, Concepción",
+            estado: "PENDIENTE",
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true },
+                { productorId: productor3.productor.id, esResponsable: false }
+            ]
+        }
+    ];
+
+    for (const actividad of actividadesPrueba) {
+        const { productores, ...datosActividad } = actividad;
+
+        await prisma.actividad.create({
+            data: {
+                ...datosActividad,
+                productores: {
+                    create: productores
+                }
+            }
+        });
+    }
+
     console.log("Creando calificaciones e historial...");
 
     await prisma.calificacion.create({
@@ -1000,6 +1154,7 @@ const main = async () => {
         presupuestos: await prisma.presupuesto.count(),
         pagos: await prisma.pago.count(),
         eventos: await prisma.evento.count(),
+        actividades: await prisma.actividad.count(),
         calificaciones: await prisma.calificacion.count(),
         cambiosEvento: await prisma.eventoCambio.count()
     };
