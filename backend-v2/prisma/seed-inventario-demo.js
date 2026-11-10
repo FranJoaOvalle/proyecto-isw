@@ -79,41 +79,39 @@ const vehiculos = [
 ];
 
 async function main() {
-    const resultado = await prisma.$transaction(async tx => {
-        let recursosCreados = 0;
-        let vehiculosCreados = 0;
+    let recursosCreados = 0;
+    let vehiculosCreados = 0;
 
-        for (const recurso of recursos) {
-            const existente = await tx.recurso.findFirst({
-                where: { nombre: recurso.nombre, tipo: "MATERIAL" },
-                select: { id: true }
-            });
-            if (existente) continue;
+    for (const recurso of recursos) {
+        const existente = await prisma.recurso.findFirst({
+            where: { nombre: recurso.nombre, tipo: "MATERIAL" },
+            select: { id: true }
+        });
+        if (existente) continue;
 
-            const { unidad, ...datos } = recurso;
-            await tx.recurso.create({
-                data: {
-                    ...datos,
-                    tipo: "MATERIAL",
-                    material: { create: { unidad } }
-                }
-            });
-            recursosCreados += 1;
-        }
+        const { unidad, ...datos } = recurso;
+        await prisma.recurso.create({
+            data: {
+                ...datos,
+                tipo: "MATERIAL",
+                material: { create: { unidad } }
+            }
+        });
+        recursosCreados += 1;
+    }
 
-        for (const vehiculo of vehiculos) {
-            const existente = await tx.vehiculo.findUnique({
-                where: { patente: vehiculo.patente },
-                select: { id: true }
-            });
-            if (existente) continue;
+    for (const vehiculo of vehiculos) {
+        const existente = await prisma.vehiculo.findUnique({
+            where: { patente: vehiculo.patente },
+            select: { id: true }
+        });
+        if (existente) continue;
 
-            await tx.vehiculo.create({ data: vehiculo });
-            vehiculosCreados += 1;
-        }
+        await prisma.vehiculo.create({ data: vehiculo });
+        vehiculosCreados += 1;
+    }
 
-        return { recursosCreados, vehiculosCreados };
-    });
+    const resultado = { recursosCreados, vehiculosCreados };
 
     console.log(
         "Demo inventario: " + resultado.recursosCreados + " recursos y " + resultado.vehiculosCreados + " vehículos nuevos."

@@ -100,59 +100,57 @@ const reservas = [
 ];
 
 async function main() {
-    const resultado = await prisma.$transaction(async tx => {
-        const ids = {};
-        let espaciosCreados = 0;
-        let reservasCreadas = 0;
+    const ids = {};
+    let espaciosCreados = 0;
+    let reservasCreadas = 0;
 
-        for (const espacio of espacios) {
-            const existente = await tx.espacio.findFirst({
-                where: { nombre: espacio.nombre },
-                select: { id: true }
+    for (const espacio of espacios) {
+        const existente = await prisma.espacio.findFirst({
+            where: { nombre: espacio.nombre },
+            select: { id: true }
+        });
+        const registro = existente ?? await prisma.espacio.create({
+            data: {
+                nombre: espacio.nombre,
+                direccion: espacio.direccion,
+                capacidad: espacio.capacidad,
+                costoArriendo: espacio.costoArriendo,
+                unidadArriendo: espacio.unidadArriendo,
+                habilitado: espacio.habilitado,
+                observaciones: espacio.observaciones
+            },
+            select: { id: true }
+        });
+        if (existente) {
+            await prisma.espacio.update({
+                where: { id: existente.id },
+                data: { direccion: espacio.direccion }
             });
-            const registro = existente ?? await tx.espacio.create({
-                data: {
-                    nombre: espacio.nombre,
-                    direccion: espacio.direccion,
-                    capacidad: espacio.capacidad,
-                    costoArriendo: espacio.costoArriendo,
-                    unidadArriendo: espacio.unidadArriendo,
-                    habilitado: espacio.habilitado,
-                    observaciones: espacio.observaciones
-                },
-                select: { id: true }
-            });
-            if (existente) {
-                await tx.espacio.update({
-                    where: { id: existente.id },
-                    data: { direccion: espacio.direccion }
-                });
+        }
+        ids[espacio.clave] = registro.id;
+        if (!existente) espaciosCreados += 1;
+    }
+
+    for (const reserva of reservas) {
+        const espacioId = ids[reserva.espacio];
+        const existente = await prisma.reservaEspacio.findFirst({
+            where: { espacioId, referencia: reserva.referencia },
+            select: { id: true }
+        });
+        if (existente) continue;
+
+        await prisma.reservaEspacio.create({
+            data: {
+                espacioId,
+                referencia: reserva.referencia,
+                inicio: reserva.inicio,
+                fin: reserva.fin
             }
-            ids[espacio.clave] = registro.id;
-            if (!existente) espaciosCreados += 1;
-        }
+        });
+        reservasCreadas += 1;
+    }
 
-        for (const reserva of reservas) {
-            const espacioId = ids[reserva.espacio];
-            const existente = await tx.reservaEspacio.findFirst({
-                where: { espacioId, referencia: reserva.referencia },
-                select: { id: true }
-            });
-            if (existente) continue;
-
-            await tx.reservaEspacio.create({
-                data: {
-                    espacioId,
-                    referencia: reserva.referencia,
-                    inicio: reserva.inicio,
-                    fin: reserva.fin
-                }
-            });
-            reservasCreadas += 1;
-        }
-
-        return { espaciosCreados, reservasCreadas };
-    });
+    const resultado = { espaciosCreados, reservasCreadas };
 
     console.log(`Demo mapa: ${resultado.espaciosCreados} espacios nuevos y ${resultado.reservasCreadas} reservas nuevas.`);
     console.log("Los registros usan el prefijo [DEMO MAPA] y quedan identificados como ficticios.");

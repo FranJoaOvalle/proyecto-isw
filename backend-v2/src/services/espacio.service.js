@@ -83,6 +83,14 @@ class EspacioService {
         });
     }
 
+    async guardarUbicacion(id, { latitud, longitud }) {
+        await this.getById(id);
+        return prisma.espacio.update({
+            where: { id: Number(id) },
+            data: { latitud, longitud }
+        });
+    }
+
     async getReservas(id) {
         await this.getById(id);
         return prisma.reservaEspacio.findMany({

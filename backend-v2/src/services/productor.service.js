@@ -12,37 +12,34 @@ const crearProductor = async (data) => {
     const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
 
     try {
-        return await prisma.$transaction(async (tx) => {
-            const usuario = await tx.usuario.create({
-                data: {
-                    email: data.email,
-                    passwordHash,
-                    rol: "PRODUCTOR"
+        const usuario = await prisma.usuario.create({
+            data: {
+                email: data.email,
+                passwordHash,
+                rol: "PRODUCTOR",
+                productor: {
+                    create: {
+                        nombres: data.nombres,
+                        apellidos: data.apellidos,
+                        telefono: data.telefono
+                    }
                 }
-            });
-
-            const productor = await tx.productor.create({
-                data: {
-                    usuarioId: usuario.id,
-                    nombres: data.nombres,
-                    apellidos: data.apellidos,
-                    telefono: data.telefono
-                }
-            });
-
-            return {
-                id: productor.id,
-                nombres: productor.nombres,
-                apellidos: productor.apellidos,
-                telefono: productor.telefono,
-                usuario: {
-                    id: usuario.id,
-                    email: usuario.email,
-                    rol: usuario.rol,
-                    activo: usuario.activo
-                }
-            };
+            },
+            include: { productor: true }
         });
+
+        return {
+            id: usuario.productor.id,
+            nombres: usuario.productor.nombres,
+            apellidos: usuario.productor.apellidos,
+            telefono: usuario.productor.telefono,
+            usuario: {
+                id: usuario.id,
+                email: usuario.email,
+                rol: usuario.rol,
+                activo: usuario.activo
+            }
+        };
     } catch (error) {
         prismaExceptionHandler(error);
         throw error;
@@ -103,32 +100,24 @@ const actualizarProductor = async (id, data) => {
     }
 
     try {
-        return await prisma.$transaction(async (tx) => {
-            if (data.email) {
-                await tx.usuario.update({
-                    where: { id: productor.usuarioId },
-                    data: { email: data.email }
-                });
-            }
-
-            return tx.productor.update({
-                where: {id},
-                data: {
-                    nombres: data.nombres,
-                    apellidos: data.apellidos,
-                    telefono: data.telefono
-                },
-                include: {
-                    usuario: {
-                        select: {
-                            id: true,
-                            email: true,
-                            rol: true,
-                            activo: true
-                        }
+        return await prisma.productor.update({
+            where: { id },
+            data: {
+                nombres: data.nombres,
+                apellidos: data.apellidos,
+                telefono: data.telefono,
+                ...(data.email ? { usuario: { update: { email: data.email } } } : {})
+            },
+            include: {
+                usuario: {
+                    select: {
+                        id: true,
+                        email: true,
+                        rol: true,
+                        activo: true
                     }
                 }
-            });
+            }
         });
     } catch (error) {
         prismaExceptionHandler(error);

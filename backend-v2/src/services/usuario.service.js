@@ -72,47 +72,49 @@ const actualizarPerfil = async (usuarioId, data) => {
     }
 
     try {
-        await prisma.$transaction(async (tx) => {
-            if (data.email) {
-                await tx.usuario.update({
-                    where: { id: usuarioId },
-                    data: { email: data.email }
-                });
-            }
+        const actualizacion = {
+            ...(data.email ? { email: data.email } : {})
+        };
 
-            if (perfil === "PRODUCTOR") {
-                await tx.productor.update({
-                    where: { usuarioId },
-                    data: {
-                        nombres: data.nombres,
-                        apellidos: data.apellidos,
-                        telefono: data.telefono
-                    }
-                });
-            }
+        if (perfil === "PRODUCTOR") {
+            actualizacion.productor = {
+                update: {
+                    nombres: data.nombres,
+                    apellidos: data.apellidos,
+                    telefono: data.telefono
+                }
+            };
+        }
 
-            if (perfil === "CLIENTE_PERSONA") {
-                await tx.clientePersona.update({
-                    where: { clienteId: usuario.cliente.id },
-                    data: {
-                        nombres: data.nombres,
-                        apellidos: data.apellidos,
-                        telefono: data.telefono
+        if (perfil === "CLIENTE_PERSONA") {
+            actualizacion.cliente = {
+                update: {
+                    persona: {
+                        update: {
+                            nombres: data.nombres,
+                            apellidos: data.apellidos,
+                            telefono: data.telefono
+                        }
                     }
-                });
-            }
+                }
+            };
+        }
 
-            if (perfil === "CLIENTE_EMPRESA") {
-                await tx.clienteEmpresa.update({
-                    where: { clienteId: usuario.cliente.id },
-                    data: {
-                        razonSocial: data.razonSocial,
-                        casaMatriz: data.casaMatriz,
-                        telefono: data.telefono
+        if (perfil === "CLIENTE_EMPRESA") {
+            actualizacion.cliente = {
+                update: {
+                    empresa: {
+                        update: {
+                            razonSocial: data.razonSocial,
+                            casaMatriz: data.casaMatriz,
+                            telefono: data.telefono
+                        }
                     }
-                });
-            }
-        });
+                }
+            };
+        }
+
+        await prisma.usuario.update({ where: { id: usuarioId }, data: actualizacion });
 
         return obtenerPerfil(usuarioId);
     } catch (error) {
