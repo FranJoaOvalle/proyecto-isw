@@ -8,6 +8,8 @@ import {
 
 const MAX_ASISTENTES = 1000000;
 const MAX_DESCUENTO = 9999999999.99;
+const redondearMoneda = (valor) =>
+    Math.round((Number(valor) + Number.EPSILON) * 100) / 100;
 
 const fechaLocal = (valor) => {
     if (!valor) return "";
@@ -62,6 +64,7 @@ export default function PresupuestoFormularioModal({
     const minimoAsistentes = Number(presupuesto
         ? presupuesto.cantidadPersonasBaseTipoEvento ?? presupuesto.asistentes ?? 1
         : solicitudSeleccionada?.tipoEvento?.cantidadPersonasBase ?? 1);
+    const recargoCliente = redondearMoneda(presupuesto?.recargoCliente ?? 0);
     const recursosFormulario = useMemo(() => {
         const catalogo = new Map(recursos.map((recurso) => [recurso.id, recurso]));
         for (const snapshot of presupuesto?.recursos ?? []) {
@@ -118,11 +121,13 @@ export default function PresupuestoFormularioModal({
             );
             const precio = Number(recurso?.precioUnitario ?? 0);
             const cantidad = Number(item.cantidad ?? 0);
-            return total + precio * cantidad;
+            return redondearMoneda(total + redondearMoneda(precio * cantidad));
         }, 0);
 
-        return Math.max(0, costoBase + subtotalRecursos - (Number(form.descuento) || 0));
-    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, solicitudSeleccionada, presupuesto]);
+        const subtotal = redondearMoneda(redondearMoneda(costoBase) + subtotalRecursos);
+        const descuento = redondearMoneda(Number(form.descuento) || 0);
+        return redondearMoneda(subtotal - descuento + recargoCliente);
+    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, solicitudSeleccionada, presupuesto, recargoCliente]);
     const formatoMoneda = useMemo(
         () => new Intl.NumberFormat("es-CL", {
             style: "currency",
@@ -284,6 +289,7 @@ export default function PresupuestoFormularioModal({
 
         setSaving(true);
         try {
+            // El total no se envía: el backend lo recalcula con Decimal y conserva el recargo del snapshot al editar.
             const payload = {
                 inicio: new Date(form.inicio).toISOString(),
                 fin: new Date(form.fin).toISOString(),
@@ -563,7 +569,12 @@ export default function PresupuestoFormularioModal({
                 </Modal.Body>
                 <Modal.Footer className="d-flex flex-column align-items-stretch gap-3">
                     <div className="d-flex justify-content-between align-items-center">
-                        <span className="fw-semibold">Total estimado (precio base + recursos − descuento)</span>
+                        <span className="fw-semibold">
+                            Total estimado (subtotal − descuento + recargo)
+                            <small className="d-block text-muted fw-normal">
+                                Recargo cliente: {formatoMoneda.format(recargoCliente)}
+                            </small>
+                        </span>
                         <strong className="fs-5">{formatoMoneda.format(totalEstimado)}</strong>
                     </div>
                     <div className="d-flex justify-content-end gap-2">
