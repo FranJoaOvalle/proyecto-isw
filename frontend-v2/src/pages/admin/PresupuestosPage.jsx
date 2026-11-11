@@ -58,8 +58,23 @@ const nombreCliente = (cliente) =>
         .filter(Boolean)
         .join(" ") || (cliente?.id ? `Cliente #${cliente.id}` : "Cliente");
 
-const comoLista = (resultado) =>
-    Array.isArray(resultado) ? resultado : resultado?.items ?? [];
+const comoLista = (resultado, etiqueta = "El servidor") => {
+    const lista = Array.isArray(resultado) ? resultado : resultado?.items;
+    if (!Array.isArray(lista)) {
+        throw new Error(`La respuesta de ${etiqueta} no tiene un formato de lista válido.`);
+    }
+    return lista;
+};
+
+const comoListaTipos = (resultado) => {
+    const lista = Array.isArray(resultado)
+        ? resultado
+        : resultado?.tiposEvento ?? resultado?.items ?? resultado?.data;
+    if (!Array.isArray(lista)) {
+        throw new Error("La respuesta de tipos de evento no tiene un formato de lista válido.");
+    }
+    return lista;
+};
 
 async function listarSolicitudesRevision() {
     const limite = 100;
@@ -85,6 +100,8 @@ export default function PresupuestosPage() {
     const [cargando, setCargando] = useState(true);
     const [cargandoRecursos, setCargandoRecursos] = useState(false);
     const [error, setError] = useState("");
+    const [errorListado, setErrorListado] = useState("");
+    const [errorSolicitudes, setErrorSolicitudes] = useState("");
     const [errorRecursos, setErrorRecursos] = useState("");
     const [mensaje, setMensaje] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -97,40 +114,76 @@ export default function PresupuestosPage() {
 
     const cargarDatos = useCallback(async () => {
         setCargando(true);
+        setCargandoRecursos(true);
         setError("");
-        try {
-            const [listaPresupuestos, solicitudesRevision, tiposEvento] = await Promise.all([
+        setErrorListado("");
+        setErrorSolicitudes("");
+
+        const [resultadoPresupuestos, resultadoSolicitudes, resultadoTipos, resultadoRecursos] =
+            await Promise.allSettled([
                 listarPresupuestos(),
                 listarSolicitudesRevision(),
-                getTiposEvento(true)
+                getTiposEvento(true),
+                listarRecursos()
             ]);
-            setPresupuestos(comoLista(listaPresupuestos));
-            const tiposPorId = new Map(tiposEvento.map((tipo) => [tipo.id, tipo]));
-            const solicitudesConTipo = solicitudesRevision
-                .map((solicitud) => ({
-                    ...solicitud,
-                    tipoEvento: tiposPorId.get(solicitud.tipoEventoId) ?? solicitud.tipoEvento
-                }))
-                .filter((solicitud) => solicitud.tipoEvento?.activo);
-            setSolicitudes(solicitudesConTipo);
-        } catch (err) {
-            setError(mensajeError(err, "No fue posible cargar los presupuestos."));
-        } finally {
-            setCargando(false);
+
+        if (resultadoPresupuestos.status === "fulfilled") {
+            try {
+                setPresupuestos(comoLista(resultadoPresupuestos.value, "presupuestos"));
+            } catch (err) {
+                setErrorListado(err.message);
+            }
+        } else {
+            setErrorListado(mensajeError(
+                resultadoPresupuestos.reason,
+                "No fue posible cargar los presupuestos."
+            ));
         }
 
-        setCargandoRecursos(true);
         setErrorRecursos("");
-        try {
-            setRecursos(comoLista(await listarRecursos()));
-        } catch (err) {
+        if (resultadoRecursos.status === "fulfilled") {
+            try {
+                setRecursos(comoLista(resultadoRecursos.value, "recursos de cotización"));
+            } catch (err) {
+                setRecursos([]);
+                setErrorRecursos(err.message);
+            }
+        } else {
             setRecursos([]);
             setErrorRecursos(
-                mensajeError(err, "No fue posible cargar el catálogo de recursos.")
+                mensajeError(resultadoRecursos.reason, "No fue posible cargar el catálogo de recursos.")
             );
-        } finally {
-            setCargandoRecursos(false);
         }
+
+        if (resultadoSolicitudes.status === "fulfilled" && resultadoTipos.status === "fulfilled") {
+            try {
+                const solicitudesRevision = comoLista(resultadoSolicitudes.value, "solicitudes");
+                const tiposEvento = comoListaTipos(resultadoTipos.value);
+                const tiposPorId = new Map(tiposEvento.map((tipo) => [tipo.id, tipo]));
+                const solicitudesConTipo = solicitudesRevision
+                    .map((solicitud) => ({
+                        ...solicitud,
+                        tipoEvento: tiposPorId.get(solicitud.tipoEventoId) ?? solicitud.tipoEvento
+                    }))
+                    .filter((solicitud) => solicitud.tipoEvento?.activo);
+                setSolicitudes(solicitudesConTipo);
+            } catch (err) {
+                setSolicitudes([]);
+                setErrorSolicitudes(err.message);
+            }
+        } else {
+            setSolicitudes([]);
+            const fallo = resultadoSolicitudes.status === "rejected"
+                ? resultadoSolicitudes.reason
+                : resultadoTipos.reason;
+            setErrorSolicitudes(mensajeError(
+                fallo,
+                "No fue posible cargar solicitudes o tipos de evento."
+            ));
+        }
+
+        setCargandoRecursos(false);
+        setCargando(false);
     }, []);
 
     useEffect(() => {
@@ -211,9 +264,9 @@ export default function PresupuestosPage() {
                     {mensaje}
                 </Alert>
             )}
-            {error && (
-                <Alert variant="danger" dismissible onClose={() => setError("")}>
-                    {error}
+            {(errorListado || errorSolicitudes || errorRecursos || error) && (
+                <Alert variant={errorListado || error ? "danger" : "warning"}>
+                    {errorListado || error || errorSolicitudes || errorRecursos}
                     <Button variant="link" className="p-0 ms-2" onClick={cargarDatos}>
                         Reintentar
                     </Button>
@@ -248,6 +301,12 @@ export default function PresupuestosPage() {
                             <Spinner animation="border" role="status" />
                             <p className="text-muted mt-2 mb-0">Cargando presupuestos...</p>
                         </div>
+                    ) : errorListado ? (
+                        <EmptyState
+                            icon="bi-exclamation-triangle"
+                            title="No fue posible cargar los presupuestos"
+                            description="Revisa la conexión e inténtalo nuevamente con el botón Reintentar."
+                        />
                     ) : presupuestosVisibles.length === 0 ? (
                         <EmptyState
                             icon="bi-receipt"
