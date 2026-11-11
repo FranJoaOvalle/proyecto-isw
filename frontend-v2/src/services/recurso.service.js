@@ -30,6 +30,11 @@ export const updateRecursoEstado = async (id, activo) => {
     return response.data;
 };
 
+export const deleteRecurso = async id => {
+    const response = await api.delete(`/recursos/${id}`);
+    return response.data;
+};
+
 export const getReservasRecurso = async id => {
     const response = await api.get(`/recursos/${id}/reservas`);
     return response.data;

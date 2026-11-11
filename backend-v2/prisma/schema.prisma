@@ -230,6 +230,8 @@ model Espacio {
   costoArriendo  Decimal?        @db.Decimal(12, 2)
   unidadArriendo UnidadArriendo?
   habilitado     Boolean         @default(true)
+  latitud        Float?
+  longitud       Float?
   observaciones  String?         @db.Text
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -281,17 +283,18 @@ model ReservaRecurso {
 }
 
 model Vehiculo {
-  id                 Int            @id @default(autoincrement())
-  patente            String         @unique @db.VarChar(15)
-  tipo               String         @db.VarChar(60)
-  marca              String         @db.VarChar(60)
-  modelo             String         @db.VarChar(80)
-  anio               Int?
-  capacidadPasajeros Int?
-  estado             EstadoVehiculo @default(DISPONIBLE)
-  observaciones      String?        @db.Text
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                  Int             @id @default(autoincrement())
+  patente             String          @unique @db.VarChar(15)
+  tipo                String          @db.VarChar(60)
+  marca               String          @db.VarChar(60)
+  modelo              String          @db.VarChar(80)
+  anio                Int?
+  capacidadPasajeros  Int?
+  estado              EstadoVehiculo  @default(DISPONIBLE)
+  habilitado          Boolean         @default(true)
+  observaciones       String?         @db.Text
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   reservas ReservaVehiculo[]
 

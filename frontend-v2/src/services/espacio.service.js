@@ -23,6 +23,16 @@ export const updateEspacioEstado = async (id, habilitado) => {
     return response.data;
 };
 
+export const deleteEspacio = async id => {
+    const response = await api.delete(`/espacios/${id}`);
+    return response.data;
+};
+
+export const guardarUbicacionEspacio = async (id, coordenadas) => {
+    const response = await api.patch(`/espacios/${id}/ubicacion`, coordenadas);
+    return response.data;
+};
+
 export const getReservasEspacio = async id => {
     const response = await api.get(`/espacios/${id}/reservas`);
     return response.data;

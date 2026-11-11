@@ -25,6 +25,11 @@ export const updateVehiculo = async (id, data) => {
     return response.data;
 };
 
+export const deleteVehiculo = async id => {
+    const response = await api.delete(`/vehiculos/${id}`);
+    return response.data;
+};
+
 export const reservarVehiculo = async (id, data) => {
     const response = await api.post(`/vehiculos/${id}/reservas`, data);
     return response.data;

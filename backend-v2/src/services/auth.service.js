@@ -47,53 +47,46 @@ const registrarCliente = async (data) => {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     try {
-        return await prisma.$transaction(async (tx) => {
-            const usuario = await tx.usuario.create({
-                data: {
-                    email,
-                    passwordHash,
-                    rol: "CLIENTE"
-                }
-            });
-
-            const cliente = await tx.cliente.create({
-                data: {
-                    usuarioId: usuario.id,
-                    tipo
-                }
-            });
-
-            if (tipo === "PERSONA") {
-                await tx.clientePersona.create({
-                    data: {
-                        clienteId: cliente.id,
+        const datosCliente = tipo === "PERSONA"
+            ? {
+                tipo,
+                persona: {
+                    create: {
                         rut: data.rut,
                         nombres: data.nombres,
                         apellidos: data.apellidos,
                         telefono
                     }
-                });
+                }
             }
-
-            if (tipo === "EMPRESA") {
-                await tx.clienteEmpresa.create({
-                    data: {
-                        clienteId: cliente.id,
+            : {
+                tipo,
+                empresa: {
+                    create: {
                         rutEmpresa: data.rutEmpresa,
                         razonSocial: data.razonSocial,
                         casaMatriz: data.casaMatriz,
                         telefono
                     }
-                });
-            }
-
-            return {
-                id: usuario.id,
-                email: usuario.email,
-                rol: usuario.rol,
-                tipo: cliente.tipo
+                }
             };
+
+        const usuario = await prisma.usuario.create({
+            data: {
+                email,
+                passwordHash,
+                rol: "CLIENTE",
+                cliente: { create: datosCliente }
+            },
+            include: { cliente: { select: { tipo: true } } }
         });
+
+        return {
+            id: usuario.id,
+            email: usuario.email,
+            rol: usuario.rol,
+            tipo: usuario.cliente.tipo
+        };
     } catch (error) {
         const prismaError = prismaExceptionHandler(error);
         if (prismaError) throw prismaError;

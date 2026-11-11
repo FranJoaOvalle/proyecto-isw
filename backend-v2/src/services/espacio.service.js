@@ -25,7 +25,8 @@ class EspacioService {
                     where: { cancelada: false, fin: { gt: ahora } },
                     orderBy: { inicio: "asc" },
                     take: 1
-                }
+                },
+                _count: { select: { reservas: true, eventos: true, presupuestos: true } }
             }
         });
 
@@ -87,7 +88,11 @@ class EspacioService {
                 } });
                 if (comprometida) throw new ConflictException("El espacio tiene reservas vigentes. Revisa esas reservas antes de cambiar la dirección o reducir su capacidad.");
             }
-            return tx.espacio.update({ where: { id: Number(id) }, data });
+            const cambiaDireccion = (data.direccion !== undefined && data.direccion !== actual.direccion) ||
+                (data.comuna !== undefined && data.comuna !== actual.comuna);
+            return tx.espacio.update({ where: { id: Number(id) }, data: {
+                ...data, ...(cambiaDireccion ? { latitud: null, longitud: null } : {})
+            } });
         });
     }
 
@@ -104,6 +109,31 @@ class EspacioService {
                 where: { id: Number(id) },
                 data: { habilitado }
             });
+        });
+    }
+
+    async eliminar(id) {
+        const espacioId = Number(id);
+        return prisma.$transaction(async tx => {
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})::text`;
+            await this.getById(espacioId, tx);
+            const [reservas, eventos, presupuestos] = await Promise.all([
+                tx.reservaEspacio.count({ where: { espacioId } }),
+                tx.evento.count({ where: { espacioId } }),
+                tx.presupuesto.count({ where: { espacioId } })
+            ]);
+            if (reservas || eventos || presupuestos) {
+                throw new ConflictException("No se puede eliminar el espacio porque tiene reservas, eventos o propuestas vinculadas. Deshabilítalo para conservar su historial.");
+            }
+            return tx.espacio.delete({ where: { id: espacioId } });
+        });
+    }
+
+    async guardarUbicacion(id, { latitud, longitud }) {
+        await this.getById(id);
+        return prisma.espacio.update({
+            where: { id: Number(id) },
+            data: { latitud, longitud }
         });
     }
 
