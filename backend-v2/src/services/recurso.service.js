@@ -29,7 +29,7 @@ class RecursoService {
                 tipo: "MATERIAL",
                 ...(incluirInactivos ? {} : { activo: true })
             },
-            include: incluirDetalle,
+            include: { ...incluirDetalle, _count: { select: { reservas: true, eventos: true, presupuestos: true } } },
             orderBy: { nombre: "asc" }
         });
 
@@ -154,6 +154,28 @@ class RecursoService {
                 data: { activo },
                 include: incluirDetalle
             });
+        });
+    }
+
+    async eliminar(id) {
+        const recursoId = Number(id);
+        await this.getById(recursoId);
+        const [reservas, eventos, presupuestos] = await Promise.all([
+            prisma.reservaRecurso.count({ where: { recursoId } }),
+            prisma.eventoRecurso.count({ where: { recursoId } }),
+            prisma.presupuestoRecurso.count({ where: { recursoId } })
+        ]);
+        const relaciones = [
+            reservas > 0 && `${reservas} ${reservas === 1 ? "reserva" : "reservas"}`,
+            eventos > 0 && `${eventos} ${eventos === 1 ? "evento" : "eventos"}`,
+            presupuestos > 0 && `${presupuestos} ${presupuestos === 1 ? "presupuesto" : "presupuestos"}`
+        ].filter(Boolean);
+        if (relaciones.length) {
+            throw new ConflictException(`No se puede eliminar definitivamente porque tiene ${relaciones.join(", ")} asociados. Desactívalo para conservar el historial.`);
+        }
+        return prisma.$transaction(async tx => {
+            await tx.recursoMaterial.deleteMany({ where: { recursoId } });
+            return tx.recurso.delete({ where: { id: recursoId } });
         });
     }
 

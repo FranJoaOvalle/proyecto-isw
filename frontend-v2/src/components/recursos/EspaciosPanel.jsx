@@ -15,9 +15,12 @@ import {
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
+import MapaEspacios from "./MapaEspacios";
+import NotificacionToast from "./NotificacionToast";
 import {
     cancelarReservaEspacio,
     createEspacio,
+    deleteEspacio,
     getEspacios,
     getReservasEspacio,
     reservarEspacio,
@@ -51,6 +54,21 @@ function fechaIso(value) {
     return date.toISOString();
 }
 
+function intervaloDia(value) {
+    const [year, month, day] = value.split("-").map(Number);
+    const inicio = new Date(year, month - 1, day);
+    const fin = new Date(year, month - 1, day + 1);
+    return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+}
+
+function intervaloHora(dia, hora) {
+    const [year, month, day] = dia.split("-").map(Number);
+    const [hours, minutes] = hora.split(":").map(Number);
+    const inicio = new Date(year, month - 1, day, hours, minutes);
+    const fin = new Date(inicio.getTime() + 60 * 60 * 1000);
+    return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+}
+
 function textoTarifa(espacio) {
     if (espacio.costoArriendo == null) return "Costo de arriendo sin informar";
     const unidad = unidades[espacio.unidadArriendo] ?? espacio.unidadArriendo;
@@ -66,11 +84,13 @@ export default function EspaciosPanel({ eventoInicial }) {
     const [success, setSuccess] = useState("");
     const [search, setSearch] = useState("");
     const [estado, setEstado] = useState("TODOS");
+    const [vista, setVista] = useState("lista");
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState(initialSpace);
     const [validated, setValidated] = useState(false);
     const [spaceEstado, setSpaceEstado] = useState(null);
+    const [spaceEliminar, setSpaceEliminar] = useState(null);
     const [rango, setRango] = useState({ inicio: "", fin: "" });
     const [rangoAplicado, setRangoAplicado] = useState(null);
     const [selectedSpace, setSelectedSpace] = useState(null);
@@ -181,14 +201,13 @@ export default function EspaciosPanel({ eventoInicial }) {
         event.preventDefault();
         setError("");
         try {
-            if (!rango.inicio || !rango.fin) throw new Error("Indica el inicio y el término del horario.");
-            const intervalo = { inicio: fechaIso(rango.inicio), fin: fechaIso(rango.fin) };
-            if (new Date(intervalo.fin) <= new Date(intervalo.inicio)) {
-                throw new Error("La fecha de término debe ser posterior a la de inicio.");
-            }
-            setRangoAplicado(intervalo);
+            if (!rango.inicio) throw new Error("Selecciona el día que quieres consultar.");
+            const intervalo = rango.fin
+                ? intervaloHora(rango.inicio, rango.fin)
+                : intervaloDia(rango.inicio);
             setLoading(true);
             await cargarEspacios(intervalo);
+            setRangoAplicado(intervalo);
         } catch (err) {
             setError(err.message || "No fue posible consultar la disponibilidad.");
         }
@@ -218,6 +237,27 @@ export default function EspaciosPanel({ eventoInicial }) {
                 err.response?.data?.error?.message ??
                 "No fue posible cambiar el estado del espacio."
             );
+        } finally {
+            setChangingId(null);
+        }
+    };
+
+    const confirmarEliminacion = async () => {
+        if (!spaceEliminar) return;
+        setChangingId(spaceEliminar.id);
+        setError("");
+        setSuccess("");
+        try {
+            await deleteEspacio(spaceEliminar.id);
+            setSuccess(`Espacio ${spaceEliminar.nombre} eliminado definitivamente.`);
+            setSpaceEliminar(null);
+            await cargarEspacios();
+        } catch (err) {
+            setError(
+                err.response?.data?.error?.message ??
+                "No fue posible eliminar el espacio."
+            );
+            setSpaceEliminar(null);
         } finally {
             setChangingId(null);
         }
@@ -318,30 +358,46 @@ export default function EspaciosPanel({ eventoInicial }) {
                 <Button onClick={abrirCrear}><i className="bi bi-plus-lg me-2" />Nuevo espacio</Button>
             </div>
 
-            {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-            {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+            <NotificacionToast mensaje={error && !showModal && !showBookings ? error : ""} tipo="danger" onClose={() => setError("")} />
+            <NotificacionToast mensaje={success} onClose={() => setSuccess("")} />
 
             <Form onSubmit={buscarDisponibilidad} className="border rounded-3 p-3 mb-4 bg-body-tertiary">
                 <div className="d-flex align-items-center gap-2 mb-3">
                     <i className="bi bi-calendar2-check text-primary" />
                     <strong>Consultar disponibilidad</strong>
                 </div>
-                <div className="row align-items-end g-3">
+                <div className="row align-items-start g-3">
                     <Form.Group className="col-md-4">
-                        <Form.Label>Desde</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
+                        <Form.Label>Día del evento</Form.Label>
+                        <Form.Control type="date" value={rango.inicio} onChange={event => setRango(current => ({ ...current, inicio: event.target.value }))} required />
                     </Form.Group>
                     <Form.Group className="col-md-4">
-                        <Form.Label>Hasta</Form.Label>
-                        <Form.Control type="datetime-local" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} required />
+                        <Form.Label>Hora (opcional)</Form.Label>
+                        <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
+                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
                     </Form.Group>
-                    <div className="col-md-4 d-flex gap-2">
+                    <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
                         {rangoAplicado && <Button type="button" variant="outline-secondary" onClick={limpiarDisponibilidad} disabled={loading}>Ver todos</Button>}
                     </div>
                 </div>
-                {rangoAplicado && <small className="text-secondary d-block mt-2">Mostrando disponibilidad entre {fechaLocal(rangoAplicado.inicio)} y {fechaLocal(rangoAplicado.fin)}.</small>}
+                {rangoAplicado && <small className="text-secondary d-block mt-2">
+                    {rango.fin
+                        ? "Mostrando disponibilidad el " + new Date(rangoAplicado.inicio).toLocaleDateString("es-CL") + " entre " +
+                            new Date(rangoAplicado.inicio).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) + " y " +
+                            new Date(rangoAplicado.fin).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) + "."
+                        : "Mostrando disponibilidad para el día " + new Date(rangoAplicado.inicio).toLocaleDateString("es-CL") + "."}
+                </small>}
             </Form>
+
+            <div className="d-flex gap-2 mb-3" role="group" aria-label="Vista de espacios">
+                <Button type="button" variant={vista === "lista" ? "primary" : "outline-primary"} aria-pressed={vista === "lista"} onClick={() => setVista("lista")}>
+                    <i className="bi bi-list-ul me-2" />Lista
+                </Button>
+                <Button type="button" variant={vista === "mapa" ? "primary" : "outline-primary"} aria-pressed={vista === "mapa"} onClick={() => setVista("mapa")}>
+                    <i className="bi bi-map me-2" />Mapa
+                </Button>
+            </div>
 
             <TableToolbar
                 search={search}
@@ -353,6 +409,8 @@ export default function EspaciosPanel({ eventoInicial }) {
 
             {loading ? (
                 <div className="d-flex justify-content-center py-5"><Spinner animation="border" /></div>
+            ) : vista === "mapa" ? (
+                <MapaEspacios espacios={filtrados} onReservas={abrirReservas} onUbicacionGuardada={() => cargarEspacios()} />
             ) : filtrados.length === 0 ? (
                 <EmptyState
                     icon="bi-building"
@@ -397,8 +455,17 @@ export default function EspaciosPanel({ eventoInicial }) {
                                         <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirEditar(espacio)}>
                                             <i className="bi bi-pencil me-1" />Editar
                                         </Button>
-                                        <Button size="sm" variant={espacio.habilitado ? "outline-danger" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
+                                        <Button size="sm" variant={espacio.habilitado ? "outline-warning" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
                                             {espacio.habilitado ? "Deshabilitar" : "Habilitar"}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline-danger"
+                                            className="ms-2"
+                                            disabled={changingId === espacio.id}
+                                            onClick={() => setSpaceEliminar(espacio)}
+                                        >
+                                            <i className="bi bi-trash me-1" />Eliminar
                                         </Button>
                                     </td>
                                 </tr>
@@ -533,6 +600,22 @@ export default function EspaciosPanel({ eventoInicial }) {
                 {spaceEstado?.habilitado
                     ? <>¿Deshabilitar <strong>{spaceEstado.nombre}</strong>? Las reservas existentes se conservarán.</>
                     : <>¿Habilitar <strong>{spaceEstado?.nombre}</strong> para nuevas reservas?</>}
+            </ConfirmModal>
+
+            <ConfirmModal
+                show={Boolean(spaceEliminar)}
+                onHide={() => changingId === null && setSpaceEliminar(null)}
+                onConfirm={spaceEliminar?._count?.reservas
+                    ? () => setSpaceEliminar(null)
+                    : confirmarEliminacion}
+                loading={Boolean(spaceEliminar && changingId === spaceEliminar.id)}
+                title="Eliminar espacio definitivamente"
+                confirmText={spaceEliminar?._count?.reservas ? "Entendido" : "Eliminar definitivamente"}
+                variant={spaceEliminar?._count?.reservas ? "secondary" : "danger"}
+            >
+                {spaceEliminar?._count?.reservas
+                    ? <><strong>{spaceEliminar.nombre}</strong> no se puede eliminar porque tiene {spaceEliminar._count.reservas} {spaceEliminar._count.reservas === 1 ? "reserva" : "reservas"} asociadas. Deshabilítalo para conservar el historial.</>
+                    : <>¿Eliminar <strong>{spaceEliminar?.nombre}</strong> definitivamente? Esta acción no se puede deshacer.</>}
             </ConfirmModal>
 
             <ConfirmModal

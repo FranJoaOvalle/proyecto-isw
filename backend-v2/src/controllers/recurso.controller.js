@@ -27,6 +27,7 @@ module.exports = {
         req.validated.params.id,
         req.validated.body.activo
     )),
+    eliminar: responder(req => recursoService.eliminar(req.validated.params.id)),
     reservas: responder(req => recursoService.getReservas(req.validated.params.id)),
     reservar: responder(req => recursoService.reservar(
         req.validated.params.id,
