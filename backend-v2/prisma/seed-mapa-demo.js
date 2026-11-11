@@ -3,97 +3,105 @@ require("dotenv").config();
 const { PrismaClient } = require("../generated/prisma/client.ts");
 
 const prisma = new PrismaClient();
-const notaDemo = "DATOS FICTICIOS PARA DEMOSTRACIÓN: nombre, capacidad, tarifa, estado y disponibilidad no son reales. La dirección pública se usa solo como referencia para ubicar el marcador.";
-
 const espacios = [
     {
         clave: "centro",
-        nombre: "[DEMO MAPA] Salón de muestra Centro",
+        nombreAnterior: "[DEMO MAPA] Salón de muestra Centro",
+        nombre: "Salón Rozas Centro",
         direccion: "Rozas 520, Concepción, Chile",
         capacidad: 80,
         costoArriendo: 280000,
         unidadArriendo: "EVENTO",
         habilitado: true,
-        observaciones: notaDemo
+        observaciones: "Salón para encuentros de trabajo, talleres y celebraciones de tamaño mediano."
     },
     {
         clave: "cultura",
-        nombre: "[DEMO MAPA] Sala de muestra O'Higgins",
+        nombreAnterior: "[DEMO MAPA] Sala de muestra O'Higgins",
+        nombre: "Sala O'Higgins",
         direccion: "O'Higgins 555, Concepción, Chile",
         capacidad: 120,
         costoArriendo: 350000,
         unidadArriendo: "EVENTO",
         habilitado: true,
-        observaciones: notaDemo
+        observaciones: "Espacio céntrico apropiado para charlas, capacitaciones y reuniones corporativas."
     },
     {
         clave: "norte",
-        nombre: "[DEMO MAPA] Sala de muestra Barrio Norte",
+        nombreAnterior: "[DEMO MAPA] Sala de muestra Barrio Norte",
+        nombre: "Salón Barrio Norte",
         direccion: "Maipú 2359, Concepción, Chile",
         capacidad: 70,
         costoArriendo: 220000,
         unidadArriendo: "EVENTO",
         habilitado: true,
-        observaciones: notaDemo
+        observaciones: "Salón para reuniones y actividades de grupos pequeños."
     },
     {
         clave: "universidad",
-        nombre: "[DEMO MAPA] Sala de muestra Universitaria",
+        nombreAnterior: "[DEMO MAPA] Sala de muestra Universitaria",
+        nombre: "Sala Cultural Universitaria",
         direccion: "Casa del Arte José Clemente Orozco, Concepción, Chile",
         capacidad: 100,
         costoArriendo: 320000,
         unidadArriendo: "EVENTO",
         habilitado: true,
-        observaciones: notaDemo
+        observaciones: "Sala adecuada para exposiciones, charlas y encuentros culturales."
     },
     {
         clave: "hospicio",
-        nombre: "[DEMO MAPA] Salón de muestra Hospicio",
+        nombreAnterior: "[DEMO MAPA] Salón de muestra Hospicio",
+        nombre: "Salón Hospicio",
         direccion: "Hospicio 40, Concepción, Chile",
         capacidad: 60,
         costoArriendo: 190000,
         unidadArriendo: "EVENTO",
         habilitado: true,
-        observaciones: notaDemo
+        observaciones: "Espacio de escala reducida para reuniones, talleres y actividades privadas."
     },
     {
         clave: "collao",
-        nombre: "[DEMO MAPA] Recinto de muestra Collao",
+        nombreAnterior: "[DEMO MAPA] Recinto de muestra Collao",
+        nombre: "Centro de Eventos Collao",
         direccion: "Collao 481, Concepción, Chile",
         capacidad: 300,
         costoArriendo: 650000,
         unidadArriendo: "EVENTO",
         habilitado: false,
-        observaciones: notaDemo
+        observaciones: "Recinto amplio para ferias, encuentros comunitarios y celebraciones."
     },
     {
         clave: "hualpen",
-        nombre: "[DEMO MAPA] Espacio de muestra Hualpén",
+        nombreAnterior: "[DEMO MAPA] Espacio de muestra Hualpén",
+        nombre: "Salón Colón Hualpén",
         direccion: "Avenida Colón 7500, Hualpén, Chile",
         capacidad: 180,
         costoArriendo: 420000,
         unidadArriendo: "EVENTO",
         habilitado: true,
-        observaciones: notaDemo
+        observaciones: "Salón para eventos sociales y encuentros empresariales."
     }
 ];
 
 const reservas = [
     {
         espacio: "centro",
-        referencia: "DEMO MAPA - Encuentro de verano",
+        referenciaAnterior: "DEMO MAPA - Encuentro de verano",
+        referencia: "Encuentro de verano",
         inicio: new Date("2026-12-12T16:00:00-03:00"),
         fin: new Date("2026-12-12T22:00:00-03:00")
     },
     {
         espacio: "universidad",
-        referencia: "DEMO MAPA - Jornada cultural",
+        referenciaAnterior: "DEMO MAPA - Jornada cultural",
+        referencia: "Jornada cultural",
         inicio: new Date("2026-12-18T10:00:00-03:00"),
         fin: new Date("2026-12-18T16:00:00-03:00")
     },
     {
         espacio: "hualpen",
-        referencia: "DEMO MAPA - Feria de muestra",
+        referenciaAnterior: "DEMO MAPA - Feria de muestra",
+        referencia: "Feria de emprendimiento",
         inicio: new Date("2026-12-20T12:00:00-03:00"),
         fin: new Date("2026-12-20T20:00:00-03:00")
     }
@@ -106,7 +114,7 @@ async function main() {
 
     for (const espacio of espacios) {
         const existente = await prisma.espacio.findFirst({
-            where: { nombre: espacio.nombre },
+            where: { nombre: { in: [espacio.nombre, espacio.nombreAnterior] } },
             select: { id: true }
         });
         const registro = existente ?? await prisma.espacio.create({
@@ -124,7 +132,11 @@ async function main() {
         if (existente) {
             await prisma.espacio.update({
                 where: { id: existente.id },
-                data: { direccion: espacio.direccion }
+                data: {
+                    nombre: espacio.nombre,
+                    direccion: espacio.direccion,
+                    observaciones: espacio.observaciones
+                }
             });
         }
         ids[espacio.clave] = registro.id;
@@ -134,10 +146,16 @@ async function main() {
     for (const reserva of reservas) {
         const espacioId = ids[reserva.espacio];
         const existente = await prisma.reservaEspacio.findFirst({
-            where: { espacioId, referencia: reserva.referencia },
+            where: { espacioId, referencia: { in: [reserva.referencia, reserva.referenciaAnterior] } },
             select: { id: true }
         });
-        if (existente) continue;
+        if (existente) {
+            await prisma.reservaEspacio.update({
+                where: { id: existente.id },
+                data: { referencia: reserva.referencia }
+            });
+            continue;
+        }
 
         await prisma.reservaEspacio.create({
             data: {
@@ -152,13 +170,12 @@ async function main() {
 
     const resultado = { espaciosCreados, reservasCreadas };
 
-    console.log(`Demo mapa: ${resultado.espaciosCreados} espacios nuevos y ${resultado.reservasCreadas} reservas nuevas.`);
-    console.log("Los registros usan el prefijo [DEMO MAPA] y quedan identificados como ficticios.");
+    console.log(`Espacios de ejemplo: ${resultado.espaciosCreados} espacios nuevos y ${resultado.reservasCreadas} reservas nuevas.`);
 }
 
 main()
     .catch(error => {
-        console.error("No se pudieron crear los datos de demostración.", error.message);
+        console.error("No se pudieron guardar los espacios de ejemplo.", error.message);
         process.exitCode = 1;
     })
     .finally(() => prisma.$disconnect());
