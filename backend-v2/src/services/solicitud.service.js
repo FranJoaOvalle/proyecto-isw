@@ -279,45 +279,45 @@ class SolicitudService {
             throw new ForbiddenException();
         }
         return prisma.$transaction(async (tx) => {
-        const actual = await this.bloquear(tx, id, usuario);
-        if (
-            actual.evento ||
-            !["PENDIENTE", "EN_REVISION"].includes(actual.estado) ||
-            (retiro && actual.estado !== "PENDIENTE")
-        ) {
-            throw new ConflictException("La solicitud no permite este cierre.");
-        }
-        if (actual.presupuestos.length) {
-            if (retiro) {
+            const actual = await this.bloquear(tx, id, usuario);
+            if (
+                actual.evento ||
+                !["PENDIENTE", "EN_REVISION"].includes(actual.estado) ||
+                (retiro && actual.estado !== "PENDIENTE")
+            ) {
+                throw new ConflictException("La solicitud no permite este cierre.");
+            }
+            if (retiro && actual.presupuestos.length) {
                 throw new ConflictException(
                     "No puedes retirar una solicitud que tiene propuestas vinculadas."
                 );
             }
-            await IntegracionPresupuestosService.verificarCierreSolicitud({
-                tx,
-                solicitudId: actual.id,
-                actorId: usuario.id
+            if (!retiro) {
+                await IntegracionPresupuestosService.verificarCierreSolicitud({
+                    tx,
+                    solicitudId: actual.id,
+                    actorId: usuario.id
+                });
+            }
+            const tipoCierre = retiro ? "RETIRO_CLIENTE" : "RECHAZO_ADMIN";
+            return tx.solicitudEvento.update({
+                where: { id: Number(id) },
+                data: {
+                    estado: "RECHAZADA",
+                    motivoCierre: motivo,
+                    tipoCierre,
+                    cambios: {
+                        create: this.datosCambio(
+                            usuario.id,
+                            tipoCierre,
+                            { estado: actual.estado },
+                            { estado: "RECHAZADA" },
+                            motivo
+                        )
+                    }
+                },
+                include: relaciones
             });
-        }
-        const tipoCierre = retiro ? "RETIRO_CLIENTE" : "RECHAZO_ADMIN";
-        return tx.solicitudEvento.update({
-            where: { id: Number(id) },
-            data: {
-                estado: "RECHAZADA",
-                motivoCierre: motivo,
-                tipoCierre,
-                cambios: {
-                    create: this.datosCambio(
-                        usuario.id,
-                        tipoCierre,
-                        { estado: actual.estado },
-                        { estado: "RECHAZADA" },
-                        motivo
-                    )
-                }
-            },
-            include: relaciones
-        });
         });
     }
 

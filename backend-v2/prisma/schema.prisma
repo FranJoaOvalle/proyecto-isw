@@ -406,6 +406,7 @@ model Presupuesto {
   precioBaseTipoEvento Decimal @db.Decimal(12, 2)
   modalidadPrecioTipoEvento ModalidadPrecioTipoEvento?
   tarifaHoraTipoEvento Decimal? @db.Decimal(12, 2)
+  cantidadPersonasBaseTipoEvento Int?
 
   subtotal       Decimal @db.Decimal(12, 2)
   descuento      Decimal @default(0) @db.Decimal(12, 2)

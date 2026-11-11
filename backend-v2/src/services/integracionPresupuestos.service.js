@@ -10,10 +10,25 @@ class IntegracionPresupuestosService {
     }
 
     async verificarCierreSolicitud({ tx, solicitudId }) {
-        const propuestas = await tx.presupuesto.count({ where: { solicitudId } });
-        if (propuestas > 0) {
+        // CANCELADO/VENCIDO y pagos FALLIDOS/REEMBOLSADOS son historial resuelto;
+        // propuestas activas, pagos pendientes/pagados o eventos aún comprometen la solicitud.
+        const propuestas = await tx.presupuesto.findMany({
+            where: { solicitudId },
+            select: {
+                id: true,
+                estado: true,
+                evento: { select: { id: true } },
+                pagos: { select: { estado: true } }
+            }
+        });
+        const propuestaNoResuelta = propuestas.find((propuesta) =>
+            !["CANCELADO", "VENCIDO"].includes(propuesta.estado) ||
+            propuesta.evento !== null ||
+            propuesta.pagos.some((pago) => ["PENDIENTE", "PAGADO"].includes(pago.estado))
+        );
+        if (propuestaNoResuelta) {
             throw new ConflictException(
-                "La solicitud tiene propuestas vinculadas y no puede cerrarse mientras su gestión comercial no las resuelva."
+                "La solicitud conserva una propuesta activa, un evento o un compromiso de pago pendiente de resolver."
             );
         }
     }

@@ -76,9 +76,12 @@ class PresupuestoService {
         if (!tipoEvento || (!actual && !tipoEvento.activo)) {
             throw new ConflictException("El tipo de evento de la solicitud no está vigente.");
         }
-        if (datos.asistentes < tipoEvento.cantidadPersonasBase) {
+        const cantidadMinimaSnapshot = actual
+            ? actual.cantidadPersonasBaseTipoEvento ?? actual.asistentes
+            : tipoEvento.cantidadPersonasBase;
+        if (cantidadMinimaSnapshot != null && datos.asistentes < cantidadMinimaSnapshot) {
             throw new ValidationException(
-                `La cantidad mínima de asistentes es ${tipoEvento.cantidadPersonasBase}.`
+                `La cantidad mínima de asistentes para esta cotización es ${cantidadMinimaSnapshot}.`
             );
         }
 
@@ -183,6 +186,7 @@ class PresupuestoService {
             precioBaseTipoEvento: precioBase,
             modalidadPrecioTipoEvento,
             tarifaHoraTipoEvento,
+            cantidadPersonasBaseTipoEvento: cantidadMinimaSnapshot,
             subtotal,
             descuento,
             recargoCliente,

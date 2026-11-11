@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { mensajeError } from "../eventos/seguimiento.utils";
-import { crearPresupuesto } from "../../services/presupuesto.service";
+import {
+    actualizarPresupuesto,
+    crearPresupuesto
+} from "../../services/presupuesto.service";
 
 const MAX_ASISTENTES = 1000000;
 const MAX_DESCUENTO = 9999999999.99;
@@ -29,6 +32,7 @@ export default function PresupuestoFormularioModal({
     show,
     onHide,
     onGuardado,
+    presupuesto = null,
     solicitudes,
     recursos,
     cargandoRecursos,
@@ -40,13 +44,40 @@ export default function PresupuestoFormularioModal({
     const [saving, setSaving] = useState(false);
     const [validated, setValidated] = useState(false);
 
-    const solicitudSeleccionada = useMemo(
-        () => solicitudes.find((solicitud) => String(solicitud.id) === form.solicitudId),
-        [solicitudes, form.solicitudId]
-    );
-    const minimoAsistentes = Number(
-        solicitudSeleccionada?.tipoEvento?.cantidadPersonasBase ?? 1
-    );
+    const solicitudSeleccionada = useMemo(() => {
+        if (presupuesto) {
+            return {
+                ...(presupuesto.solicitud ?? {}),
+                id: presupuesto.solicitudId ?? presupuesto.solicitud?.id ?? "",
+                cliente: presupuesto.cliente ?? presupuesto.solicitud?.cliente,
+                tipoEvento: presupuesto.tipoEvento,
+                inicio: presupuesto.inicio,
+                fin: presupuesto.fin,
+                lugar: presupuesto.lugar,
+                asistentes: presupuesto.asistentes
+            };
+        }
+        return solicitudes.find((solicitud) => String(solicitud.id) === form.solicitudId);
+    }, [presupuesto, solicitudes, form.solicitudId]);
+    const minimoAsistentes = Number(presupuesto
+        ? presupuesto.cantidadPersonasBaseTipoEvento ?? presupuesto.asistentes ?? 1
+        : solicitudSeleccionada?.tipoEvento?.cantidadPersonasBase ?? 1);
+    const recursosFormulario = useMemo(() => {
+        const catalogo = new Map(recursos.map((recurso) => [recurso.id, recurso]));
+        for (const snapshot of presupuesto?.recursos ?? []) {
+            const id = snapshot.recursoId;
+            catalogo.set(id, {
+                ...(catalogo.get(id) ?? snapshot.recurso ?? {}),
+                id,
+                nombre: snapshot.nombreRecurso,
+                tipo: snapshot.tipoRecurso,
+                precioUnitario: snapshot.precioUnitario,
+                activo: snapshot.recurso?.activo ?? catalogo.get(id)?.activo ?? false,
+                esSnapshot: true
+            });
+        }
+        return [...catalogo.values()];
+    }, [recursos, presupuesto]);
     const recursosDisponibles = recursos.filter(
         (recurso) => recurso.activo && !form.recursos.some(
             (item) => Number(item.recursoId) === recurso.id
@@ -57,7 +88,17 @@ export default function PresupuestoFormularioModal({
         const inicio = new Date(form.inicio);
         const fin = new Date(form.fin);
         let costoBase = 0;
-        if (tipoEvento?.modalidadPrecio === "FIJO") {
+        if (presupuesto) {
+            if (
+                presupuesto.modalidadPrecioTipoEvento === "POR_HORA" &&
+                presupuesto.tarifaHoraTipoEvento != null
+            ) {
+                costoBase = Number(presupuesto.tarifaHoraTipoEvento) *
+                    ((fin.getTime() - inicio.getTime()) / 3600000);
+            } else {
+                costoBase = Number(presupuesto.precioBaseTipoEvento ?? 0);
+            }
+        } else if (tipoEvento?.modalidadPrecio === "FIJO") {
             costoBase = Number(tipoEvento.precioBase ?? 0);
         } else if (
             tipoEvento?.modalidadPrecio === "POR_HORA" &&
@@ -69,7 +110,10 @@ export default function PresupuestoFormularioModal({
                 ((fin.getTime() - inicio.getTime()) / 3600000);
         }
         const subtotalRecursos = form.recursos.reduce((total, item) => {
-            const recurso = recursos.find(
+            const snapshot = presupuesto?.recursos?.find(
+                (recurso) => recurso.recursoId === Number(item.recursoId)
+            );
+            const recurso = snapshot ?? recursos.find(
                 (opcion) => opcion.id === Number(item.recursoId)
             );
             const precio = Number(recurso?.precioUnitario ?? 0);
@@ -78,7 +122,7 @@ export default function PresupuestoFormularioModal({
         }, 0);
 
         return Math.max(0, costoBase + subtotalRecursos - (Number(form.descuento) || 0));
-    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, solicitudSeleccionada]);
+    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, solicitudSeleccionada, presupuesto]);
     const formatoMoneda = useMemo(
         () => new Intl.NumberFormat("es-CL", {
             style: "currency",
@@ -89,13 +133,26 @@ export default function PresupuestoFormularioModal({
     );
 
     useEffect(() => {
-        if (show) {
-            setForm(formularioInicial);
-            setAsistentesManual("");
-            setError("");
-            setValidated(false);
-        }
-    }, [show]);
+        if (!show) return;
+        const formularioEditado = presupuesto
+            ? {
+                solicitudId: String(presupuesto.solicitudId ?? ""),
+                inicio: fechaLocal(presupuesto.inicio),
+                fin: fechaLocal(presupuesto.fin),
+                lugar: presupuesto.lugar ?? "",
+                asistentes: Number(presupuesto.asistentes ?? 1),
+                descuento: String(presupuesto.descuento ?? 0),
+                recursos: (presupuesto.recursos ?? []).map((item) => ({
+                    recursoId: String(item.recursoId),
+                    cantidad: item.cantidad
+                }))
+            }
+            : formularioInicial;
+        setForm(formularioEditado);
+        setAsistentesManual(String(formularioEditado.asistentes || ""));
+        setError("");
+        setValidated(false);
+    }, [show, presupuesto]);
 
     function seleccionarSolicitud(event) {
         const solicitudId = event.target.value;
@@ -228,7 +285,6 @@ export default function PresupuestoFormularioModal({
         setSaving(true);
         try {
             const payload = {
-                solicitudId: Number(form.solicitudId),
                 inicio: new Date(form.inicio).toISOString(),
                 fin: new Date(form.fin).toISOString(),
                 lugar: form.lugar.trim(),
@@ -239,10 +295,20 @@ export default function PresupuestoFormularioModal({
                     cantidad: Number(item.cantidad)
                 }))
             };
-            const presupuesto = await crearPresupuesto(payload);
-            onGuardado(presupuesto);
+            const guardado = presupuesto
+                ? await actualizarPresupuesto(presupuesto.id, payload)
+                : await crearPresupuesto({
+                    ...payload,
+                    solicitudId: Number(form.solicitudId)
+                });
+            onGuardado(guardado);
         } catch (err) {
-            setError(mensajeError(err, "No fue posible crear el presupuesto."));
+            setError(mensajeError(
+                err,
+                presupuesto
+                    ? "No fue posible actualizar la cotización."
+                    : "No fue posible crear el presupuesto."
+            ));
         } finally {
             setSaving(false);
         }
@@ -265,37 +331,44 @@ export default function PresupuestoFormularioModal({
         >
             <Form noValidate validated={validated} onSubmit={guardar}>
                 <Modal.Header closeButton={!saving}>
-                    <Modal.Title>Nueva cotización</Modal.Title>
+                    <Modal.Title>{presupuesto ? "Editar cotización" : "Nueva cotización"}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-0">
                     <div className="p-3" style={{ maxHeight: "60vh", overflowY: "auto" }}>
                     {error && <Alert variant="danger">{error}</Alert>}
-                    <Form.Group controlId="presupuesto-solicitud" className="mb-3">
-                        <Form.Label>Solicitud en revisión *</Form.Label>
-                        <Form.Select
-                            required
-                            value={form.solicitudId}
-                            onChange={seleccionarSolicitud}
-                            disabled={saving}
-                        >
-                            <option value="">Selecciona una solicitud</option>
-                            {solicitudes.map((solicitud) => (
-                                <option key={solicitud.id} value={solicitud.id}>
-                                    #{solicitud.id} · {solicitud.tipoEvento?.nombre ?? "Evento"} · {solicitud.estado}
-                                </option>
-                            ))}
-                        </Form.Select>
-                        <Form.Text className="text-muted">
-                            Solo se pueden emitir cotizaciones desde solicitudes en estado EN_REVISION.
-                        </Form.Text>
-                    </Form.Group>
+                    {presupuesto ? (
+                        <Alert variant="light" className="border mb-3">
+                            Editando cotización #{presupuesto.id}
+                            {presupuesto.solicitudId && ` · Solicitud #${presupuesto.solicitudId}`}
+                        </Alert>
+                    ) : (
+                        <Form.Group controlId="presupuesto-solicitud" className="mb-3">
+                            <Form.Label>Solicitud en revisión *</Form.Label>
+                            <Form.Select
+                                required
+                                value={form.solicitudId}
+                                onChange={seleccionarSolicitud}
+                                disabled={saving}
+                            >
+                                <option value="">Selecciona una solicitud</option>
+                                {solicitudes.map((solicitud) => (
+                                    <option key={solicitud.id} value={solicitud.id}>
+                                        #{solicitud.id} · {solicitud.tipoEvento?.nombre ?? "Evento"} · {solicitud.estado}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            <Form.Text className="text-muted">
+                                Solo se pueden emitir cotizaciones desde solicitudes en estado EN_REVISION.
+                            </Form.Text>
+                        </Form.Group>
+                    )}
 
                     {solicitudSeleccionada && (
                         <>
                             <Alert variant="light" className="border">
                                 <strong>{nombreCliente}</strong>
                                 <span className="d-block text-muted">
-                                    {solicitudSeleccionada.tipoEvento?.nombre} · mínimo {minimoAsistentes} asistentes
+                                    {solicitudSeleccionada.tipoEvento?.nombre} · mínimo para guardar {minimoAsistentes} asistentes
                                 </span>
                             </Alert>
 
@@ -381,7 +454,9 @@ export default function PresupuestoFormularioModal({
                                     </Col>
                                 </Row>
                                 <Form.Text className="text-muted">
-                                    El mínimo se ajusta al tipo de evento de la solicitud ({minimoAsistentes}).
+                                    {presupuesto
+                                        ? `La cotización conserva este mínimo de asistentes (${minimoAsistentes}).`
+                                        : `El mínimo se ajusta al tipo de evento de la solicitud (${minimoAsistentes}).`}
                                 </Form.Text>
                             </Form.Group>
 
@@ -414,8 +489,8 @@ export default function PresupuestoFormularioModal({
                                                 onChange={(event) => cambiarRecurso(indice, "recursoId", event.target.value)}
                                                 disabled={saving}
                                             >
-                                                {recursos
-                                                    .filter((recurso) => recurso.activo && (
+                                                {recursosFormulario
+                                                    .filter((recurso) => (recurso.activo || recurso.id === Number(item.recursoId)) && (
                                                         recurso.id === Number(item.recursoId) ||
                                                         !form.recursos.some((otro, otroIndice) =>
                                                             otroIndice !== indice && Number(otro.recursoId) === recurso.id
@@ -423,7 +498,7 @@ export default function PresupuestoFormularioModal({
                                                     ))
                                                     .map((recurso) => (
                                                         <option key={recurso.id} value={recurso.id}>
-                                                            {recurso.nombre} · ${Number(recurso.precioUnitario).toLocaleString("es-CL")}
+                                                            {recurso.nombre} · ${Number(recurso.precioUnitario).toLocaleString("es-CL")}{recurso.esSnapshot ? " (precio cotizado)" : ""}
                                                         </option>
                                                     ))}
                                             </Form.Select>
@@ -495,9 +570,9 @@ export default function PresupuestoFormularioModal({
                         <Button variant="secondary" onClick={onHide} disabled={saving}>
                             Cerrar
                         </Button>
-                        <Button type="submit" disabled={saving || !solicitudes.length}>
+                        <Button type="submit" disabled={saving || (!presupuesto && !solicitudes.length)}>
                             {saving && <Spinner size="sm" className="me-2" />}
-                            Crear cotización
+                            {presupuesto ? "Guardar cambios" : "Crear cotización"}
                         </Button>
                     </div>
                 </Modal.Footer>

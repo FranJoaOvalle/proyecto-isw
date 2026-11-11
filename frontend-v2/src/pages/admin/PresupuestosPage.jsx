@@ -84,6 +84,7 @@ export default function PresupuestosPage() {
     const [errorRecursos, setErrorRecursos] = useState("");
     const [mensaje, setMensaje] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
+    const [presupuestoEditar, setPresupuestoEditar] = useState(null);
     const [presupuestoCancelar, setPresupuestoCancelar] = useState(null);
     const [cancelando, setCancelando] = useState(false);
     const [busqueda, setBusqueda] = useState("");
@@ -161,9 +162,28 @@ export default function PresupuestosPage() {
         }
     }
 
-    function presupuestoGuardado() {
+    function abrirNuevaCotizacion() {
+        setPresupuestoEditar(null);
+        setMostrarFormulario(true);
+    }
+
+    function abrirEdicion(presupuesto) {
+        setPresupuestoEditar(presupuesto);
+        setMostrarFormulario(true);
+    }
+
+    function cerrarFormulario() {
         setMostrarFormulario(false);
-        setMensaje("Cotización creada correctamente.");
+        setPresupuestoEditar(null);
+    }
+
+    function presupuestoGuardado() {
+        const estabaEditando = Boolean(presupuestoEditar);
+        setMostrarFormulario(false);
+        setPresupuestoEditar(null);
+        setMensaje(estabaEditando
+            ? "Cotización actualizada correctamente."
+            : "Cotización creada correctamente.");
         cargarDatos();
     }
 
@@ -174,7 +194,7 @@ export default function PresupuestosPage() {
                 description="Prepara cotizaciones a partir de solicitudes que están en revisión."
             >
                 <Button
-                    onClick={() => setMostrarFormulario(true)}
+                    onClick={abrirNuevaCotizacion}
                     disabled={cargando || !solicitudes.length}
                 >
                     <i className="bi bi-plus-lg me-2" />Nueva cotización
@@ -273,13 +293,22 @@ export default function PresupuestosPage() {
                                             </td>
                                             <td className="text-end">
                                                 {presupuesto.estado === "BORRADOR" && (
-                                                    <Button
-                                                        variant="outline-danger"
-                                                        size="sm"
-                                                        onClick={() => setPresupuestoCancelar(presupuesto)}
-                                                    >
-                                                        Cancelar
-                                                    </Button>
+                                                    <div className="d-flex justify-content-end gap-2">
+                                                        <Button
+                                                            variant="outline-primary"
+                                                            size="sm"
+                                                            onClick={() => abrirEdicion(presupuesto)}
+                                                        >
+                                                            Editar
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline-danger"
+                                                            size="sm"
+                                                            onClick={() => setPresupuestoCancelar(presupuesto)}
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </td>
                                         </tr>
@@ -293,8 +322,9 @@ export default function PresupuestosPage() {
 
             <PresupuestoFormularioModal
                 show={mostrarFormulario}
-                onHide={() => setMostrarFormulario(false)}
+                onHide={cerrarFormulario}
                 onGuardado={presupuestoGuardado}
+                presupuesto={presupuestoEditar}
                 solicitudes={solicitudes}
                 recursos={recursos}
                 cargandoRecursos={cargandoRecursos}
