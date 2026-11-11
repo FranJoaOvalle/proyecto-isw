@@ -53,6 +53,21 @@ export default function PresupuestoFormularioModal({
         )
     );
     const totalEstimado = useMemo(() => {
+        const tipoEvento = solicitudSeleccionada?.tipoEvento;
+        const inicio = new Date(form.inicio);
+        const fin = new Date(form.fin);
+        let costoBase = 0;
+        if (tipoEvento?.modalidadPrecio === "FIJO") {
+            costoBase = Number(tipoEvento.precioBase ?? 0);
+        } else if (
+            tipoEvento?.modalidadPrecio === "POR_HORA" &&
+            Number.isFinite(inicio.getTime()) &&
+            Number.isFinite(fin.getTime()) &&
+            fin > inicio
+        ) {
+            costoBase = Number(tipoEvento.tarifaHora ?? 0) *
+                ((fin.getTime() - inicio.getTime()) / 3600000);
+        }
         const subtotalRecursos = form.recursos.reduce((total, item) => {
             const recurso = recursos.find(
                 (opcion) => opcion.id === Number(item.recursoId)
@@ -62,8 +77,8 @@ export default function PresupuestoFormularioModal({
             return total + precio * cantidad;
         }, 0);
 
-        return Math.max(0, subtotalRecursos - (Number(form.descuento) || 0));
-    }, [form.recursos, form.descuento, recursos]);
+        return Math.max(0, costoBase + subtotalRecursos - (Number(form.descuento) || 0));
+    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, solicitudSeleccionada]);
     const formatoMoneda = useMemo(
         () => new Intl.NumberFormat("es-CL", {
             style: "currency",
@@ -473,7 +488,7 @@ export default function PresupuestoFormularioModal({
                 </Modal.Body>
                 <Modal.Footer className="d-flex flex-column align-items-stretch gap-3">
                     <div className="d-flex justify-content-between align-items-center">
-                        <span className="fw-semibold">Total estimado (recursos − descuento)</span>
+                        <span className="fw-semibold">Total estimado (precio base + recursos − descuento)</span>
                         <strong className="fs-5">{formatoMoneda.format(totalEstimado)}</strong>
                     </div>
                     <div className="d-flex justify-content-end gap-2">

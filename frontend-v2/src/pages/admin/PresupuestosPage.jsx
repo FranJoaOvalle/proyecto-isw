@@ -57,6 +57,23 @@ const nombreCliente = (cliente) =>
 const comoLista = (resultado) =>
     Array.isArray(resultado) ? resultado : resultado?.items ?? [];
 
+async function listarSolicitudesRevision() {
+    const limite = 100;
+    const primera = await listarSolicitudes({
+        estado: "EN_REVISION",
+        pagina: 1,
+        limite
+    });
+    const paginas = Math.ceil((primera?.total ?? primera?.items?.length ?? 0) / limite);
+    if (paginas <= 1) return comoLista(primera);
+    const restantes = await Promise.all(
+        Array.from({ length: paginas - 1 }, (_, indice) =>
+            listarSolicitudes({ estado: "EN_REVISION", pagina: indice + 2, limite })
+        )
+    );
+    return [...comoLista(primera), ...restantes.flatMap(comoLista)];
+}
+
 export default function PresupuestosPage() {
     const [presupuestos, setPresupuestos] = useState([]);
     const [solicitudes, setSolicitudes] = useState([]);
@@ -78,12 +95,12 @@ export default function PresupuestosPage() {
         try {
             const [listaPresupuestos, solicitudesRevision, tiposEvento] = await Promise.all([
                 listarPresupuestos(),
-                listarSolicitudes({ estado: "EN_REVISION", pagina: 1, limite: 100 }),
+                listarSolicitudesRevision(),
                 getTiposEvento(true)
             ]);
             setPresupuestos(comoLista(listaPresupuestos));
             const tiposPorId = new Map(tiposEvento.map((tipo) => [tipo.id, tipo]));
-            const solicitudesConTipo = (solicitudesRevision?.items ?? comoLista(solicitudesRevision))
+            const solicitudesConTipo = solicitudesRevision
                 .map((solicitud) => ({
                     ...solicitud,
                     tipoEvento: tiposPorId.get(solicitud.tipoEventoId) ?? solicitud.tipoEvento

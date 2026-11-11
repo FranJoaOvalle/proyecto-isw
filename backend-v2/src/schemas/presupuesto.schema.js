@@ -3,13 +3,12 @@ const { z } = require("zod");
 const id = z.coerce.number().int().positive().max(2147483647);
 const params = z.object({ id });
 
-const datosCotizacion = z.object({
+const camposCotizacion = {
     descuento: z.number().finite().min(0).max(9999999999.99)
         .refine(
             (value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8,
             "El descuento admite hasta dos decimales."
-        )
-        .default(0),
+        ),
     inicio: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
     fin: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
     lugar: z.string().trim().min(3).max(255),
@@ -19,7 +18,13 @@ const datosCotizacion = z.object({
             recursoId: id,
             cantidad: z.number().int().min(1).max(100000)
         }).strict()
-    ).default([])
+    )
+};
+
+const datosCreacion = z.object({
+    ...camposCotizacion,
+    descuento: camposCotizacion.descuento.default(0),
+    recursos: camposCotizacion.recursos.default([])
 }).strict();
 
 const sinRecursosDuplicados = (data) =>
@@ -28,7 +33,7 @@ const sinRecursosDuplicados = (data) =>
 
 module.exports = {
     createSchema: z.object({
-        body: datosCotizacion.extend({ solicitudId: id })
+        body: datosCreacion.extend({ solicitudId: id })
             .refine(
                 sinRecursosDuplicados,
                 "No se permiten recursos duplicados en el detalle del presupuesto."
@@ -40,7 +45,7 @@ module.exports = {
     }),
     updateSchema: z.object({
         params,
-        body: datosCotizacion.partial()
+        body: z.object(camposCotizacion).strict().partial()
             .refine(
                 (data) => Object.keys(data).length > 0,
                 "Debes proporcionar al menos un cambio."

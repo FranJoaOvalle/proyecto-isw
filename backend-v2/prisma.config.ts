@@ -1,4 +1,4 @@
-import "../src/config/loadEnv.js";
+import "./src/config/loadEnv.js";
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({

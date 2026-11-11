@@ -3,8 +3,7 @@ const path = require("node:path");
 const dotenv = require("dotenv");
 
 const rutas = [
-    path.resolve(__dirname, "../../.env"),
-    path.resolve(__dirname, "../../../backend/.env")
+    path.resolve(__dirname, "../../.env")
 ];
 
 const archivoEnv = rutas.find((ruta) => fs.existsSync(ruta));

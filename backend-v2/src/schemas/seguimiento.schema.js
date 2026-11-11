@@ -75,6 +75,10 @@ const editarEventoSchema = z.object({
     body: z
         .object({
             productorId: id.nullable().optional(),
+            espacioId: id.nullable().optional(),
+            direccion: z.string().trim().min(2).max(250).optional(),
+            comuna: z.string().trim().min(2).max(100).optional(),
+            referenciaDireccion: z.string().trim().max(500).nullable().optional(),
             imagen_url: z
                 .string()
                 .trim()
@@ -91,7 +95,7 @@ const editarEventoSchema = z.object({
                 .datetime({ offset: true })
                 .transform((v) => new Date(v))
                 .optional(),
-            lugar: z.string().trim().min(2).max(200).optional(),
+            lugar: z.string().trim().min(2).max(250).optional(),
             asistentes: z.number().int().positive().max(2147483647).optional(),
             observaciones: z.string().trim().max(5000).nullable().optional()
         })

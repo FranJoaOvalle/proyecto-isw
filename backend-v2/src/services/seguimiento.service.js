@@ -12,12 +12,14 @@ const autor = {
     }
 };
 const eventoInclude = {
+    espacio: true,
     tipoEvento: true,
     productor: { select: { id: true, nombres: true, apellidos: true } },
     cliente: { select: { persona: true, empresa: true } }
 };
 
 class SeguimientoService {
+
     alcance(usuario) {
         if (!usuario || !["ADMIN", "PRODUCTOR"].includes(usuario.rol)) {
             throw new ForbiddenException(
@@ -29,12 +31,32 @@ class SeguimientoService {
             : { productor: { usuarioId: usuario.id } };
     }
 
-    async evento(id, usuario, db = prisma) {
-        const evento = await db.evento.findFirst({
+    async evento(id, usuario) {
+        const evento = await prisma.evento.findFirst({
             where: { id: Number(id), ...this.alcance(usuario) },
-            include: eventoInclude
+            include: {
+                ...eventoInclude,
+                reservasEspacio: {
+                    include: { espacio: true },
+                    orderBy: { inicio: "asc" }
+                },
+                reservasRecurso: {
+                    include: {
+                        recurso: { select: { id: true, nombre: true } }
+                    },
+                    orderBy: { inicio: "asc" }
+                },
+                reservasVehiculo: {
+                    include: {
+                        vehiculo: { select: { id: true, patente: true } }
+                    },
+                    orderBy: { inicio: "asc" }
+                }
+            }
         });
-        if (!evento) throw new NotFoundException("Evento no encontrado.");
+        if (!evento) {
+            throw new NotFoundException("Evento no encontrado.");
+        }
         return evento;
     }
 
@@ -125,9 +147,9 @@ class SeguimientoService {
         });
     }
 
-    async registro(eventoId, seguimientoId, usuario, db = prisma) {
-        await this.evento(eventoId, usuario, db);
-        const registro = await db.seguimientoEvento.findFirst({
+    async registro(eventoId, seguimientoId, usuario) {
+        await this.evento(eventoId, usuario);
+        const registro = await prisma.seguimientoEvento.findFirst({
             where: {
                 id: Number(seguimientoId),
                 eventoId: Number(eventoId),
@@ -135,30 +157,26 @@ class SeguimientoService {
             },
             include: { usuario: autor }
         });
-        if (!registro)
+        if (!registro) {
             throw new NotFoundException(
                 "Registro de seguimiento no encontrado."
             );
+        }
         return registro;
     }
 
     async crear(eventoId, data, usuario) {
-        return prisma.$transaction(
-            async (db) => {
-                await this.evento(eventoId, usuario, db);
-                return db.seguimientoEvento.create({
-                    data: {
-                        eventoId: Number(eventoId),
-                        usuarioId: usuario.id,
-                        descripcion: data.descripcion,
-                        tipo: data.tipo,
-                        importancia: data.importancia
-                    },
-                    include: { usuario: autor }
-                });
+        await this.evento(eventoId, usuario);
+        return prisma.seguimientoEvento.create({
+            data: {
+                eventoId: Number(eventoId),
+                usuarioId: usuario.id,
+                descripcion: data.descripcion,
+                tipo: data.tipo,
+                importancia: data.importancia
             },
-            { isolationLevel: "Serializable" }
-        );
+            include: { usuario: autor }
+        });
     }
 
     async comentarios(eventoId, seguimientoId, usuario) {
@@ -177,20 +195,15 @@ class SeguimientoService {
     }
 
     async comentar(eventoId, seguimientoId, data, usuario) {
-        return prisma.$transaction(
-            async (db) => {
-                await this.registro(eventoId, seguimientoId, usuario, db);
-                return db.comentarioSeguimiento.create({
-                    data: {
-                        seguimientoId: Number(seguimientoId),
-                        usuarioId: usuario.id,
-                        comentario: data.comentario
-                    },
-                    include: { usuario: autor }
-                });
+        await this.registro(eventoId, seguimientoId, usuario);
+        return prisma.comentarioSeguimiento.create({
+            data: {
+                seguimientoId: Number(seguimientoId),
+                usuarioId: usuario.id,
+                comentario: data.comentario
             },
-            { isolationLevel: "Serializable" }
-        );
+            include: { usuario: autor }
+        });
     }
 }
 
