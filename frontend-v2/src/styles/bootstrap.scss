@@ -1,3 +1,20 @@
 $primary: #6f42c1;
 
 @import "bootstrap/scss/bootstrap";
+
+.espacio-mapa-seleccionado,
+.espacio-mapa-seleccionado:hover,
+.espacio-mapa-seleccionado:focus {
+    color: #fff !important;
+    background-color: #5b35a6 !important;
+    border-color: #7c4dce !important;
+}
+
+.espacio-mapa-seleccionado .text-secondary {
+    color: #eee7fb !important;
+}
+
+.espacio-mapa-seleccionado .badge {
+    color: #fff !important;
+    background-color: #33204f !important;
+}
