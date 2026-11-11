@@ -23,14 +23,28 @@ const relaciones = {
             inicio: true,
             fin: true,
             lugar: true,
+            direccion: true,
+            comuna: true,
+            referenciaDireccion: true,
+            asistentes: true,
             tipoEvento: { select: { nombre: true } }
         }
     },
-    presupuestos: { select: { id: true, estado: true, venceAt: true } }
+    presupuestos: { select: { id: true, estado: true, venceAt: true, enviadoAt: true } }
 };
 const serializar = (v) => JSON.parse(JSON.stringify(v));
 
 class SolicitudService {
+
+    presentar(solicitud, usuario) {
+        if (usuario.rol !== "CLIENTE") return solicitud;
+        return {
+            ...solicitud,
+            presupuestos: solicitud.presupuestos.filter((presupuesto) =>
+                presupuesto.enviadoAt || ["ACEPTADO", "PENDIENTE_PAGO"].includes(presupuesto.estado)
+            )
+        };
+    }
 
     alcance(usuario) {
         if (!usuario || !["ADMIN", "CLIENTE"].includes(usuario.rol)) {
@@ -43,7 +57,7 @@ class SolicitudService {
             : { cliente: { usuarioId: usuario.id } };
     }
 
-    async detalle(id, usuario, tx = prisma) {
+    async detalle(id, usuario, tx = prisma, incluirBorradores = false) {
         const solicitud = await tx.solicitudEvento.findFirst({
             where: { id: Number(id), ...this.alcance(usuario) },
             include: relaciones
@@ -51,12 +65,12 @@ class SolicitudService {
         if (!solicitud) {
             throw new NotFoundException("Solicitud no encontrada.");
         }
-        return solicitud;
+        return incluirBorradores ? solicitud : this.presentar(solicitud, usuario);
     }
 
     async bloquear(tx, id, usuario) {
         await tx.$queryRaw`SELECT "id" FROM "SolicitudEvento" WHERE "id" = ${Number(id)} FOR UPDATE`;
-        return this.detalle(id, usuario, tx);
+        return this.detalle(id, usuario, tx, true);
     }
 
     async validarEmision({ tx, solicitudId, actorId }) {
@@ -180,7 +194,7 @@ class SolicitudService {
             }),
             prisma.solicitudEvento.count({ where })
         ]);
-        return { items, total, pagina, limite };
+        return { items: items.map((item) => this.presentar(item, usuario)), total, pagina, limite };
     }
 
     async editar(id, datos, usuario) {

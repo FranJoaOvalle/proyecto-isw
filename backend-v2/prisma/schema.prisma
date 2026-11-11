@@ -76,6 +76,7 @@ enum EstadoPago {
 
 enum EstadoPresupuesto {
   BORRADOR
+  ENVIADO
   PENDIENTE_PAGO
   ACEPTADO
   CANCELADO
@@ -112,6 +113,8 @@ model Usuario {
   cambiosEvento EventoCambio[]
   seguimientosEvento SeguimientoEvento[]
   comentariosSeguimiento ComentarioSeguimiento[]
+  propuestasEnviadas Presupuesto[] @relation("EmisorPresupuesto")
+  propuestasAceptadas Presupuesto[] @relation("AceptantePresupuesto")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -233,6 +236,7 @@ model Espacio {
 
   reservas ReservaEspacio[]
   eventos  Evento[]
+  presupuestos Presupuesto[]
 
   @@index([nombre])
 }
@@ -400,6 +404,19 @@ model Presupuesto {
   lugar      String
   asistentes Int
   venceAt    DateTime?
+  version Int @default(1)
+  enviadoAt DateTime?
+  enviadoPorId Int?
+  enviadoPor Usuario? @relation("EmisorPresupuesto", fields: [enviadoPorId], references: [id], onDelete: Restrict)
+  aceptadoAt DateTime?
+  aceptadoPorId Int?
+  aceptadoPor Usuario? @relation("AceptantePresupuesto", fields: [aceptadoPorId], references: [id], onDelete: Restrict)
+  versionAceptada Int?
+  espacioId Int?
+  espacio Espacio? @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  direccion String? @db.VarChar(250)
+  comuna String? @db.VarChar(100)
+  referenciaDireccion String? @db.VarChar(500)
 
   // Snapshot del catálogo al momento de cotizar
   nombreTipoEvento     String
@@ -428,6 +445,7 @@ model Presupuesto {
   updatedAt DateTime @updatedAt
 
   @@index([solicitudId])
+  @@index([espacioId])
   @@index([clienteId])
   @@index([tipoEventoId])
 }

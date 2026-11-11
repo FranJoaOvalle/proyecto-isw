@@ -45,7 +45,8 @@ class EspacioService {
                 select: { espacioId: true, lugar: true, direccion: true }
             });
             for (const espacio of espacios) {
-                if (eventos.some(evento => evento.espacioId === espacio.id || !evento.direccion &&
+                if (eventos.some(evento => evento.espacioId === espacio.id ||
+                    DisponibilidadService.normalizarRecinto(evento.lugar) === DisponibilidadService.normalizarRecinto(espacio.nombre) || !evento.direccion &&
                     [espacio.nombre, espacio.direccion].some(valor =>
                         DisponibilidadService.normalizarRecinto(valor) === DisponibilidadService.normalizarRecinto(evento.lugar)))) {
                     ocupados.add(espacio.id);
@@ -117,6 +118,7 @@ class EspacioService {
     async reservar(id, data, usuario) {
         return prisma.$transaction(async tx => {
             const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
+            if (evento) await DisponibilidadService.bloquearUbicaciones(tx);
             const espacioId = Number(id);
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})::text`;
             const espacio = await this.getById(espacioId, tx);
@@ -135,7 +137,8 @@ class EspacioService {
                     ...(evento ? { id: { not: evento.id } } : {}) },
                 select: { espacioId: true, lugar: true, direccion: true }
             });
-            if (eventos.some(e => e.espacioId === espacioId || !e.direccion && [espacio.nombre, espacio.direccion].some(v =>
+            if (eventos.some(e => e.espacioId === espacioId ||
+                DisponibilidadService.normalizarRecinto(e.lugar) === DisponibilidadService.normalizarRecinto(espacio.nombre) || !e.direccion && [espacio.nombre, espacio.direccion].some(v =>
                 DisponibilidadService.normalizarRecinto(v) === DisponibilidadService.normalizarRecinto(e.lugar)))) {
                 throw new ConflictException("Ya existe un evento en ese espacio y horario.");
             }
@@ -154,6 +157,9 @@ class EspacioService {
 
             if (evento) {
                 const ubicacion = UbicacionService.desdeEspacio(espacio, evento);
+                await DisponibilidadService.verificarDisponibilidad({
+                    ...ubicacion, inicio: evento.inicio, fin: evento.fin, productorId: evento.productorId
+                }, evento.id, tx);
                 const cambios = Object.entries(ubicacion).filter(([campo, valor]) => (evento[campo] ?? null) !== (valor ?? null)).map(([campo, valor]) => ({
                     usuarioId: usuario.id, campo, valorAnterior: evento[campo] == null ? null : String(evento[campo]), valorNuevo: valor == null ? null : String(valor)
                 }));

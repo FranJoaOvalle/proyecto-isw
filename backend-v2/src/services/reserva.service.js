@@ -55,6 +55,7 @@ class ReservaService {
                     "El evento cambió. Actualiza la página antes de continuar."
                 );
             }
+            await DisponibilidadService.bloquearUbicaciones(tx);
             datos = await UbicacionService.preparar(evento, datos, tx);
             const lugares = [evento.lugar, datos.lugar ?? evento.lugar].map(
                 (lugar) => DisponibilidadService.normalizarRecinto(lugar)

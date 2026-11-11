@@ -1,12 +1,23 @@
 const ConflictException = require("../exceptions/ConflictException");
 
-// Presupuestos debe implementar estas verificaciones con evidencias del servidor.
 class IntegracionPresupuestosService {
 
-    async verificarAceptacion() {
-        throw new ConflictException(
-            "Integración de aceptación con Presupuestos pendiente."
-        );
+    async verificarAceptacion({ presupuesto, actorId, version }) {
+        if (
+            presupuesto.estado !== "ACEPTADO" ||
+            !presupuesto.enviadoAt ||
+            !presupuesto.enviadoPorId ||
+            !presupuesto.aceptadoAt ||
+            presupuesto.aceptadoPorId !== actorId ||
+            presupuesto.version !== version ||
+            presupuesto.versionAceptada !== version ||
+            !presupuesto.venceAt ||
+            presupuesto.aceptadoAt > presupuesto.venceAt
+        ) {
+            throw new ConflictException(
+                "La propuesta no acredita una aceptación vigente de esta versión."
+            );
+        }
     }
 
     async verificarCierreSolicitud({ tx, solicitudId }) {

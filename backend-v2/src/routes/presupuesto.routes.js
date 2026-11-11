@@ -7,17 +7,21 @@ const {
     createSchema,
     updateSchema,
     idSchema,
-    estadoSchema
+    estadoSchema,
+    envioSchema,
+    aceptacionSchema
 } = require("../schemas/presupuesto.schema");
 
 const router = express.Router();
 
-router.use(authMiddleware, authorize("ADMIN"));
+router.use(authMiddleware);
 
-router.get("/", controller.getAll);
-router.post("/", validator(createSchema), controller.create);
-router.get("/:id", validator(idSchema), controller.getById);
-router.patch("/:id", validator(updateSchema), controller.update);
-router.patch("/:id/estado", validator(estadoSchema), controller.cancelar);
+router.get("/", authorize("ADMIN", "CLIENTE"), controller.getAll);
+router.post("/", authorize("ADMIN"), validator(createSchema), controller.create);
+router.get("/:id", authorize("ADMIN", "CLIENTE"), validator(idSchema), controller.getById);
+router.patch("/:id", authorize("ADMIN"), validator(updateSchema), controller.update);
+router.patch("/:id/estado", authorize("ADMIN"), validator(estadoSchema), controller.cancelar);
+router.post("/:id/enviar", authorize("ADMIN"), validator(envioSchema), controller.enviar);
+router.post("/:id/aceptar", authorize("CLIENTE"), validator(aceptacionSchema), controller.aceptar);
 
 module.exports = router;

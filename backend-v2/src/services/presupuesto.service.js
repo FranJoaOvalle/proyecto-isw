@@ -3,7 +3,9 @@ const { Prisma } = require("../../generated/prisma/client");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 const ValidationException = require("../exceptions/ValidationException");
+const ForbiddenException = require("../exceptions/ForbiddenException");
 const SolicitudService = require("./solicitud.service");
+const FormalizacionService = require("./formalizacion.service");
 
 const include = {
     cliente: {
@@ -15,17 +17,54 @@ const include = {
     },
     tipoEvento: true,
     solicitud: true,
+    evento: { select: { id: true } },
     recursos: { include: { recurso: true } }
 };
 const dinero = (value) => new Prisma.Decimal(value).toDecimalPlaces(2);
 const LIMITE_MONTO = new Prisma.Decimal("9999999999.99");
+const selectCliente = {
+    id: true, solicitudId: true, nombreTipoEvento: true, estado: true,
+    inicio: true, fin: true, lugar: true, direccion: true, comuna: true,
+    referenciaDireccion: true, asistentes: true, venceAt: true, version: true,
+    enviadoAt: true, aceptadoAt: true, versionAceptada: true,
+    precioBaseTipoEvento: true, subtotal: true, descuento: true,
+    recargoCliente: true, total: true,
+    recursos: { select: {
+        recursoId: true, nombreRecurso: true, tipoRecurso: true,
+        cantidad: true, precioUnitario: true, subtotal: true
+    } },
+    solicitud: { select: { estado: true, evento: { select: { id: true, estado: true } } } },
+    evento: { select: {
+        id: true, estado: true, inicio: true, fin: true, lugar: true,
+        direccion: true, comuna: true, referenciaDireccion: true, asistentes: true
+    } }
+};
 
 class PresupuestoService {
-    async getAll() {
+
+    alcance(usuario) {
+        if (!usuario || !["ADMIN", "CLIENTE"].includes(usuario.rol)) throw new ForbiddenException();
+        return usuario.rol === "ADMIN" ? {} : {
+            cliente: { usuarioId: usuario.id },
+            OR: [{ enviadoAt: { not: null } }, { estado: { in: ["ACEPTADO", "PENDIENTE_PAGO"] } }]
+        };
+    }
+
+    async getAll(usuario) {
         return prisma.presupuesto.findMany({
-            include,
+            where: this.alcance(usuario),
+            ...(usuario.rol === "CLIENTE" ? { select: selectCliente } : { include }),
             orderBy: { id: "desc" }
         });
+    }
+
+    async consultar(id, usuario, tx = prisma) {
+        const presupuesto = await tx.presupuesto.findFirst({
+            where: { id: Number(id), ...this.alcance(usuario) },
+            ...(usuario.rol === "CLIENTE" ? { select: selectCliente } : { include })
+        });
+        if (!presupuesto) throw new NotFoundException("Presupuesto no encontrado.");
+        return presupuesto;
     }
 
     async getById(id, tx = prisma) {
@@ -37,10 +76,18 @@ class PresupuestoService {
         return presupuesto;
     }
 
-    async bloquear(tx, id) {
+    async bloquear(tx, id, estados = ["BORRADOR"]) {
+        const origen = await tx.presupuesto.findUnique({
+            where: { id: Number(id) }, select: { solicitudId: true }
+        });
+        if (!origen) throw new NotFoundException("Presupuesto no encontrado.");
+        // Todas las operaciones comerciales respetan Solicitud -> Presupuesto.
+        if (origen.solicitudId != null) {
+            await tx.$queryRaw`SELECT "id" FROM "SolicitudEvento" WHERE "id" = ${origen.solicitudId} FOR UPDATE`;
+        }
         await tx.$queryRaw`SELECT "id" FROM "Presupuesto" WHERE "id" = ${Number(id)} FOR UPDATE`;
         const presupuesto = await this.getById(id, tx);
-        if (presupuesto.estado !== "BORRADOR") {
+        if (estados.length && !estados.includes(presupuesto.estado)) {
             throw new ConflictException(
                 "Solo se puede modificar un presupuesto que todavía está en borrador."
             );
@@ -220,6 +267,9 @@ class PresupuestoService {
     async update(id, datos) {
         return prisma.$transaction(async (tx) => {
             const actual = await this.bloquear(tx, id);
+            if (actual.enviadoAt || (actual.solicitud && actual.solicitud.estado !== "EN_REVISION")) {
+                throw new ConflictException("La propuesta ya fue enviada o su solicitud está cerrada. Crea una nueva cotización para cambiar sus condiciones.");
+            }
             const solicitud = actual.solicitud ?? {
                 clienteId: actual.clienteId,
                 tipoEventoId: actual.tipoEventoId
@@ -245,21 +295,115 @@ class PresupuestoService {
             });
             return tx.presupuesto.update({
                 where: { id: Number(id) },
-                data: valores,
+                data: { ...valores, version: { increment: 1 } },
                 include
             });
         });
     }
 
-    async cancelar(id) {
+    async cancelar(id, actorId) {
         return prisma.$transaction(async (tx) => {
-            const actual = await this.bloquear(tx, id);
-            return tx.presupuesto.update({
+            const actual = await this.bloquear(tx, id, ["BORRADOR", "ENVIADO"]);
+            const compromiso = await tx.pago.findFirst({ where: {
+                presupuestoId: actual.id, estado: { in: ["PENDIENTE", "PAGADO"] }
+            } });
+            const evento = await tx.evento.findUnique({ where: { presupuestoId: actual.id } });
+            if (compromiso || evento) throw new ConflictException("Resuelve los pagos o el evento antes de cancelar esta propuesta.");
+            const cancelado = await tx.presupuesto.update({
                 where: { id: actual.id },
                 data: { estado: "CANCELADO" },
                 include
             });
+            if (actual.solicitudId) {
+                await tx.solicitudEventoCambio.create({ data: {
+                    solicitudId: actual.solicitudId,
+                    ...SolicitudService.datosCambio(actorId, "CANCELACION_PROPUESTA",
+                        { presupuestoId: actual.id, estado: actual.estado },
+                        { presupuestoId: actual.id, estado: "CANCELADO" })
+                } });
+            }
+            return cancelado;
         });
+    }
+
+    async enviar(id, datos, actorId) {
+        return prisma.$transaction(async (tx) => {
+            const actual = await this.bloquear(tx, id);
+            if (!actual.solicitudId) throw new ConflictException("Los presupuestos históricos sin solicitud no pueden enviarse mediante este flujo.");
+            await SolicitudService.validarEmision({ tx, solicitudId: actual.solicitudId, actorId });
+            if (actual.version !== datos.version || actual.enviadoAt) {
+                throw new ConflictException("La cotización cambió. Actualiza la página antes de enviarla.");
+            }
+            if (datos.confirmarFactibilidad !== true || datos.venceAt <= new Date() || datos.venceAt > actual.inicio) {
+                throw new ConflictException("Confirma la factibilidad e indica una vigencia futura que no supere el inicio del evento.");
+            }
+            const ubicacion = await FormalizacionService.validarPropuesta(tx, { ...actual, ...datos });
+            const enviado = await tx.presupuesto.update({
+                where: { id: actual.id },
+                data: {
+                    ...ubicacion, estado: "ENVIADO", venceAt: datos.venceAt,
+                    enviadoAt: new Date(), enviadoPorId: actorId,
+                    version: { increment: 1 }
+                },
+                include
+            });
+            await tx.solicitudEventoCambio.create({ data: {
+                solicitudId: actual.solicitudId,
+                ...SolicitudService.datosCambio(actorId, "ENVIO_PROPUESTA", null,
+                    { presupuestoId: actual.id, version: enviado.version, venceAt: enviado.venceAt })
+            } });
+            return enviado;
+        });
+    }
+
+    async aceptar(id, datos, usuario) {
+        if (usuario?.rol !== "CLIENTE") throw new ForbiddenException();
+        if (datos.aceptar !== true) throw new ValidationException("Debes aceptar expresamente la propuesta.");
+        // También se comprueba el propietario antes de bloquear o clasificar un reintento.
+        await this.consultar(id, usuario);
+        for (let intento = 0; intento < 3; intento++) {
+            try {
+                return await prisma.$transaction(async (tx) => {
+                    const actual = await this.bloquear(tx, id, []);
+                    if (!actual.solicitudId) throw new ConflictException("Esta propuesta histórica no dispone de una solicitud para formalizar.");
+                    if (actual.version !== datos.version) throw new ConflictException("La versión cambió. Vuelve a consultar la propuesta antes de aceptarla.");
+                    if (actual.estado !== "ACEPTADO") {
+                        if (actual.estado !== "ENVIADO" || !actual.enviadoAt || !actual.enviadoPorId) {
+                            throw new ConflictException("Solo puedes aceptar una propuesta enviada y prevalidada por ADMIN.");
+                        }
+                        if (!actual.venceAt || actual.venceAt <= new Date()) {
+                            throw new ConflictException("La propuesta está vencida. Solicita una nueva cotización.");
+                        }
+                        await tx.presupuesto.update({
+                            where: { id: actual.id },
+                            data: {
+                                estado: "ACEPTADO", aceptadoAt: new Date(),
+                                aceptadoPorId: usuario.id, versionAceptada: datos.version
+                            }
+                        });
+                    }
+                    const evento = await FormalizacionService.formalizarContratacion({
+                        tx, solicitudId: actual.solicitudId, presupuestoId: actual.id,
+                        actorId: usuario.id, version: datos.version
+                    });
+                    return { evento, presupuesto: await this.consultar(id, usuario, tx) };
+                }, { maxWait: 5000, timeout: 15000 });
+            } catch (error) {
+                if (error.code === "P2002") {
+                    // La transacción ya se revirtió: nunca consultar dentro del tx abortado.
+                    const actual = await this.consultar(id, usuario);
+                    const evidencia = await this.getById(id);
+                    if (actual.evento && actual.estado === "ACEPTADO" && actual.versionAceptada === datos.version &&
+                        evidencia.aceptadoPorId === usuario.id && evidencia.version === datos.version) {
+                        return { presupuesto: actual, evento: actual.evento };
+                    }
+                    throw new ConflictException("La solicitud o el presupuesto ya fueron contratados. Actualiza la página.");
+                }
+                const conflicto = error.code === "P2034" || ["40001", "40P01"].includes(error.meta?.code);
+                if (!conflicto) throw error;
+                if (intento === 2) throw new ConflictException("Otra operación está modificando la contratación. Vuelve a intentarlo.");
+            }
+        }
     }
 }
 

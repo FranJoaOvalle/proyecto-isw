@@ -18,6 +18,7 @@ import EmptyState from "../EmptyState";
 import ConfirmModal from "../ConfirmModal";
 import TableToolbar from "../admin/TableToolbar";
 import SolicitudFormulario from "./SolicitudFormulario";
+import { nombresEstadoPresupuesto } from "../presupuestos/presupuesto.utils";
 import {
     listarSolicitudes,
     obtenerSolicitud,
@@ -341,6 +342,7 @@ function Panel({ id, tipoEventoId }) {
                                             {solicitud.evento.tipoEvento.nombre}{" "}
                                             · {solicitud.evento.lugar}
                                         </p>
+                                        {solicitud.evento.direccion && <p>{solicitud.evento.direccion}, {solicitud.evento.comuna}</p>}
                                         <p>
                                             {fechaSeguimiento(
                                                 solicitud.evento.inicio
@@ -367,16 +369,19 @@ function Panel({ id, tipoEventoId }) {
                                 <ListGroup className="mb-4">
                                     {solicitud.presupuestos.map((p) => (
                                         <ListGroup.Item key={p.id}>
-                                            Presupuesto #{p.id} · {p.estado}
+                                            Presupuesto #{p.id} · {nombresEstadoPresupuesto[p.estado] ?? p.estado}
                                         </ListGroup.Item>
                                     ))}
                                 </ListGroup>
                             ) : (
                                 <p className="text-secondary">
-                                    Sin propuestas vinculadas. La gestión de
-                                    propuestas se conectará desde Presupuestos.
+                                    Aún no hay propuestas vinculadas a esta solicitud.
                                 </p>
                             )}
+                            <Button as={Link} to={esAdmin ? "/admin/presupuestos" : `/cliente/compra?solicitudId=${solicitud.id}`}
+                                variant="outline-primary" className="mb-4">
+                                {esAdmin ? "Gestionar presupuestos" : "Revisar propuestas"}
+                            </Button>
                             <h2 className="h5">Historial de la solicitud</h2>
                             <ListGroup>
                                 {historial.map((h) => (

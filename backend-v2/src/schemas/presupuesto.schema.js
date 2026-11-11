@@ -60,6 +60,23 @@ module.exports = {
             })
     }),
     idSchema: z.object({ params }),
+    envioSchema: z.object({
+        params,
+        body: z.object({
+            version: id,
+            confirmarFactibilidad: z.literal(true),
+            venceAt: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
+            espacioId: id.nullable(),
+            lugar: z.string().trim().min(3).max(255),
+            direccion: z.string().trim().min(2).max(250),
+            comuna: z.string().trim().min(2).max(100),
+            referenciaDireccion: z.string().trim().max(500).nullable().optional()
+        }).strict()
+    }),
+    aceptacionSchema: z.object({
+        params,
+        body: z.object({ version: id, aceptar: z.literal(true) }).strict()
+    }),
     estadoSchema: z.object({
         params,
         body: z.object({ estado: z.enum(["CANCELADO"]) }).strict()

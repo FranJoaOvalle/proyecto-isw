@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     Alert,
     Badge,
@@ -13,6 +14,7 @@ import EmptyState from "../../components/EmptyState";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableToolbar from "../../components/admin/TableToolbar";
 import PresupuestoFormularioModal from "../../components/presupuestos/PresupuestoFormularioModal";
+import PresupuestoEnvioModal from "../../components/presupuestos/PresupuestoEnvioModal";
 import { listarSolicitudes } from "../../services/solicitud.service";
 import { getTiposEvento } from "../../services/tipoEvento.service";
 import { listarRecursos } from "../../services/recurso.service";
@@ -24,6 +26,7 @@ import { mensajeError } from "../../components/eventos/seguimiento.utils";
 
 const nombresEstado = {
     BORRADOR: "Borrador",
+    ENVIADO: "Enviada",
     PENDIENTE_PAGO: "Pendiente de pago",
     ACEPTADO: "Aceptado",
     CANCELADO: "Cancelado",
@@ -32,6 +35,7 @@ const nombresEstado = {
 
 const varianteEstado = {
     BORRADOR: "secondary",
+    ENVIADO: "primary",
     PENDIENTE_PAGO: "warning",
     ACEPTADO: "success",
     CANCELADO: "danger",
@@ -85,6 +89,7 @@ export default function PresupuestosPage() {
     const [mensaje, setMensaje] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [presupuestoEditar, setPresupuestoEditar] = useState(null);
+    const [presupuestoEnviar, setPresupuestoEnviar] = useState(null);
     const [presupuestoCancelar, setPresupuestoCancelar] = useState(null);
     const [cancelando, setCancelando] = useState(false);
     const [busqueda, setBusqueda] = useState("");
@@ -230,6 +235,7 @@ export default function PresupuestosPage() {
                         opcionesEstado={{
                             TODOS: "Todos los estados",
                             BORRADOR: "Borrador",
+                            ENVIADO: "Enviada",
                             PENDIENTE_PAGO: "Pendiente de pago",
                             ACEPTADO: "Aceptado",
                             CANCELADO: "Cancelado",
@@ -301,6 +307,11 @@ export default function PresupuestosPage() {
                                                         >
                                                             Editar
                                                         </Button>
+                                                        {presupuesto.solicitudId && presupuesto.solicitud?.estado === "EN_REVISION" && (
+                                                            <Button size="sm" onClick={() => setPresupuestoEnviar(presupuesto)}>
+                                                                Enviar propuesta
+                                                            </Button>
+                                                        )}
                                                         <Button
                                                             variant="outline-danger"
                                                             size="sm"
@@ -309,6 +320,16 @@ export default function PresupuestosPage() {
                                                             Cancelar
                                                         </Button>
                                                     </div>
+                                                )}
+                                                {presupuesto.estado === "ENVIADO" && (
+                                                    <Button variant="outline-danger" size="sm" onClick={() => setPresupuestoCancelar(presupuesto)}>
+                                                        Cancelar propuesta
+                                                    </Button>
+                                                )}
+                                                {presupuesto.evento && (
+                                                    <Button as={Link} to={`/admin/eventos/${presupuesto.evento.id}`} variant="outline-primary" size="sm">
+                                                        Ver evento
+                                                    </Button>
                                                 )}
                                             </td>
                                         </tr>
@@ -330,6 +351,19 @@ export default function PresupuestosPage() {
                 cargandoRecursos={cargandoRecursos}
                 errorRecursos={errorRecursos}
             />
+
+            {presupuestoEnviar && (
+                <PresupuestoEnvioModal
+                    key={`${presupuestoEnviar.id}-${presupuestoEnviar.version}`}
+                    presupuesto={presupuestoEnviar}
+                    onHide={() => setPresupuestoEnviar(null)}
+                    onEnviado={() => {
+                        setPresupuestoEnviar(null);
+                        setMensaje("Propuesta disponible para que el cliente la revise y acepte.");
+                        cargarDatos();
+                    }}
+                />
+            )}
 
             <ConfirmModal
                 show={Boolean(presupuestoCancelar)}
