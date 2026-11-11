@@ -3,6 +3,11 @@ const ConflictException = require("../exceptions/ConflictException");
 
 class DisponibilidadService {
 
+    async bloquearUbicaciones(tx) {
+        // Serializa comprobación y escritura, incluidas ubicaciones sin Espacio.
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(76001, 1)::text`;
+    }
+
     normalizarRecinto(texto) {
         return texto
             .normalize("NFD")
@@ -57,6 +62,7 @@ class DisponibilidadService {
         if (
             coincidentes.some(
                 (v) =>
+                    this.normalizarRecinto(v.lugar) === this.normalizarRecinto(lugar) ||
                     (v.espacioId != null && ids.includes(v.espacioId)) ||
                     (!v.direccion &&
                         (ids.length

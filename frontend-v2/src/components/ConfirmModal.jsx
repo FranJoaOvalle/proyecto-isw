@@ -12,7 +12,8 @@ export default function ConfirmModal({
                                          children,
                                          confirmText = "Confirmar",
                                          variant = "danger",
-                                         loading = false
+                                         loading = false,
+                                         confirmDisabled = false
                                      }) {
     return (
         <Modal show={show} onHide={onHide} centered>
@@ -36,7 +37,7 @@ export default function ConfirmModal({
                 <Button
                     variant={variant}
                     onClick={onConfirm}
-                    disabled={loading}
+                    disabled={loading || confirmDisabled}
                 >
                     {loading && (
                         <Spinner

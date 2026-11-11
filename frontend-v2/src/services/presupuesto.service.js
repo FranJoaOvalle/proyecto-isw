@@ -28,3 +28,13 @@ export const cancelarPresupuesto = async (id) => {
     });
     return response.data?.presupuesto ?? response.data;
 };
+
+export const enviarPresupuesto = async (id, datos) => {
+    const response = await api.post(`/presupuestos/${id}/enviar`, datos);
+    return response.data;
+};
+
+export const aceptarPresupuesto = async (id, version) => {
+    const response = await api.post(`/presupuestos/${id}/aceptar`, { version, aceptar: true });
+    return response.data;
+};
