@@ -22,6 +22,7 @@ module.exports = {
         req.validated.params.id,
         req.validated.body.habilitado
     )),
+    eliminar: responder(req => espacioService.eliminar(req.validated.params.id)),
     guardarUbicacion: responder(req => espacioService.guardarUbicacion(
         req.validated.params.id,
         req.validated.body

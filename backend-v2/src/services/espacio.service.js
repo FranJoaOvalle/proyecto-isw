@@ -3,6 +3,10 @@ const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 const ValidationException = require("../exceptions/ValidationException");
 
+const bloquearEspacio = (tx, id) => tx.$queryRaw`
+    SELECT pg_advisory_xact_lock(${Number(id)})::text AS lock
+`;
+
 const validarTarifa = ({ costoArriendo, unidadArriendo }) => {
     const tieneCosto = costoArriendo !== undefined && costoArriendo !== null;
     const tieneUnidad = unidadArriendo !== undefined && unidadArriendo !== null;
@@ -21,7 +25,8 @@ class EspacioService {
                     where: { cancelada: false, fin: { gt: ahora } },
                     orderBy: { inicio: "asc" },
                     take: 1
-                }
+                },
+                _count: { select: { reservas: true } }
             }
         });
 
@@ -59,28 +64,32 @@ class EspacioService {
     }
 
     async update(id, data) {
-        return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})`;
-            const actual = await this.getById(id, tx);
-            validarTarifa({ ...actual, ...data });
-            return tx.espacio.update({ where: { id: Number(id) }, data });
-        });
+        const actual = await this.getById(id);
+        validarTarifa({ ...actual, ...data });
+        return prisma.espacio.update({ where: { id: Number(id) }, data });
     }
 
     async cambiarEstado(id, habilitado) {
-        return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})`;
-            const actual = await this.getById(id, tx);
-            if (actual.habilitado === habilitado) {
-                throw new ConflictException(habilitado
-                    ? "El espacio ya está habilitado."
-                    : "El espacio ya está deshabilitado.");
-            }
-            return tx.espacio.update({
-                where: { id: Number(id) },
-                data: { habilitado }
-            });
+        const actual = await this.getById(id);
+        if (actual.habilitado === habilitado) {
+            throw new ConflictException(habilitado
+                ? "El espacio ya está habilitado."
+                : "El espacio ya está deshabilitado.");
+        }
+        return prisma.espacio.update({
+            where: { id: Number(id) },
+            data: { habilitado }
         });
+    }
+
+    async eliminar(id) {
+        const espacioId = Number(id);
+        await this.getById(espacioId);
+        const reservas = await prisma.reservaEspacio.count({ where: { espacioId } });
+        if (reservas > 0) {
+            throw new ConflictException(`No se puede eliminar definitivamente porque tiene ${reservas} ${reservas === 1 ? "reserva" : "reservas"} asociadas. Deshabilítalo para conservar el historial.`);
+        }
+        return prisma.espacio.delete({ where: { id: espacioId } });
     }
 
     async guardarUbicacion(id, { latitud, longitud }) {
@@ -102,7 +111,7 @@ class EspacioService {
     async reservar(id, data) {
         return prisma.$transaction(async tx => {
             const espacioId = Number(id);
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})`;
+            await bloquearEspacio(tx, espacioId);
             const espacio = await this.getById(espacioId, tx);
             if (!espacio.habilitado) {
                 throw new ConflictException("El espacio está deshabilitado para nuevas reservas.");
@@ -134,7 +143,7 @@ class EspacioService {
             });
             if (!reserva) throw new NotFoundException("Reserva no encontrada.");
 
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.espacioId})`;
+            await bloquearEspacio(tx, reserva.espacioId);
             if (reserva.cancelada) {
                 throw new ConflictException("La reserva ya está cancelada.");
             }

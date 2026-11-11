@@ -13,9 +13,11 @@ import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
 import MapaEspacios from "./MapaEspacios";
+import NotificacionToast from "./NotificacionToast";
 import {
     cancelarReservaEspacio,
     createEspacio,
+    deleteEspacio,
     getEspacios,
     getReservasEspacio,
     reservarEspacio,
@@ -84,6 +86,7 @@ export default function EspaciosPanel() {
     const [form, setForm] = useState(initialSpace);
     const [validated, setValidated] = useState(false);
     const [spaceEstado, setSpaceEstado] = useState(null);
+    const [spaceEliminar, setSpaceEliminar] = useState(null);
     const [rango, setRango] = useState({ inicio: "", fin: "" });
     const [rangoAplicado, setRangoAplicado] = useState(null);
     const [selectedSpace, setSelectedSpace] = useState(null);
@@ -233,6 +236,27 @@ export default function EspaciosPanel() {
         }
     };
 
+    const confirmarEliminacion = async () => {
+        if (!spaceEliminar) return;
+        setChangingId(spaceEliminar.id);
+        setError("");
+        setSuccess("");
+        try {
+            await deleteEspacio(spaceEliminar.id);
+            setSuccess(`Espacio ${spaceEliminar.nombre} eliminado definitivamente.`);
+            setSpaceEliminar(null);
+            await cargarEspacios();
+        } catch (err) {
+            setError(
+                err.response?.data?.error?.message ??
+                "No fue posible eliminar el espacio."
+            );
+            setSpaceEliminar(null);
+        } finally {
+            setChangingId(null);
+        }
+    };
+
     const abrirReservas = async espacio => {
         setSelectedSpace(espacio);
         setBooking({ ...initialBooking });
@@ -326,8 +350,8 @@ export default function EspaciosPanel() {
                 <Button onClick={abrirCrear}><i className="bi bi-plus-lg me-2" />Nuevo espacio</Button>
             </div>
 
-            {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-            {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+            <NotificacionToast mensaje={error && !showModal && !showBookings ? error : ""} tipo="danger" onClose={() => setError("")} />
+            <NotificacionToast mensaje={success} onClose={() => setSuccess("")} />
 
             <Form onSubmit={buscarDisponibilidad} className="border rounded-3 p-3 mb-4 bg-body-tertiary">
                 <div className="d-flex align-items-center gap-2 mb-3">
@@ -423,8 +447,17 @@ export default function EspaciosPanel() {
                                         <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirEditar(espacio)}>
                                             <i className="bi bi-pencil me-1" />Editar
                                         </Button>
-                                        <Button size="sm" variant={espacio.habilitado ? "outline-danger" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
+                                        <Button size="sm" variant={espacio.habilitado ? "outline-warning" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
                                             {espacio.habilitado ? "Deshabilitar" : "Habilitar"}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline-danger"
+                                            className="ms-2"
+                                            disabled={changingId === espacio.id}
+                                            onClick={() => setSpaceEliminar(espacio)}
+                                        >
+                                            <i className="bi bi-trash me-1" />Eliminar
                                         </Button>
                                     </td>
                                 </tr>
@@ -553,6 +586,22 @@ export default function EspaciosPanel() {
                 {spaceEstado?.habilitado
                     ? <>¿Deshabilitar <strong>{spaceEstado.nombre}</strong>? Las reservas existentes se conservarán.</>
                     : <>¿Habilitar <strong>{spaceEstado?.nombre}</strong> para nuevas reservas?</>}
+            </ConfirmModal>
+
+            <ConfirmModal
+                show={Boolean(spaceEliminar)}
+                onHide={() => changingId === null && setSpaceEliminar(null)}
+                onConfirm={spaceEliminar?._count?.reservas
+                    ? () => setSpaceEliminar(null)
+                    : confirmarEliminacion}
+                loading={Boolean(spaceEliminar && changingId === spaceEliminar.id)}
+                title="Eliminar espacio definitivamente"
+                confirmText={spaceEliminar?._count?.reservas ? "Entendido" : "Eliminar definitivamente"}
+                variant={spaceEliminar?._count?.reservas ? "secondary" : "danger"}
+            >
+                {spaceEliminar?._count?.reservas
+                    ? <><strong>{spaceEliminar.nombre}</strong> no se puede eliminar porque tiene {spaceEliminar._count.reservas} {spaceEliminar._count.reservas === 1 ? "reserva" : "reservas"} asociadas. Deshabilítalo para conservar el historial.</>
+                    : <>¿Eliminar <strong>{spaceEliminar?.nombre}</strong> definitivamente? Esta acción no se puede deshacer.</>}
             </ConfirmModal>
 
             <ConfirmModal

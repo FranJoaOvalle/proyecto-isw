@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card, Form, InputGroup, Modal, Spinner, Table } f
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import ReservasVehiculoModal from "./ReservasVehiculoModal";
+import NotificacionToast from "./NotificacionToast";
 import { createVehiculo, deleteVehiculo, getVehiculos, updateVehiculo } from "../../services/vehiculo.service";
 
 const inicial = {
@@ -244,8 +245,8 @@ export default function VehiculosPanel() {
                 <Button onClick={abrirCrear}><i className="bi bi-plus-lg me-2" />Nuevo vehículo</Button>
             </div>
 
-            {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-            {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+            <NotificacionToast mensaje={error && !showModal && !reservasVehiculo ? error : ""} tipo="danger" onClose={() => setError("")} />
+            <NotificacionToast mensaje={success} onClose={() => setSuccess("")} />
 
             <Form onSubmit={buscarDisponibilidad} className="border rounded-3 p-3 mb-4 bg-body-tertiary">
                 <div className="d-flex align-items-center gap-2 mb-3"><i className="bi bi-calendar2-check text-primary" /><strong>Consultar vehículos disponibles</strong></div>

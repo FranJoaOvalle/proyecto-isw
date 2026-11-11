@@ -162,7 +162,10 @@ class RecursoService {
         if (relaciones.length) {
             throw new ConflictException(`No se puede eliminar definitivamente porque tiene ${relaciones.join(", ")} asociados. Desactívalo para conservar el historial.`);
         }
-        return prisma.recurso.delete({ where: { id: recursoId } });
+        return prisma.$transaction(async tx => {
+            await tx.recursoMaterial.deleteMany({ where: { recursoId } });
+            return tx.recurso.delete({ where: { id: recursoId } });
+        });
     }
 
     async getReservas(id) {
@@ -176,7 +179,7 @@ class RecursoService {
     async reservar(id, data) {
         const recursoId = Number(id);
         return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${recursoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${recursoId})::text AS lock`;
             const recurso = await tx.recurso.findUnique({ where: { id: recursoId } });
             if (!recurso || recurso.tipo !== "MATERIAL") {
                 throw new NotFoundException("Recurso material no encontrado.");
@@ -215,7 +218,7 @@ class RecursoService {
         return prisma.$transaction(async tx => {
             const reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(id) } });
             if (!reserva) throw new NotFoundException("Reserva de recurso no encontrada.");
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})::text AS lock`;
             if (reserva.cancelada) {
                 throw new ConflictException("La reserva ya está cancelada.");
             }
@@ -235,7 +238,7 @@ class RecursoService {
             if (!reserva || reserva.recursoId !== Number(id)) {
                 throw new NotFoundException("Reserva de recurso no encontrada.");
             }
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})::text AS lock`;
             if (reserva.cancelada || reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("La devolución ya fue registrada o la reserva fue cancelada.");
             }

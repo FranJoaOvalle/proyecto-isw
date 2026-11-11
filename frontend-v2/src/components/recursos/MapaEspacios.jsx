@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
-import { Alert, Badge, Button, Card, ListGroup, Spinner } from "react-bootstrap";
+import { Badge, Button, Card, ListGroup, Spinner } from "react-bootstrap";
 import { guardarUbicacionEspacio } from "../../services/espacio.service";
+import NotificacionToast from "./NotificacionToast";
 import "leaflet/dist/leaflet.css";
 
 function estadoEspacio(espacio) {
@@ -138,7 +139,11 @@ export default function MapaEspacios({ espacios, onReservas, onUbicacionGuardada
                     </Button>
                 </div>
 
-                {aviso && <Alert variant={aviso.startsWith("No se encontró") || aviso.includes("No se encontró") ? "warning" : "success"}>{aviso}</Alert>}
+                <NotificacionToast
+                    mensaje={aviso}
+                    tipo={aviso.includes("No se encontró") ? "warning" : "success"}
+                    onClose={() => setAviso("")}
+                />
 
                 <div className="row g-3">
                     <div className="col-12 col-xl-8">
@@ -196,10 +201,11 @@ export default function MapaEspacios({ espacios, onReservas, onUbicacionGuardada
                                 const tieneUbicacion = Number.isFinite(espacio.latitud) && Number.isFinite(espacio.longitud);
                                 return (
                                     <ListGroup.Item
+                                        className={seleccionado === espacio.id ? "espacio-mapa-seleccionado" : ""}
                                         action={tieneUbicacion}
                                         key={espacio.id}
-                                        active={seleccionado === espacio.id}
                                         onClick={() => tieneUbicacion && setSeleccionado(espacio.id)}
+                                        aria-current={seleccionado === espacio.id ? "true" : undefined}
                                     >
                                         <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2">
                                             <strong className="text-break">{espacio.nombre}</strong>

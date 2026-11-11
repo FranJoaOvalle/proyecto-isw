@@ -72,7 +72,7 @@ class VehiculoService {
     async reservar(id, data) {
         const vehiculoId = Number(id);
         return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})::text AS lock`;
             const vehiculo = await this.getById(vehiculoId, tx);
             if (!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE") {
                 throw new ConflictException("El vehículo no está disponible para nuevas reservas.");
@@ -99,7 +99,7 @@ class VehiculoService {
         return prisma.$transaction(async tx => {
             const reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(id) } });
             if (!reserva) throw new NotFoundException("Reserva de vehículo no encontrada.");
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text AS lock`;
             if (reserva.cancelada) throw new ConflictException("La reserva ya está cancelada.");
             if (reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("No se puede cancelar una reserva cuya devolución ya fue registrada.");
@@ -117,7 +117,7 @@ class VehiculoService {
             if (!reserva || reserva.vehiculoId !== Number(id)) {
                 throw new NotFoundException("Reserva de vehículo no encontrada.");
             }
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text AS lock`;
             if (reserva.cancelada || reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("La devolución ya fue registrada o la reserva fue cancelada.");
             }

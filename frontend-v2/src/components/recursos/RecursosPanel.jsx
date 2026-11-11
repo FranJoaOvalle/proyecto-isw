@@ -13,6 +13,7 @@ import {
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
+import NotificacionToast from "./NotificacionToast";
 import {
     createRecurso,
     deleteRecurso,
@@ -313,8 +314,8 @@ export default function RecursosPanel() {
                 </Button>
             </div>
 
-            {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-            {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+            <NotificacionToast mensaje={error && !showModal ? error : ""} tipo="danger" onClose={() => setError("")} />
+            <NotificacionToast mensaje={success} onClose={() => setSuccess("")} />
 
             <Form onSubmit={buscarDisponibilidad} className="border rounded-3 p-3 mb-4 bg-body-tertiary">
                 <div className="d-flex align-items-center gap-2 mb-3"><i className="bi bi-calendar2-check text-primary" /><strong>Consultar disponibilidad de equipos</strong></div>
