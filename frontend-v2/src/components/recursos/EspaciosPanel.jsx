@@ -528,8 +528,8 @@ export default function EspaciosPanel() {
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-                    <p className="text-secondary">Las reservas se registran con una referencia para identificar el evento.</p>
-                    <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
+                    <p className="text-secondary">Consulta las reservas del recinto. Para reservar un horario, indica una referencia y sus fechas.</p>
+                    {selectedSpace?.habilitado ? <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
                         <h3 className="h6 fw-bold">Nueva reserva</h3>
                         <div className="row g-3">
                             <Form.Group className="col-md-4">
@@ -548,7 +548,7 @@ export default function EspaciosPanel() {
                                 <Button type="submit" className="w-100" disabled={bookingSaving}>{bookingSaving ? <Spinner size="sm" /> : "Reservar"}</Button>
                             </div>
                         </div>
-                    </Form>
+                    </Form> : <Alert variant="secondary">Este espacio está deshabilitado para nuevas reservas.</Alert>}
                     <h3 className="h6 fw-bold">Historial de reservas</h3>
                     {reservas.length === 0 ? (
                         <EmptyState icon="bi-calendar-x" title="Sin reservas" description="Este espacio todavía no tiene reservas registradas." />

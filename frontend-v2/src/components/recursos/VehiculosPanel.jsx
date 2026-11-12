@@ -240,7 +240,7 @@ export default function VehiculosPanel() {
             <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
                 <div>
                     <h2 className="h4 fw-bold mb-1">Flota de vehículos</h2>
-                    <p className="text-secondary mb-0">Registra los vehículos, su mantención y las asignaciones a eventos.</p>
+                    <p className="text-secondary mb-0">Administra la flota, consulta las asignaciones y registra devoluciones.</p>
                 </div>
                 <Button onClick={abrirCrear}><i className="bi bi-plus-lg me-2" />Nuevo vehículo</Button>
             </div>

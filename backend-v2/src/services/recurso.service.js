@@ -13,7 +13,7 @@ function calcularMaximoReservado(reservas, inicio, fin) {
     };
 
     for (const reserva of reservas) {
-        const pendienteAtrasada = reserva.estadoDevolucion === "PENDIENTE" && reserva.fin <= inicio;
+        const pendienteAtrasada = reserva.estadoDevolucion === "PENDIENTE" && reserva.fin <= new Date();
         const inicioEfectivo = reserva.inicio > inicio ? reserva.inicio : inicio;
         const finEfectivo = pendienteAtrasada || reserva.fin > fin
             ? fin
@@ -51,7 +51,7 @@ class RecursoService {
                     recursoId: { in: recursos.map(recurso => recurso.id) },
                     OR: [
                         { inicio: { lt: intervalo.fin }, fin: { gt: intervalo.inicio } },
-                        { estadoDevolucion: "PENDIENTE", fin: { lte: intervalo.inicio } }
+                        { estadoDevolucion: "PENDIENTE", fin: { lte: new Date() } }
                     ]
                 },
                 select: {
@@ -194,7 +194,7 @@ class RecursoService {
                     cancelada: false,
                     OR: [
                         { inicio: { lt: data.fin }, fin: { gt: data.inicio } },
-                        { estadoDevolucion: "PENDIENTE", fin: { lte: data.inicio } }
+                        { estadoDevolucion: "PENDIENTE", fin: { lte: new Date() } }
                     ]
                 },
                 select: { cantidad: true, inicio: true, fin: true, estadoDevolucion: true }
@@ -216,9 +216,11 @@ class RecursoService {
 
     async cancelarReserva(id) {
         return prisma.$transaction(async tx => {
-            const reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(id) } });
+            let reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(id) } });
             if (!reserva) throw new NotFoundException("Reserva de recurso no encontrada.");
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})::text AS lock`;
+            reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(id) } });
+            if (reserva.inicio <= new Date()) throw new ConflictException("Registra la devolución para liberar un equipo cuya reserva ya comenzó.");
             if (reserva.cancelada) {
                 throw new ConflictException("La reserva ya está cancelada.");
             }
@@ -234,11 +236,13 @@ class RecursoService {
 
     async registrarDevolucion(id, reservaId, data) {
         return prisma.$transaction(async tx => {
-            const reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(reservaId) } });
+            let reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(reservaId) } });
             if (!reserva || reserva.recursoId !== Number(id)) {
                 throw new NotFoundException("Reserva de recurso no encontrada.");
             }
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.recursoId})::text AS lock`;
+            reserva = await tx.reservaRecurso.findUnique({ where: { id: Number(reservaId) } });
+            if (reserva.inicio > new Date()) throw new ConflictException("La reserva aún no ha comenzado.");
             if (reserva.cancelada || reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("La devolución ya fue registrada o la reserva fue cancelada.");
             }

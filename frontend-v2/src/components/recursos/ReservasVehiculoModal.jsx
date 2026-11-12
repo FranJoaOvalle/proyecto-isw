@@ -121,11 +121,11 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
                     <p className="text-secondary">Un vehículo no puede tener reservas superpuestas. Si aún no se registra la devolución, seguirá bloqueado para nuevas salidas.</p>
-                    <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
+                    {!vehiculo?.habilitado || vehiculo?.estado !== "DISPONIBLE" ? <Alert variant="secondary">Este vehículo no admite nuevas asignaciones.</Alert> : <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
                         <h3 className="h6 fw-bold">Nueva asignación</h3>
                         <div className="row g-3 align-items-end">
                             <Form.Group className="col-md-4">
-                                <Form.Label>Evento o referencia</Form.Label>
+                                <Form.Label>Referencia</Form.Label>
                                 <Form.Control value={form.referencia} onChange={event => setForm(current => ({ ...current, referencia: event.target.value }))} minLength={2} maxLength={150} required disabled={saving} />
                             </Form.Group>
                             <Form.Group className="col-md-3">
@@ -138,7 +138,7 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                             </Form.Group>
                             <div className="col-md-2"><Button type="submit" className="w-100" disabled={saving}>Asignar</Button></div>
                         </div>
-                    </Form>
+                    </Form>}
                     <h3 className="h6 fw-bold">Historial</h3>
                     {loading ? <div className="text-center py-4"><Spinner animation="border" /></div> : reservas.length === 0 ? (
                         <EmptyState icon="bi-truck" title="Sin asignaciones" description="Este vehículo todavía no tiene salidas registradas." />
@@ -154,8 +154,8 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                                         <td><Badge bg={reserva.cancelada ? "secondary" : reserva.estadoDevolucion === "PENDIENTE" ? "warning" : reserva.estadoDevolucion === "CONFORME" ? "success" : "danger"} text={!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" ? "dark" : undefined}>{reserva.cancelada ? "Cancelada" : reserva.estadoDevolucion === "PENDIENTE" ? "Pendiente de devolución" : reserva.estadoDevolucion === "CONFORME" ? "Devuelto conforme" : "Devuelto con observaciones"}</Badge></td>
                                         <td>{reserva.observacionesDevolucion || "—"}</td>
                                         <td className="text-end text-nowrap">{!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                            <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>
-                                            <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>
+                                            {new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>}
+                                            {new Date(reserva.inicio) > new Date() && <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>}
                                         </>}</td>
                                     </tr>
                                 ))}</tbody>

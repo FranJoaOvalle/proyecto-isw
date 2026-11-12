@@ -20,7 +20,7 @@ class VehiculoService {
                 vehiculoId: { in: vehiculos.map(v => v.id) },
                 OR: [
                     { inicio: { lt: filtros.fin }, fin: { gt: filtros.inicio } },
-                    { estadoDevolucion: "PENDIENTE", fin: { lte: filtros.inicio } }
+                    { estadoDevolucion: "PENDIENTE", fin: { lte: new Date() } }
                 ]
             },
             select: { vehiculoId: true }
@@ -83,7 +83,7 @@ class VehiculoService {
                     cancelada: false,
                     OR: [
                         { inicio: { lt: data.fin }, fin: { gt: data.inicio } },
-                        { estadoDevolucion: "PENDIENTE", fin: { lte: data.inicio } }
+                        { estadoDevolucion: "PENDIENTE", fin: { lte: new Date() } }
                     ]
                 },
                 select: { id: true }
@@ -97,9 +97,11 @@ class VehiculoService {
 
     async cancelarReserva(id) {
         return prisma.$transaction(async tx => {
-            const reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(id) } });
+            let reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(id) } });
             if (!reserva) throw new NotFoundException("Reserva de vehículo no encontrada.");
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text AS lock`;
+            reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(id) } });
+            if (reserva.inicio <= new Date()) throw new ConflictException("Registra la devolución para liberar un vehículo cuya reserva ya comenzó.");
             if (reserva.cancelada) throw new ConflictException("La reserva ya está cancelada.");
             if (reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("No se puede cancelar una reserva cuya devolución ya fue registrada.");
@@ -113,11 +115,13 @@ class VehiculoService {
 
     async registrarDevolucion(id, reservaId, data) {
         return prisma.$transaction(async tx => {
-            const reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(reservaId) } });
+            let reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(reservaId) } });
             if (!reserva || reserva.vehiculoId !== Number(id)) {
                 throw new NotFoundException("Reserva de vehículo no encontrada.");
             }
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text AS lock`;
+            reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(reservaId) } });
+            if (reserva.inicio > new Date()) throw new ConflictException("La reserva aún no ha comenzado.");
             if (reserva.cancelada || reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("La devolución ya fue registrada o la reserva fue cancelada.");
             }

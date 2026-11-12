@@ -132,16 +132,16 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
                     <p className="text-secondary">Las reservas descuentan stock durante el horario indicado. Registra la devolución para liberar el equipo y anotar daños o pérdidas.</p>
-                    <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
+                    {recurso?.activo === false ? <Alert variant="secondary">Este equipo está deshabilitado para nuevas reservas.</Alert> : <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
                         <h3 className="h6 fw-bold">Nueva reserva</h3>
                         <div className="row g-3 align-items-end">
                             <Form.Group className="col-lg-3">
-                                <Form.Label>Evento o referencia</Form.Label>
+                                <Form.Label>Referencia</Form.Label>
                                 <Form.Control value={form.referencia} onChange={event => setForm(current => ({ ...current, referencia: event.target.value }))} minLength={2} maxLength={150} required disabled={saving} />
                             </Form.Group>
                             <Form.Group className="col-lg-1">
                                 <Form.Label>Cantidad</Form.Label>
-                                <Form.Control type="number" value={form.cantidad} onChange={event => setForm(current => ({ ...current, cantidad: event.target.value }))} min={1} max={recurso?.cantidadDisponible ?? recurso?.stockTotal ?? 1} step={1} required disabled={saving} />
+                                <Form.Control type="number" value={form.cantidad} onChange={event => setForm(current => ({ ...current, cantidad: event.target.value }))} min={1} max={recurso?.stockTotal ?? 1} step={1} required disabled={saving} />
                             </Form.Group>
                             <Form.Group className="col-lg-3">
                                 <Form.Label>Inicio</Form.Label>
@@ -153,7 +153,7 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
                             </Form.Group>
                             <div className="col-lg-2"><Button type="submit" className="w-100" disabled={saving}>{saving ? <Spinner size="sm" /> : "Reservar"}</Button></div>
                         </div>
-                    </Form>
+                    </Form>}
 
                     <h3 className="h6 fw-bold">Historial de reservas</h3>
                     {loading ? <div className="text-center py-4"><Spinner animation="border" /></div> : reservas.length === 0 ? (
@@ -181,8 +181,8 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
                                             </td>
                                             <td className="text-end text-nowrap">
                                                 {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                                    <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>
-                                                    <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>
+                                                    {new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>}
+                                                    {new Date(reserva.inicio) > new Date() && <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>}
                                                 </>}
                                             </td>
                                         </tr>

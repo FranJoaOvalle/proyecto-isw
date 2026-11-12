@@ -306,7 +306,7 @@ export default function RecursosPanel() {
                 <div>
                     <h2 className="h4 fw-bold mb-1">Inventario de recursos</h2>
                     <p className="text-secondary mb-0">
-                        Administra equipos y materiales, su estado de mantención y las reservas por evento.
+                        Administra equipos, consulta sus reservas y registra devoluciones.
                     </p>
                 </div>
                 <Button onClick={abrirCrear}>
