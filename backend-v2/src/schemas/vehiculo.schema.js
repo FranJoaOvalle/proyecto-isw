@@ -58,6 +58,7 @@ const updateVehiculoSchema = z.object({
 const reservaVehiculoSchema = z.object({
     params,
     body: z.object({
+        eventoId: z.coerce.number().int().positive().max(2147483647).optional(),
         referencia: z.string().trim().min(2).max(150),
         inicio: fecha,
         fin: fecha

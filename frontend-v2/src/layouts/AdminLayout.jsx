@@ -32,6 +32,10 @@ export default function AdminLayout() {
                             Catálogo
                         </Nav.Link>
 
+                        <Nav.Link as={NavLink} to="/admin/solicitudes">
+                            <i className="bi bi-inbox me-2" aria-hidden="true" />
+                            Solicitudes
+                        </Nav.Link>
                         <Nav.Link as={NavLink} to="/admin/eventos">
                             <i className="bi bi-calendar-event me-2" />
                             Eventos

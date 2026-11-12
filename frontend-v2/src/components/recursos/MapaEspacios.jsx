@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import { Badge, Button, Card, ListGroup, Spinner } from "react-bootstrap";
 import { guardarUbicacionEspacio } from "../../services/espacio.service";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import "leaflet/dist/leaflet.css";
 
 function estadoEspacio(espacio) {
@@ -65,7 +65,7 @@ export default function MapaEspacios({ espacios, onReservas, onUbicacionGuardada
             try {
                 const url = new URL("https://nominatim.openstreetmap.org/search");
                 url.search = new URLSearchParams({
-                    q: espacio.direccion,
+                    q: [espacio.direccion, espacio.comuna].filter(Boolean).join(", "),
                     format: "jsonv2",
                     limit: "1"
                 }).toString();

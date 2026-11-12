@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(authMiddleware, authorize("ADMIN"));
 
 router.get("/disponibilidad", validator(schema.getRecursosSchema), controller.getAll);
+router.get("/cotizacion", controller.getCotizables);
 router.get("/", validator(schema.getRecursosSchema), controller.getAll);
 router.get("/:id/reservas", validator(schema.recursoIdSchema), controller.reservas);
 router.post("/:id/reservas", validator(schema.reservaRecursoSchema), controller.reservar);

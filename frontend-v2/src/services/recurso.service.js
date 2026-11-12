@@ -1,5 +1,10 @@
 import api from "./_api";
 
+export const listarRecursos = async () => {
+    const response = await api.get("/recursos/cotizacion");
+    return response.data;
+};
+
 export const getRecursos = async (incluirInactivos = true, intervalo) => {
     const response = await api.get(intervalo ? "/recursos/disponibilidad" : "/recursos", {
         params: {

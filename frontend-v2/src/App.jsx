@@ -1,7 +1,9 @@
+import SolicitudesPanel from "./components/solicitudes/SolicitudesPanel";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 import AdminLayout from "./layouts/AdminLayout.jsx";
+import ClienteLayout from "./layouts/ClienteLayout.jsx";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicOnlyRoute from "./routes/PublicOnlyRoute";
@@ -54,6 +56,8 @@ export default function App() {
                             path="/admin/eventos/:id"
                             element={<EventoDetallePage />}
                         />
+                        <Route path="/admin/solicitudes" element={<SolicitudesPanel />} />
+                        <Route path="/admin/solicitudes/:id" element={<SolicitudesPanel />} />
                         <Route path="/admin" element={<AdminPage />} />
                         <Route path="/admin/agenda" element={<AgendaPage />} />
                         <Route path="/admin/clientes" element={<ClientesPage />} />
@@ -92,16 +96,14 @@ export default function App() {
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["CLIENTE"]} />}>
-                    <Route
-                        path="/cliente/eventos/:id"
-                        element={<EventoClienteDetallePage />}
-                    />
-                    <Route path="/cliente" element={<ClientePage />} />
-                    <Route
-                        path="/cliente/compra"
-                        element={<CompraContratoPage />}
-                    />
-                    <Route path="/cliente/eventos" element={<MisEventosPage />} />
+                    <Route element={<ClienteLayout />}>
+                        <Route path="/cliente" element={<ClientePage />} />
+                        <Route path="/cliente/solicitudes" element={<SolicitudesPanel />} />
+                        <Route path="/cliente/solicitudes/:id" element={<SolicitudesPanel />} />
+                        <Route path="/cliente/compra" element={<CompraContratoPage />} />
+                        <Route path="/cliente/eventos" element={<MisEventosPage />} />
+                        <Route path="/cliente/eventos/:id" element={<EventoClienteDetallePage />} />
+                    </Route>
                 </Route>
             </Route>
 

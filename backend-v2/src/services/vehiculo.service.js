@@ -2,6 +2,8 @@ const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 
+const ReservaService = require("./reserva.service");
+
 class VehiculoService {
     async getAll(filtros = {}) {
         const vehiculos = await prisma.vehiculo.findMany({
@@ -44,10 +46,18 @@ class VehiculoService {
     }
 
     async update(id, data) {
-        await this.getById(id);
-        return prisma.vehiculo.update({
-            where: { id: Number(id) },
-            data: { ...data, ...(data.patente ? { patente: data.patente.toUpperCase() } : {}) }
+        return prisma.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${Number(id)})::text`;
+            await this.getById(id, tx);
+            return tx.vehiculo.update({
+                where: { id: Number(id) },
+                data: {
+                    ...data,
+                    ...(data.patente
+                        ? { patente: data.patente.toUpperCase() }
+                        : {})
+                }
+            });
         });
     }
 
@@ -72,7 +82,11 @@ class VehiculoService {
     async reservar(id, data) {
         const vehiculoId = Number(id);
         return prisma.$transaction(async tx => {
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})::text AS lock`;
+            const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
+            if (evento && evento.inicio <= new Date()) {
+                throw new ConflictException("Las nuevas asignaciones del evento deben registrarse antes de su inicio.");
+            }
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})::text`;
             const vehiculo = await this.getById(vehiculoId, tx);
             if (!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE") {
                 throw new ConflictException("El vehículo no está disponible para nuevas reservas.");
@@ -99,7 +113,7 @@ class VehiculoService {
         return prisma.$transaction(async tx => {
             let reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(id) } });
             if (!reserva) throw new NotFoundException("Reserva de vehículo no encontrada.");
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text AS lock`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text`;
             reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(id) } });
             if (reserva.inicio <= new Date()) throw new ConflictException("Registra la devolución para liberar un vehículo cuya reserva ya comenzó.");
             if (reserva.cancelada) throw new ConflictException("La reserva ya está cancelada.");
@@ -119,7 +133,7 @@ class VehiculoService {
             if (!reserva || reserva.vehiculoId !== Number(id)) {
                 throw new NotFoundException("Reserva de vehículo no encontrada.");
             }
-            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text AS lock`;
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(${reserva.vehiculoId})::text`;
             reserva = await tx.reservaVehiculo.findUnique({ where: { id: Number(reservaId) } });
             if (reserva.inicio > new Date()) throw new ConflictException("La reserva aún no ha comenzado.");
             if (reserva.cancelada || reserva.estadoDevolucion !== "PENDIENTE") {

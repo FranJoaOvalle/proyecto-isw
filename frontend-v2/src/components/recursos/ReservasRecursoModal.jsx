@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { datosReservaEvento } from "./reserva.utils";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Form, Modal, Spinner, Table } from "react-bootstrap";
 
@@ -25,15 +27,20 @@ function estadoTexto(reserva) {
     return [reserva.estadoDevolucion === "CONFORME" ? "Devuelto conforme" : "Devuelto con observaciones", reserva.estadoDevolucion === "CONFORME" ? "success" : "danger"];
 }
 
-export default function ReservasRecursoModal({ recurso, show, onHide, onChanged }) {
+export default function ReservasRecursoModal({ recurso, show, onHide, onChanged, eventoInicial }) {
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-    const [form, setForm] = useState(reservaInicial);
+    const [form, setForm] = useState({ ...reservaInicial, ...datosReservaEvento(eventoInicial) });
     const [devolucion, setDevolucion] = useState(devolucionInicial);
     const [reservaDevolucion, setReservaDevolucion] = useState(null);
     const [reservaCancelar, setReservaCancelar] = useState(null);
+    const reservasVisibles = eventoInicial
+        ? reservas.filter(reserva => reserva.eventoId === eventoInicial.id)
+        : reservas;
+    const incluidoEnContrato = eventoInicial?.solicitudId &&
+        eventoInicial.recursos?.some(item => item.recursoId === recurso?.id);
 
     const cargar = useCallback(async () => {
         if (!recurso) return;
@@ -70,12 +77,13 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
             const fin = fechaIso(form.fin);
             if (new Date(fin) <= new Date(inicio)) throw new Error("El término debe ser posterior al inicio.");
             await reservarRecurso(recurso.id, {
+                ...(form.eventoId ? { eventoId: Number(form.eventoId) } : {}),
                 referencia: form.referencia.trim(),
                 cantidad: Number(form.cantidad),
                 inicio,
                 fin
             });
-            setForm({ ...reservaInicial });
+            setForm({ ...reservaInicial, ...datosReservaEvento(eventoInicial) });
             await cargar();
             await onChanged();
         } catch (err) {
@@ -131,9 +139,12 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-                    <p className="text-secondary">Las reservas descuentan stock durante el horario indicado. Registra la devolución para liberar el equipo y anotar daños o pérdidas.</p>
-                    {recurso?.activo === false ? <Alert variant="secondary">Este equipo está deshabilitado para nuevas reservas.</Alert> : <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
-                        <h3 className="h6 fw-bold">Nueva reserva</h3>
+                    <p className="text-secondary">{eventoInicial
+                        ? `Asignación para el evento #${eventoInicial.id}. La contratación ya reserva los equipos cotizados.`
+                        : "Consulta las reservas y registra aquí las devoluciones o una reserva independiente."}</p>
+                    {recurso?.activo === false ? <Alert variant="secondary">Este equipo está deshabilitado para nuevas reservas.</Alert> : incluidoEnContrato ? <Alert variant="info">Este equipo ya está reservado por la propuesta contratada. Su cantidad se modifica mediante una revisión comercial.</Alert> :
+                    <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
+                        <h3 className="h6 fw-bold">{eventoInicial ? "Nueva asignación para este evento" : "Reserva independiente"}</h3>
                         <div className="row g-3 align-items-end">
                             <Form.Group className="col-lg-3">
                                 <Form.Label>Referencia</Form.Label>
@@ -155,18 +166,18 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
                         </div>
                     </Form>}
 
-                    <h3 className="h6 fw-bold">Historial de reservas</h3>
-                    {loading ? <div className="text-center py-4"><Spinner animation="border" /></div> : reservas.length === 0 ? (
+                    <h3 className="h6 fw-bold">{eventoInicial ? "Reservas de este evento" : "Historial de reservas"}</h3>
+                    {loading ? <div className="text-center py-4"><Spinner animation="border" /></div> : reservasVisibles.length === 0 ? (
                         <EmptyState icon="bi-calendar-x" title="Sin reservas" description="Este equipo aún no tiene reservas." />
                     ) : (
                         <div className="table-responsive">
                             <Table size="sm" className="align-middle">
                                 <thead><tr><th>Evento</th><th>Cantidad</th><th>Inicio</th><th>Término</th><th>Devolución</th><th className="text-end">Acciones</th></tr></thead>
-                                <tbody>{reservas.map(reserva => {
+                                <tbody>{reservasVisibles.map(reserva => {
                                     const [texto, variant] = estadoTexto(reserva);
                                     return (
                                         <tr key={reserva.id}>
-                                            <td>{reserva.referencia}</td>
+                                            <td>{reserva.referencia}{reserva.eventoId && <Link className="d-block" to={`/admin/eventos/${reserva.eventoId}`}>Evento #{reserva.eventoId}</Link>}</td>
                                             <td>{reserva.cantidad}</td>
                                             <td>{fechaTexto(reserva.inicio)}</td>
                                             <td>{fechaTexto(reserva.fin)}</td>
@@ -181,8 +192,9 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged 
                                             </td>
                                             <td className="text-end text-nowrap">
                                                 {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                                    {new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>}
-                                                    {new Date(reserva.inicio) > new Date() && <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>}
+                                                    {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>}
+                                                    {new Date(reserva.inicio) > new Date() && (eventoInicial ? reserva.referencia !== `Contrato evento #${eventoInicial.id}` : reserva.eventoId == null) &&
+                                                        <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>}
                                                 </>}
                                             </td>
                                         </tr>

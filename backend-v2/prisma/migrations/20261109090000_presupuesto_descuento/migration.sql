@@ -1,0 +1,2 @@
+ALTER TABLE "Presupuesto"
+ADD COLUMN "descuento" DECIMAL(12,2) NOT NULL DEFAULT 0;

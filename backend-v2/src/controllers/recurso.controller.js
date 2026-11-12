@@ -16,6 +16,7 @@ module.exports = {
             query?.inicio && query?.fin ? query : null
         );
     }),
+    getCotizables: responder(() => recursoService.getCotizables()),
     getById: responder(req => recursoService.getById(req.validated.params.id)),
     create: responder(req => recursoService.create(req.validated.body), 201),
     update: responder(req => recursoService.update(

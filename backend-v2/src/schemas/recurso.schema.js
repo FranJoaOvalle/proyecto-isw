@@ -51,8 +51,8 @@ const updateRecursoSchema = z.object({
         descripcion: camposComunes.descripcion,
         precioUnitario: camposComunes.precioUnitario.optional(),
         stockTotal: camposComunes.stockTotal.optional(),
-        cantidadEnMantencion: camposComunes.cantidadEnMantencion.optional(),
-        cantidadPerdida: camposComunes.cantidadPerdida.optional(),
+        cantidadEnMantencion: camposComunes.cantidadEnMantencion.removeDefault().optional(),
+        cantidadPerdida: camposComunes.cantidadPerdida.removeDefault().optional(),
         unidad: z.string().trim().max(50).nullable().optional()
     }).strict().refine(
         data => Object.keys(data).length > 0,
@@ -68,6 +68,7 @@ const estadoRecursoSchema = z.object({
 const reservaRecursoSchema = z.object({
     params: recursoIdSchema.shape.params,
     body: z.object({
+        eventoId: z.coerce.number().int().positive().max(2147483647).optional(),
         referencia: z.string().trim().min(2).max(150),
         cantidad: z.coerce.number().int().positive().max(2147483647),
         inicio: z.coerce.date(),

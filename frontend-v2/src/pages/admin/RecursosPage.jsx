@@ -24,15 +24,15 @@ export default function RecursosPage() {
                 aria-label="Secciones de recursos"
             >
                 <Nav.Item>
-                        <Nav.Link eventKey="equipos">
+                    <Nav.Link eventKey="equipos">
                         <i className="bi bi-box-seam me-2" />Recursos
                     </Nav.Link>
                 </Nav.Item>
-                    <Nav.Item>
-                        <Nav.Link eventKey="vehiculos">
-                            <i className="bi bi-truck me-2" />Vehículos
-                        </Nav.Link>
-                    </Nav.Item>
+                <Nav.Item>
+                    <Nav.Link eventKey="vehiculos">
+                        <i className="bi bi-truck me-2" />Vehículos
+                    </Nav.Link>
+                </Nav.Item>
                 <Nav.Item>
                     <Nav.Link eventKey="espacios">
                         <i className="bi bi-building me-2" />Espacios

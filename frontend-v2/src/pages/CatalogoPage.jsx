@@ -15,9 +15,13 @@ import {
 } from "react-bootstrap";
 
 import CatalogoCard from "../components/catalogo/CatalogoCard";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { getTiposEvento } from "../services/tipoEvento.service";
 
 export default function CatalogoPage() {
+    const { usuario } = useAuth();
+    const navigate = useNavigate();
     const [tiposEvento, setTiposEvento] = useState([]);
     const [busqueda, setBusqueda] = useState("");
 
@@ -61,9 +65,13 @@ export default function CatalogoPage() {
             const descripcion =
                 tipoEvento.descripcion?.toLowerCase() ?? "";
 
+            const incluye =
+                tipoEvento.incluye?.toLowerCase() ?? "";
+
             return (
                 nombre.includes(texto) ||
-                descripcion.includes(texto)
+                descripcion.includes(texto) ||
+                incluye.includes(texto)
             );
         });
     }, [tiposEvento, busqueda]);
@@ -138,6 +146,11 @@ export default function CatalogoPage() {
                         >
                             <CatalogoCard
                                 tipoEvento={tipoEvento}
+                                onSolicitar={usuario?.rol === "CLIENTE"
+                                    ? () => navigate("/cliente/solicitudes", {
+                                        state: { tipoEventoId: tipoEvento.id }
+                                    })
+                                    : undefined}
                             />
                         </Col>
                     ))}

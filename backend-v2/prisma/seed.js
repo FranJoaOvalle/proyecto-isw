@@ -17,6 +17,8 @@ const wipeDatabase = async () => {
         TRUNCATE TABLE
             "EventoCambio",
             "Calificacion",
+            "ActividadProductor",
+            "Actividad",
             "EventoRecurso",
             "Evento",
             "Pago",
@@ -161,7 +163,15 @@ const crearPresupuesto = async ({
     porcentajeAnticipo = 30,
     createdAt
 }) => {
-    const precioBase = Number(tipoEvento.precioBase);
+    const precioTipoEvento = Number(
+        tipoEvento.modalidadPrecio === "POR_HORA"
+            ? tipoEvento.tarifaHora
+            : tipoEvento.precioBase
+    );
+    const horasEvento = (fin.getTime() - inicio.getTime()) / (60 * 60 * 1000);
+    const costoTipoEvento = tipoEvento.modalidadPrecio === "POR_HORA"
+        ? precioTipoEvento * horasEvento
+        : precioTipoEvento;
 
     const recursosSnapshot = recursos.map(({ recurso, cantidad }) => {
         const precioUnitario = Number(recurso.precioUnitario);
@@ -181,7 +191,7 @@ const crearPresupuesto = async ({
         0
     );
 
-    const subtotal = precioBase + subtotalRecursos;
+    const subtotal = costoTipoEvento + subtotalRecursos;
     const recargoCliente = subtotal * recargoClientePct;
     const total = subtotal + recargoCliente;
     const montoAnticipo = total * (porcentajeAnticipo / 100);
@@ -196,7 +206,7 @@ const crearPresupuesto = async ({
             asistentes,
             venceAt,
             nombreTipoEvento: tipoEvento.nombre,
-            precioBaseTipoEvento: tipoEvento.precioBase,
+            precioBaseTipoEvento: dinero(precioTipoEvento),
             subtotal: dinero(subtotal),
             recargoCliente: dinero(recargoCliente),
             total: dinero(total),
@@ -357,7 +367,10 @@ const main = async () => {
         data: {
             nombre: "Matrimonio",
             descripcion: "Celebración de matrimonio con coordinación integral, montaje y producción del evento.",
+            modalidadPrecio: "FIJO",
             precioBase: "1200000.00",
+            tarifaHora: null,
+            incluye: "Coordinación general, montaje, sonido ambiental e iluminación decorativa. La banquetería y otros requerimientos se cotizan según el evento.",
             cantidadPersonasBase: 120,
             imagen_url: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -368,7 +381,10 @@ const main = async () => {
         data: {
             nombre: "Cumpleaños",
             descripcion: "Celebración de cumpleaños adaptable a distintos tamaños, edades y formatos.",
+            modalidadPrecio: "FIJO",
             precioBase: "450000.00",
+            tarifaHora: null,
+            incluye: "Montaje básico, sonido ambiental y coordinación de la celebración. Decoración y equipamiento adicional se cotizan según los requerimientos.",
             cantidadPersonasBase: 50,
             imagen_url: "https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=1200",
             activo: true
@@ -379,7 +395,10 @@ const main = async () => {
         data: {
             nombre: "Evento corporativo",
             descripcion: "Producción de aniversarios, lanzamientos, jornadas internas y celebraciones de empresa.",
-            precioBase: "850000.00",
+            modalidadPrecio: "POR_HORA",
+            precioBase: null,
+            tarifaHora: "35000.00",
+            incluye: "Coordinación de producción, sonido e iluminación funcional. Pantallas, mobiliario y apoyo técnico especializado se cotizan según el formato.",
             cantidadPersonasBase: 90,
             imagen_url: "https://images.unsplash.com/photo-1561489396-888724a1543d?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -390,7 +409,10 @@ const main = async () => {
         data: {
             nombre: "Graduación",
             descripcion: "Ceremonias y celebraciones de licenciatura o graduación para instituciones educacionales.",
+            modalidadPrecio: "FIJO",
             precioBase: "700000.00",
+            tarifaHora: null,
+            incluye: "Coordinación de ceremonia, montaje de escenario, sonido e iluminación funcional. Mobiliario y servicios adicionales se ajustan al aforo.",
             cantidadPersonasBase: 150,
             imagen_url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -401,7 +423,10 @@ const main = async () => {
         data: {
             nombre: "Seminario y conferencia",
             descripcion: "Producción técnica y logística para seminarios, charlas, congresos y conferencias.",
-            precioBase: "650000.00",
+            modalidadPrecio: "POR_HORA",
+            precioBase: null,
+            tarifaHora: "25000.00",
+            incluye: "Sonido básico, iluminación funcional y coordinación técnica. Pantalla, proyector, mobiliario y acreditación se cotizan según asistentes y recinto.",
             cantidadPersonasBase: 80,
             imagen_url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: false
@@ -412,7 +437,10 @@ const main = async () => {
         data: {
             nombre: "Gala institucional",
             descripcion: "Formato formal de gran escala para cenas, premiaciones y ceremonias institucionales.",
-            precioBase: "1500000.00",
+            modalidadPrecio: "POR_HORA",
+            precioBase: null,
+            tarifaHora: "45000.00",
+            incluye: "Coordinación de producción, montaje formal, sonido e iluminación. Banquetería, mobiliario y personal adicional se cotizan según invitados y programa.",
             cantidadPersonasBase: 100,
             imagen_url: "https://images.unsplash.com/photo-1516997121675-4c2d1684aa3e?q=80&w=1172&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
             activo: true
@@ -918,6 +946,158 @@ const main = async () => {
         createdAt: fecha("2026-09-22T10:00:00-03:00")
     });
 
+    console.log("Creando actividades de prueba...");
+
+    const actividadesPrueba = [
+        {
+            titulo: "Reunión de coordinación con los novios",
+            descripcion: "Revisar programa, distribución de mesas y requerimientos de la ceremonia.",
+            tipo: "REUNION",
+            inicio: fecha("2026-11-03T18:00:00-03:00"),
+            fin: fecha("2026-11-03T19:00:00-03:00"),
+            lugar: "Oficina NES, Concepción",
+            estado: "COMPLETADA",
+            eventoId: evento1.id,
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true },
+                { productorId: productor3.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Visita técnica al Hotel MDS",
+            descripcion: "Confirmar accesos, puntos eléctricos y ubicación del escenario.",
+            tipo: "VISITA_RECINTO",
+            inicio: fecha("2026-11-18T11:00:00-03:00"),
+            fin: fecha("2026-11-18T12:30:00-03:00"),
+            lugar: "Hotel MDS, Talcahuano",
+            estado: "PENDIENTE",
+            eventoId: evento2.id,
+            productores: [
+                { productorId: productor2.productor.id, esResponsable: true },
+                { productorId: productor4.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Preparar lista de montaje y proveedores",
+            descripcion: "Validar mobiliario, sonido y horario de ingreso al recinto.",
+            tipo: "TAREA",
+            inicio: fecha("2026-11-19T09:00:00-03:00"),
+            fin: fecha("2026-11-19T10:00:00-03:00"),
+            lugar: null,
+            estado: "PENDIENTE",
+            eventoId: evento3.id,
+            productores: [
+                { productorId: productor3.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Reunión de cierre de producción",
+            descripcion: "Registrar observaciones del equipo y cerrar pendientes posteriores al evento.",
+            tipo: "REUNION",
+            inicio: fecha("2026-09-28T10:00:00-03:00"),
+            fin: fecha("2026-09-28T10:45:00-03:00"),
+            lugar: "Centro Español, Concepción",
+            estado: "COMPLETADA",
+            eventoId: evento4.id,
+            productores: [
+                { productorId: productor4.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Actualizar minuta de producción",
+            descripcion: "Se canceló la jornada y se documentaron los acuerdos con el cliente.",
+            tipo: "TAREA",
+            inicio: fecha("2026-10-05T09:00:00-03:00"),
+            fin: fecha("2026-10-05T09:30:00-03:00"),
+            lugar: null,
+            estado: "CANCELADA",
+            eventoId: evento5.id,
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Revisar requerimientos de audio e iluminación",
+            descripcion: "Confirmar equipos disponibles y necesidades técnicas para la jornada corporativa.",
+            tipo: "TAREA",
+            inicio: fecha("2026-11-24T10:00:00-03:00"),
+            fin: fecha("2026-11-24T11:00:00-03:00"),
+            lugar: null,
+            estado: "PENDIENTE",
+            eventoId: evento2.id,
+            productores: [
+                { productorId: productor2.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Visita de reconocimiento al Club de Campo",
+            descripcion: "Revisar accesos, espacios para fotografías y distribución del montaje.",
+            tipo: "VISITA_RECINTO",
+            inicio: fecha("2026-11-17T16:00:00-03:00"),
+            fin: fecha("2026-11-17T17:00:00-03:00"),
+            lugar: "Club de Campo Bellavista, Concepción",
+            estado: "COMPLETADA",
+            eventoId: evento3.id,
+            productores: [
+                { productorId: productor3.productor.id, esResponsable: true },
+                { productorId: productor1.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Reunión de seguimiento de producción",
+            descripcion: "Revisar avances generales y distribuir tareas de la semana.",
+            tipo: "REUNION",
+            inicio: fecha("2026-11-25T09:30:00-03:00"),
+            fin: fecha("2026-11-25T10:15:00-03:00"),
+            lugar: "Oficina NES, Concepción",
+            estado: "PENDIENTE",
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true },
+                { productorId: productor2.productor.id, esResponsable: false },
+                { productorId: productor4.productor.id, esResponsable: false }
+            ]
+        },
+        {
+            titulo: "Preparar pauta de ceremonia de graduación",
+            descripcion: "Ordenar los hitos de la ceremonia y validar tiempos con el equipo.",
+            tipo: "TAREA",
+            inicio: fecha("2026-09-24T15:00:00-03:00"),
+            fin: fecha("2026-09-24T16:00:00-03:00"),
+            lugar: null,
+            estado: "COMPLETADA",
+            eventoId: evento4.id,
+            productores: [
+                { productorId: productor4.productor.id, esResponsable: true }
+            ]
+        },
+        {
+            titulo: "Coordinación de agenda del equipo",
+            descripcion: "Actividad interna de prueba sin asociación a un evento contratado.",
+            tipo: "REUNION",
+            inicio: fecha("2026-12-02T11:00:00-03:00"),
+            fin: fecha("2026-12-02T11:45:00-03:00"),
+            lugar: "Oficina NES, Concepción",
+            estado: "PENDIENTE",
+            productores: [
+                { productorId: productor1.productor.id, esResponsable: true },
+                { productorId: productor3.productor.id, esResponsable: false }
+            ]
+        }
+    ];
+
+    for (const actividad of actividadesPrueba) {
+        const { productores, ...datosActividad } = actividad;
+
+        await prisma.actividad.create({
+            data: {
+                ...datosActividad,
+                productores: {
+                    create: productores
+                }
+            }
+        });
+    }
+
     console.log("Creando calificaciones e historial...");
 
     await prisma.calificacion.create({
@@ -974,6 +1154,7 @@ const main = async () => {
         presupuestos: await prisma.presupuesto.count(),
         pagos: await prisma.pago.count(),
         eventos: await prisma.evento.count(),
+        actividades: await prisma.actividad.count(),
         calificaciones: await prisma.calificacion.count(),
         cambiosEvento: await prisma.eventoCambio.count()
     };

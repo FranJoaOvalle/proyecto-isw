@@ -13,7 +13,7 @@ import {
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import {
     createRecurso,
     deleteRecurso,

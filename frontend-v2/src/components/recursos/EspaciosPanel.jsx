@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert,
@@ -13,7 +14,7 @@ import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
 import MapaEspacios from "./MapaEspacios";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import {
     cancelarReservaEspacio,
     createEspacio,
@@ -28,6 +29,7 @@ import {
 const initialSpace = {
     nombre: "",
     direccion: "",
+    comuna: "",
     capacidad: "",
     costoArriendo: "",
     unidadArriendo: "",
@@ -129,6 +131,7 @@ export default function EspaciosPanel() {
         setForm({
             nombre: espacio.nombre,
             direccion: espacio.direccion,
+            comuna: espacio.comuna ?? "",
             capacidad: String(espacio.capacidad),
             costoArriendo: espacio.costoArriendo == null ? "" : String(espacio.costoArriendo),
             unidadArriendo: espacio.unidadArriendo ?? "",
@@ -167,6 +170,7 @@ export default function EspaciosPanel() {
         const data = {
             nombre: form.nombre.trim(),
             direccion: form.direccion.trim(),
+            comuna: form.comuna.trim() || null,
             capacidad: Number(form.capacidad),
             costoArriendo: form.costoArriendo === "" ? null : Number(form.costoArriendo),
             unidadArriendo: form.unidadArriendo || null,
@@ -330,7 +334,8 @@ export default function EspaciosPanel() {
         return espacios.filter(espacio => {
             const coincideTexto = !termino ||
                 espacio.nombre.toLowerCase().includes(termino) ||
-                espacio.direccion.toLowerCase().includes(termino);
+                espacio.direccion.toLowerCase().includes(termino) ||
+                (espacio.comuna ?? "").toLowerCase().includes(termino);
             const coincideEstado = estado === "TODOS" ||
                 (estado === "ACTIVOS" && espacio.habilitado) ||
                 (estado === "INACTIVOS" && !espacio.habilitado);
@@ -423,7 +428,7 @@ export default function EspaciosPanel() {
                                 <tr key={espacio.id}>
                                     <td>
                                         <div className="fw-semibold">{espacio.nombre}</div>
-                                        <small className="text-secondary">{espacio.direccion}</small>
+                                        <small className="text-secondary">{espacio.direccion}{espacio.comuna ? `, ${espacio.comuna}` : ""}</small>
                                         {espacio.observaciones && <div className="small text-secondary">{espacio.observaciones}</div>}
                                     </td>
                                     <td>{espacio.capacidad.toLocaleString("es-CL")} personas</td>
@@ -482,6 +487,11 @@ export default function EspaciosPanel() {
                             <Form.Label>Dirección</Form.Label>
                             <Form.Control value={form.direccion} onChange={event => setForm(current => ({ ...current, direccion: event.target.value }))} minLength={2} maxLength={250} required disabled={saving} />
                         </Form.Group>
+                        <Form.Group className="mb-3" controlId="espacio-comuna">
+                            <Form.Label>Comuna (opcional)</Form.Label>
+                            <Form.Control value={form.comuna} onChange={event => setForm(current => ({ ...current, comuna: event.target.value }))} minLength={2} maxLength={100} disabled={saving} />
+                            <Form.Text>Se utilizará al confirmar la ubicación de un evento.</Form.Text>
+                        </Form.Group>
                         <div className="row">
                             <Form.Group className="col-md-6 mb-3">
                                 <Form.Label>Capacidad (personas)</Form.Label>
@@ -528,9 +538,9 @@ export default function EspaciosPanel() {
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-                    <p className="text-secondary">Consulta las reservas del recinto. Para reservar un horario, indica una referencia y sus fechas.</p>
+                    <p className="text-secondary">Aquí puedes consultar todas las reservas y registrar bloqueos independientes. Los eventos reservan su recinto al guardar la ubicación.</p>
                     {selectedSpace?.habilitado ? <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
-                        <h3 className="h6 fw-bold">Nueva reserva</h3>
+                        <h3 className="h6 fw-bold">Reserva independiente</h3>
                         <div className="row g-3">
                             <Form.Group className="col-md-4">
                                 <Form.Label>Referencia</Form.Label>
@@ -559,11 +569,11 @@ export default function EspaciosPanel() {
                                 <tbody>
                                     {reservas.map(reserva => (
                                         <tr key={reserva.id}>
-                                            <td>{reserva.referencia}</td>
+                                            <td>{reserva.referencia}{reserva.eventoId && <Link className="d-block" to={`/admin/eventos/${reserva.eventoId}`}>Evento #{reserva.eventoId}</Link>}</td>
                                             <td>{fechaLocal(reserva.inicio)}</td>
                                             <td>{fechaLocal(reserva.fin)}</td>
                                             <td><Badge bg={reserva.cancelada ? "secondary" : "success"}>{reserva.cancelada ? "Cancelada" : "Vigente"}</Badge></td>
-                                            <td className="text-end">{!reserva.cancelada && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}</td>
+                                            <td className="text-end">{!reserva.cancelada && reserva.eventoId == null && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}</td>
                                         </tr>
                                     ))}
                                 </tbody>

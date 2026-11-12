@@ -1,25 +1,43 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getCurrentUser, logout as logoutService } from "../services/auth.service";
+import {
+    getCurrentUser,
+    logout as logoutService,
+    obtenerRevisionSesion
+} from "../services/auth.service";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [usuario, setUsuario] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => Boolean(localStorage.getItem("token")));
 
     useEffect(() => {
+        let mounted = true;
+        const revisionInicial = obtenerRevisionSesion();
+
         const loadUser = async () => {
+            if (!localStorage.getItem("token")) {
+                return;
+            }
+
             try {
                 const user = await getCurrentUser();
-                setUsuario(user);
+                if (mounted && revisionInicial === obtenerRevisionSesion()) {
+                    setUsuario(user);
+                }
             } catch {
-                setUsuario(null);
+                if (mounted && revisionInicial === obtenerRevisionSesion()) {
+                    setUsuario(null);
+                }
             } finally {
-                setLoading(false);
+                if (mounted) setLoading(false);
             }
         };
 
         loadUser();
+        return () => {
+            mounted = false;
+        };
     }, []);
 
     const logout = () => {

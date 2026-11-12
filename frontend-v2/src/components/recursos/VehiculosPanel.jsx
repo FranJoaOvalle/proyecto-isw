@@ -4,7 +4,7 @@ import { Alert, Badge, Button, Card, Form, InputGroup, Modal, Spinner, Table } f
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import ReservasVehiculoModal from "./ReservasVehiculoModal";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import { createVehiculo, deleteVehiculo, getVehiculos, updateVehiculo } from "../../services/vehiculo.service";
 
 const inicial = {

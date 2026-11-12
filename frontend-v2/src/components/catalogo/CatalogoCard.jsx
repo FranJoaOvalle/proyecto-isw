@@ -9,9 +9,13 @@ export default function CatalogoCard({
     admin = false,
     onEditar,
     onCambiarEstado,
+    onEliminarFisico,
+    onSolicitar,
     disabled = false
 }) {
-    const precioBase = Number(tipoEvento.precioBase);
+    const precio = Number(tipoEvento.modalidadPrecio === "POR_HORA"
+        ? tipoEvento.tarifaHora
+        : tipoEvento.precioBase);
     const cantidadPersonasBase = Number(
         tipoEvento.cantidadPersonasBase
     );
@@ -65,18 +69,33 @@ export default function CatalogoCard({
                     {tipoEvento.descripcion || "Sin descripción."}
                 </Card.Text>
 
+                {tipoEvento.incluye && (
+                    <div className="mb-2">
+                        <small className="text-secondary d-block mb-1">
+                            Incluye habitualmente
+                        </small>
+                        <div style={{ whiteSpace: "pre-line" }}>
+                            {tipoEvento.incluye}
+                        </div>
+                    </div>
+                )}
+
                 <div className="bg-body-tertiary rounded p-3 mt-2">
                     <small className="text-secondary d-block mb-1">
-                        Precio base
+                        {tipoEvento.modalidadPrecio === "POR_HORA"
+                            ? "Tarifa de referencia por hora"
+                            : "Precio base de referencia"}
                     </small>
 
                     <span className="fs-4 fw-bold">
                         $
-                        {Number.isFinite(precioBase)
-                            ? precioBase.toLocaleString("es-CL")
+                        {Number.isFinite(precio)
+                            ? precio.toLocaleString("es-CL")
                             : "0"}
+                        {tipoEvento.modalidadPrecio === "POR_HORA" && "/hora"}
                     </span>
 
+                    <small className="text-secondary d-block mt-2">El importe final se acuerda en el presupuesto.</small>
                     <hr />
 
                     <small className="text-secondary d-block mb-1">
@@ -126,6 +145,29 @@ export default function CatalogoCard({
                                 : "Activar"}
                         </Button>
                     </div>
+                )}
+
+                {!admin && tipoEvento.activo && onSolicitar && (
+                    <Button
+                        className="w-100 mt-3"
+                        onClick={onSolicitar}
+                        disabled={disabled}
+                    >
+                        <i className="bi bi-calendar-plus me-2" aria-hidden="true" />
+                        Solicitar evento
+                    </Button>
+                )}
+
+                {admin && !tipoEvento.activo && onEliminarFisico && (
+                    <Button
+                        variant="danger"
+                        className="w-100 mt-2"
+                        onClick={onEliminarFisico}
+                        disabled={disabled}
+                    >
+                        <i className="bi bi-trash me-2" />
+                        Eliminar
+                    </Button>
                 )}
             </Card.Body>
         </Card>
