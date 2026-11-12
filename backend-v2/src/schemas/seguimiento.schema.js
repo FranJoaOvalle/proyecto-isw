@@ -103,6 +103,14 @@ const editarEventoSchema = z.object({
         .refine((v) => Object.keys(v).length > 0, "Debe proporcionar cambios.")
 });
 
+const estadoEventoSchema = z.object({
+    params,
+    body: z.object({
+        estado: z.enum(["CONFIRMADO", "POSPUESTO", "EN_CURSO", "COMPLETADO"]),
+        motivo: z.string().trim().min(3).max(1000)
+    }).strict()
+});
+
 module.exports = {
     eventoIdSchema,
     eventosSchema,
@@ -110,5 +118,6 @@ module.exports = {
     registroSchema,
     detalleSchema,
     comentarioSchema,
-    editarEventoSchema
+    editarEventoSchema,
+    estadoEventoSchema
 };

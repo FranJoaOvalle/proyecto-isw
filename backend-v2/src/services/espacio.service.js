@@ -157,6 +157,9 @@ class EspacioService {
             }
 
             if (evento) {
+                if (evento.espacioId !== espacioId) {
+                    throw new ConflictException("La reserva debe corresponder al espacio asignado al evento. Define primero su ubicación desde el evento; reservar no cambia el recinto contratado.");
+                }
                 if (evento.asistentes > espacio.capacidad) throw new ConflictException("La capacidad del espacio es menor a los asistentes del evento.");
                 if (data.inicio > evento.inicio || data.fin < evento.fin) throw new ConflictException("La reserva del espacio debe cubrir el horario completo del evento.");
                 const otra = await tx.reservaEspacio.findFirst({ where: { eventoId: evento.id, cancelada: false } });

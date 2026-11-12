@@ -264,6 +264,10 @@ export default function EspaciosPanel({ eventoInicial }) {
     };
 
     const abrirReservas = async espacio => {
+        if (eventoInicial && eventoInicial.espacioId !== espacio.id) {
+            setError("Selecciona el mismo espacio que está asignado al evento. Las reservas no cambian el recinto contratado.");
+            return;
+        }
         setSelectedSpace(espacio);
         setBooking({ ...initialBooking, ...datosReservaEvento(eventoInicial) });
         setError("");

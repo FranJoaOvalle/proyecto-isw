@@ -1,6 +1,30 @@
 const SeguimientoService = require("../services/seguimiento.service");
 const EventoService = require("../services/evento.service");
 
+const eventosCliente = async (req, res, next) => {
+    try {
+        return res.status(200).json(await EventoService.listarCliente(req.usuario));
+    } catch (error) {
+        next(error);
+    }
+};
+
+const eventoCliente = async (req, res, next) => {
+    try {
+        return res.status(200).json(await EventoService.detalleCliente(req.validated.params.id, req.usuario));
+    } catch (error) {
+        next(error);
+    }
+};
+
+const cambiarEstado = async (req, res, next) => {
+    try {
+        return res.status(200).json(await EventoService.cambiarEstado(req.validated.params.id, req.validated.body, req.usuario));
+    } catch (error) {
+        next(error);
+    }
+};
+
 const editarEvento = async (req, res, next) => {
     try {
         const resultado = await EventoService.actualizar(
@@ -152,6 +176,9 @@ const comentar = async (req, res, next) => {
 };
 
 module.exports = {
+    eventosCliente,
+    eventoCliente,
+    cambiarEstado,
     editarEvento,
     cancelarEvento,
     eliminarEvento,

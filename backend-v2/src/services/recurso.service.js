@@ -4,6 +4,7 @@ const ConflictException = require("../exceptions/ConflictException");
 const ValidationException = require("../exceptions/ValidationException");
 
 const ReservaService = require("./reserva.service");
+const ContratacionRecursosService = require("./contratacionRecursos.service");
 
 const incluirDetalle = { material: true, humano: true };
 
@@ -33,28 +34,12 @@ class RecursoService {
             orderBy: { nombre: "asc" }
         });
 
-        const ahora = new Date();
-        const reservas = intervalo
-            ? await prisma.reservaRecurso.findMany({
-                where: {
-                    cancelada: false,
-                    recursoId: { in: recursos.map(recurso => recurso.id) },
-                    OR: [
-                        { inicio: { lt: intervalo.fin }, fin: { gt: intervalo.inicio } },
-                        { estadoDevolucion: "PENDIENTE", fin: { lte: ahora } }
-                    ]
-                },
-                select: { recursoId: true, cantidad: true, inicio: true, fin: true, estadoDevolucion: true }
-            })
-            : [];
-        return recursos.map(recurso => ({
+        return Promise.all(recursos.map(async recurso => ({
             ...recurso,
-            cantidadDisponible: Math.max(
-                0,
-                recurso.stockTotal - recurso.cantidadEnMantencion - recurso.cantidadPerdida -
-                (intervalo ? ReservaService.ocupacionMaxima(reservas.filter(r => r.recursoId === recurso.id), intervalo.inicio, intervalo.fin, ahora) : 0)
-            )
-        }));
+            cantidadDisponible: intervalo
+                ? (await ContratacionRecursosService.disponible(prisma, recurso, intervalo.inicio, intervalo.fin)).disponible
+                : Math.max(0, recurso.stockTotal - recurso.cantidadEnMantencion - recurso.cantidadPerdida)
+        })));
     }
 
     async getById(id, tx = prisma) {
@@ -95,25 +80,10 @@ class RecursoService {
             }
 
             const ahora = new Date();
-            const reservas = await tx.reservaRecurso.findMany({
-                where: {
-                    recursoId: Number(id),
-                    cancelada: false,
-                    OR: [
-                        { fin: { gt: ahora } },
-                        { estadoDevolucion: "PENDIENTE" }
-                    ]
-                }
-            });
-            const comprometido = ReservaService.ocupacionMaxima(
-                reservas,
-                ahora,
-                new Date("9999-12-31"),
-                ahora
-            );
+            const capacidad = await ContratacionRecursosService.disponible(tx, actual, ahora, new Date("9999-12-31"));
             if (
                 stockTotal - cantidadEnMantencion - cantidadPerdida <
-                comprometido
+                capacidad.ocupado
             ) {
                 throw new ConflictException(
                     "El stock operativo no puede ser menor a las reservas comprometidas."
@@ -200,24 +170,7 @@ class RecursoService {
                 throw new ConflictException("El recurso está inactivo y no admite reservas.");
             }
 
-            const ahora = new Date();
-            const reservas = await tx.reservaRecurso.findMany({
-                where: {
-                    recursoId,
-                    cancelada: false,
-                    OR: [
-                        { inicio: { lt: data.fin }, fin: { gt: data.inicio } },
-                        { estadoDevolucion: "PENDIENTE", fin: { lte: ahora } }
-                    ]
-                }
-            });
-            const disponible = recurso.stockTotal - recurso.cantidadEnMantencion -
-                recurso.cantidadPerdida - ReservaService.ocupacionMaxima(reservas, data.inicio, data.fin, ahora);
-            if (data.cantidad > disponible) {
-                throw new ConflictException(
-                    `Stock insuficiente para ese horario. Unidades disponibles: ${Math.max(0, disponible)}.`
-                );
-            }
+            await ContratacionRecursosService.validarReserva(tx, recurso, data);
 
             return tx.reservaRecurso.create({
                 data: { ...data, recursoId }

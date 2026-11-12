@@ -8,7 +8,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
     const [show, setShow] = useState(false);
     const [espacios, setEspacios] = useState([]);
     const [form, setForm] = useState({});
-    const [modo, setModo] = useState("externo");
+    const modo = "registrado";
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
@@ -20,7 +20,6 @@ export default function EventoUbicacion({ evento, onCambio }) {
         setValidated(false);
         setLoading(true);
         setShow(true);
-        setModo(evento.espacioId ? "registrado" : "externo");
         setForm({
             espacioId: evento.espacioId ? String(evento.espacioId) : "",
             lugar: evento.lugar,
@@ -108,29 +107,14 @@ export default function EventoUbicacion({ evento, onCambio }) {
                     <Modal.Header closeButton={!saving}>
                         <Modal.Title>Ubicación del evento</Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>
+                    <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
                         {error && <Alert variant="danger">{error}</Alert>}
                         {loading && (
                             <p>
                                 <Spinner size="sm" /> Cargando recintos...
                             </p>
                         )}
-                        <Form.Group controlId="ubicacion-modo" className="mb-3">
-                            <Form.Label>Tipo de ubicación</Form.Label>
-                            <Form.Select
-                                value={modo}
-                                disabled={saving || loading}
-                                onChange={(e) => {
-                                    setModo(e.target.value);
-                                    setValidated(false);
-                                }}
-                            >
-                                <option value="registrado">
-                                    Recinto registrado
-                                </option>
-                                <option value="externo">Otra ubicación</option>
-                            </Form.Select>
-                        </Form.Group>
+                        <p className="text-secondary">La ubicación se obtiene de Recursos → Espacios. En eventos contratados se conserva el recinto de la propuesta aceptada.</p>
                         {modo === "registrado" && (
                             <Form.Group
                                 controlId="ubicacion-espacio"
@@ -154,6 +138,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
                                                 item.habilitado ||
                                                 item.id === evento.espacioId
                                         )
+                                        .filter((item) => !evento.solicitudId || !evento.espacioId || item.id === evento.espacioId)
                                         .map((item) => (
                                             <option
                                                 key={item.id}
@@ -198,11 +183,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
                                     minLength={2}
                                     maxLength={max}
                                     disabled={saving || loading}
-                                    readOnly={
-                                        modo === "registrado" &&
-                                        (campo !== "comuna" ||
-                                            Boolean(elegido?.comuna))
-                                    }
+                                    readOnly
                                     onChange={(e) =>
                                         setForm((current) => ({
                                             ...current,

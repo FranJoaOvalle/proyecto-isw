@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     Alert,
@@ -93,12 +93,19 @@ async function listarSolicitudesRevision() {
     return [...comoLista(primera), ...restantes.flatMap(comoLista)];
 }
 
+const cargarListas = () => Promise.allSettled([
+    listarPresupuestos(),
+    listarSolicitudesRevision(),
+    getTiposEvento(true),
+    listarRecursos()
+]);
+
 export default function PresupuestosPage() {
     const [presupuestos, setPresupuestos] = useState([]);
     const [solicitudes, setSolicitudes] = useState([]);
     const [recursos, setRecursos] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [cargandoRecursos, setCargandoRecursos] = useState(false);
+    const [cargandoRecursos, setCargandoRecursos] = useState(true);
     const [error, setError] = useState("");
     const [errorListado, setErrorListado] = useState("");
     const [errorSolicitudes, setErrorSolicitudes] = useState("");
@@ -111,21 +118,11 @@ export default function PresupuestosPage() {
     const [cancelando, setCancelando] = useState(false);
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("TODOS");
+    const revisionCarga = useRef(0);
+    const montado = useRef(false);
 
-    const cargarDatos = useCallback(async () => {
-        setCargando(true);
-        setCargandoRecursos(true);
-        setError("");
-        setErrorListado("");
-        setErrorSolicitudes("");
-
-        const [resultadoPresupuestos, resultadoSolicitudes, resultadoTipos, resultadoRecursos] =
-            await Promise.allSettled([
-                listarPresupuestos(),
-                listarSolicitudesRevision(),
-                getTiposEvento(true),
-                listarRecursos()
-            ]);
+    const aplicarDatos = useCallback((resultados) => {
+        const [resultadoPresupuestos, resultadoSolicitudes, resultadoTipos, resultadoRecursos] = resultados;
 
         if (resultadoPresupuestos.status === "fulfilled") {
             try {
@@ -186,9 +183,28 @@ export default function PresupuestosPage() {
         setCargando(false);
     }, []);
 
+    const cargarDatos = useCallback(async () => {
+        const revision = ++revisionCarga.current;
+        setCargando(true);
+        setCargandoRecursos(true);
+        setError("");
+        setErrorListado("");
+        setErrorSolicitudes("");
+        const resultados = await cargarListas();
+        if (montado.current && revision === revisionCarga.current) aplicarDatos(resultados);
+    }, [aplicarDatos]);
+
     useEffect(() => {
-        cargarDatos();
-    }, [cargarDatos]);
+        montado.current = true;
+        const revision = ++revisionCarga.current;
+        cargarListas().then((resultados) => {
+            if (montado.current && revision === revisionCarga.current) aplicarDatos(resultados);
+        });
+        return () => {
+            montado.current = false;
+            revisionCarga.current += 1;
+        };
+    }, [aplicarDatos]);
 
     const presupuestosVisibles = useMemo(() => {
         const termino = busqueda.trim().toLocaleLowerCase("es-CL");
@@ -400,7 +416,8 @@ export default function PresupuestosPage() {
                 </Card.Body>
             </Card>
 
-            <PresupuestoFormularioModal
+            {mostrarFormulario && <PresupuestoFormularioModal
+                key={presupuestoEditar ? `${presupuestoEditar.id}-${presupuestoEditar.version}` : "nuevo"}
                 show={mostrarFormulario}
                 onHide={cerrarFormulario}
                 onGuardado={presupuestoGuardado}
@@ -409,7 +426,7 @@ export default function PresupuestosPage() {
                 recursos={recursos}
                 cargandoRecursos={cargandoRecursos}
                 errorRecursos={errorRecursos}
-            />
+            />}
 
             {presupuestoEnviar && (
                 <PresupuestoEnvioModal

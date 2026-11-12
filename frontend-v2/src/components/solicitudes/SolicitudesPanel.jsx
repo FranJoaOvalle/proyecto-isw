@@ -18,7 +18,7 @@ import EmptyState from "../EmptyState";
 import ConfirmModal from "../ConfirmModal";
 import TableToolbar from "../admin/TableToolbar";
 import SolicitudFormulario from "./SolicitudFormulario";
-import { nombresEstadoPresupuesto } from "../presupuestos/presupuesto.utils";
+import { estadoPropuestaCliente, nombresEstadoPresupuesto, propuestaVigente } from "../presupuestos/presupuesto.utils";
 import {
     listarSolicitudes,
     obtenerSolicitud,
@@ -38,12 +38,14 @@ const estados = {
     CONTRATADA: "Contratada",
     RECHAZADA: "Rechazada"
 };
-const etapa = (s) =>
+const etapa = (s, esAdmin) =>
     s.evento
         ? estadosEvento[s.evento.estado]
         : s.tipoCierre === "RETIRO_CLIENTE"
           ? "Retirada"
-          : estados[s.estado];
+          : !esAdmin && s.estado === "EN_REVISION" && s.presupuestos.some(propuestaVigente)
+            ? "Propuesta recibida"
+            : estados[s.estado];
 export default function SolicitudesPanel() {
     const { id } = useParams();
     const { usuario } = useAuth();
@@ -139,7 +141,10 @@ function Panel({ id, tipoEventoId }) {
     }
     const editable =
         solicitud &&
-        !solicitud.presupuestos.length &&
+        (esAdmin
+            ? solicitud.presupuestos.every((p) => ["BORRADOR", "CANCELADO", "VENCIDO"].includes(p.estado) ||
+                (p.estado === "ENVIADO" && p.venceAt && new Date(p.venceAt) <= new Date()))
+            : !solicitud.presupuestos.length) &&
         (esAdmin
             ? ["PENDIENTE", "EN_REVISION"].includes(solicitud.estado)
             : solicitud.estado === "PENDIENTE");
@@ -155,6 +160,8 @@ function Panel({ id, tipoEventoId }) {
                 }
                 description="Consulta y gestiona solicitudes previas a la contratación."
             >
+                {!esAdmin && <Button variant="outline-primary" className="me-2" disabled={cargando || saving}
+                    onClick={() => setRevision((valor) => valor + 1)}>Actualizar</Button>}
                 {id ? (
                     <Button
                         as={Link}
@@ -245,7 +252,7 @@ function Panel({ id, tipoEventoId }) {
                                                     : "secondary"
                                             }
                                         >
-                                            {etapa(solicitud)}
+                                            {etapa(solicitud, esAdmin)}
                                         </Badge>
                                     </div>
                                     <p className="text-secondary">
@@ -369,7 +376,7 @@ function Panel({ id, tipoEventoId }) {
                                 <ListGroup className="mb-4">
                                     {solicitud.presupuestos.map((p) => (
                                         <ListGroup.Item key={p.id}>
-                                            Presupuesto #{p.id} · {nombresEstadoPresupuesto[p.estado] ?? p.estado}
+                                            Presupuesto #{p.id} · {esAdmin ? nombresEstadoPresupuesto[p.estado] ?? p.estado : estadoPropuestaCliente(p)}
                                         </ListGroup.Item>
                                     ))}
                                 </ListGroup>
@@ -422,7 +429,7 @@ function Panel({ id, tipoEventoId }) {
                                                     {s.tipoEvento.nombre}
                                                 </h2>
                                                 <Badge bg="secondary">
-                                                    {etapa(s)}
+                                                    {etapa(s, esAdmin)}
                                                 </Badge>
                                                 <p className="mt-3">
                                                     {fechaSeguimiento(s.inicio)}

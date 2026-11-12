@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import { Link, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../../components/PageHeader";
 import EmptyState from "../../components/EmptyState";
 import ConfirmModal from "../../components/ConfirmModal";
 import PresupuestoResumen from "../../components/presupuestos/PresupuestoResumen";
-import { nombresEstadoPresupuesto } from "../../components/presupuestos/presupuesto.utils";
+import { estadoPropuestaCliente, propuestaVigente } from "../../components/presupuestos/presupuesto.utils";
 import { estadosEvento, mensajeError } from "../../components/eventos/seguimiento.utils";
 import { aceptarPresupuesto, listarPresupuestos } from "../../services/presupuesto.service";
 
 export default function CompraContratoPage() {
+    const { usuario } = useAuth();
+    return <CompraContrato key={usuario?.id} />;
+}
+
+function CompraContrato() {
     const [parametros] = useSearchParams();
     const solicitudId = parametros.get("solicitudId");
     const [presupuestos, setPresupuestos] = useState([]);
@@ -20,6 +26,7 @@ export default function CompraContratoPage() {
     const [aceptacionExpresa, setAceptacionExpresa] = useState(false);
     const [saving, setSaving] = useState(false);
     const [errorAceptacion, setErrorAceptacion] = useState("");
+    const [resultadoIncierto, setResultadoIncierto] = useState(false);
     const [revision, setRevision] = useState(0);
 
     function cargar() {
@@ -38,7 +45,7 @@ export default function CompraContratoPage() {
     }, [revision]);
 
     async function confirmarAceptacion() {
-        if (!propuesta || !aceptacionExpresa || saving) return;
+        if (!propuesta || !aceptacionExpresa || saving || resultadoIncierto) return;
         setSaving(true);
         setErrorAceptacion("");
         try {
@@ -47,7 +54,12 @@ export default function CompraContratoPage() {
             setMensaje(`Contratación confirmada. Tu evento es el #${resultado.evento.id}.`);
             cargar();
         } catch (err) {
-            setErrorAceptacion(mensajeError(err, "No fue posible contratar. Puedes volver a intentarlo."));
+            const incierto = !err.response || err.response.status >= 500;
+            setResultadoIncierto(incierto);
+            setErrorAceptacion(incierto
+                ? "No pudimos confirmar el resultado de la contratación. Actualiza las propuestas para comprobar si se creó el evento antes de volver a aceptar."
+                : mensajeError(err, "No fue posible aceptar esta propuesta. Revisa su estado actualizado."));
+            cargar();
         } finally {
             setSaving(false);
         }
@@ -57,6 +69,7 @@ export default function CompraContratoPage() {
     return (
         <Container className="py-5">
             <PageHeader title="Compra / Contrato" description="Revisa las propuestas de tus solicitudes y confirma la que deseas contratar.">
+                <Button variant="outline-primary" className="me-2" disabled={cargando || saving} onClick={cargar}>Actualizar propuestas</Button>
                 <Button as={Link} to="/cliente/solicitudes" variant="outline-secondary">Mis solicitudes</Button>
             </PageHeader>
             {mensaje && <Alert variant="success" dismissible onClose={() => setMensaje("")}>{mensaje}</Alert>}
@@ -68,21 +81,20 @@ export default function CompraContratoPage() {
                         description="Cuando un administrador envíe una propuesta para tu solicitud, podrás revisarla aquí." />
                 ) : visibles.map((presupuesto) => {
                     const eventoSolicitud = presupuesto.evento ?? presupuesto.solicitud?.evento;
-                    const vencida = presupuesto.estado === "ENVIADO" && new Date(presupuesto.venceAt) <= new Date();
                     const contratada = presupuesto.solicitud?.estado === "CONTRATADA";
-                    const aceptable = presupuesto.estado === "ENVIADO" && !vencida &&
+                    const aceptable = propuestaVigente(presupuesto) &&
                         presupuesto.solicitud?.estado === "EN_REVISION" && !presupuesto.evento;
                     return (
                         <Card key={presupuesto.id} className="shadow-sm mb-4">
                             <Card.Body className="p-4">
                                 <div className="d-flex flex-wrap justify-content-between gap-2 mb-2">
                                     <h2 className="h4">{presupuesto.nombreTipoEvento} · Propuesta #{presupuesto.id}</h2>
-                                    <Badge bg={eventoSolicitud ? "success" : "secondary"}>
-                                        {eventoSolicitud ? estadosEvento[eventoSolicitud.estado] : !presupuesto.solicitud ? "Antecedente comercial" : contratada ? "Contratada" : presupuesto.solicitud.estado === "RECHAZADA" ? "Solicitud cerrada" : "En revisión"}
+                                    <Badge bg={eventoSolicitud ? "success" : aceptable ? "primary" : "secondary"}>
+                                        {eventoSolicitud ? estadosEvento[eventoSolicitud.estado] : !presupuesto.solicitud ? "Antecedente comercial" : contratada ? "Contratada" : presupuesto.solicitud.estado === "RECHAZADA" ? "Solicitud cerrada" : aceptable ? "Propuesta recibida" : "En revisión"}
                                     </Badge>
                                 </div>
                                 <p className="text-secondary">
-                                    Propuesta: {vencida ? "Vencida" : nombresEstadoPresupuesto[presupuesto.estado] ?? presupuesto.estado}
+                                    Propuesta: {estadoPropuestaCliente(presupuesto)}
                                     {presupuesto.enviadoAt && ` · Versión ${presupuesto.version}`}
                                 </p>
                                 <PresupuestoResumen presupuesto={presupuesto} />
@@ -91,7 +103,7 @@ export default function CompraContratoPage() {
                                 <div className="d-flex flex-wrap gap-2">
                                     {presupuesto.solicitudId && <Button as={Link} to={`/cliente/solicitudes/${presupuesto.solicitudId}`} variant="outline-primary">Ver solicitud</Button>}
                                     {aceptable && <Button onClick={() => {
-                                        setPropuesta(presupuesto); setAceptacionExpresa(false); setErrorAceptacion("");
+                                        setPropuesta(presupuesto); setAceptacionExpresa(false); setErrorAceptacion(""); setResultadoIncierto(false);
                                     }}>Revisar y aceptar</Button>}
                                 </div>
                             </Card.Body>
@@ -101,8 +113,14 @@ export default function CompraContratoPage() {
             )}
             <ConfirmModal show={Boolean(propuesta)} onHide={() => !saving && setPropuesta(null)}
                 title={`Aceptar propuesta #${propuesta?.id ?? ""}`} confirmText="Aceptar y contratar"
-                variant="primary" loading={saving} confirmDisabled={!aceptacionExpresa} onConfirm={confirmarAceptacion}>
-                {errorAceptacion && <Alert variant="danger">{errorAceptacion}</Alert>}
+                variant="primary" loading={saving} confirmDisabled={!aceptacionExpresa || resultadoIncierto} onConfirm={confirmarAceptacion}>
+                {errorAceptacion && <Alert variant="danger">
+                    {errorAceptacion}
+                    <Button variant="link" className="d-block p-0 mt-2" disabled={saving} onClick={() => {
+                        setPropuesta(null);
+                        cargar();
+                    }}>Actualizar propuestas</Button>
+                </Alert>}
                 {propuesta && <PresupuestoResumen presupuesto={propuesta} />}
                 <p>Al aceptar se confirmará la contratación y se creará tu evento. No necesitas realizar un anticipo para este paso.</p>
                 <Form.Check id="aceptacion-propuesta" checked={aceptacionExpresa} disabled={saving}

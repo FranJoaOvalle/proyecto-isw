@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { mensajeError } from "../eventos/seguimiento.utils";
+import { getEspacios } from "../../services/espacio.service";
 import {
     actualizarPresupuesto,
     crearPresupuesto
@@ -25,10 +26,26 @@ const formularioInicial = {
     inicio: "",
     fin: "",
     lugar: "",
+    espacioId: "",
     asistentes: 0,
+    precioBaseAcordado: "",
     descuento: "0",
     recursos: []
 };
+
+const formularioDePresupuesto = (presupuesto) => presupuesto ? {
+    solicitudId: String(presupuesto.solicitudId ?? ""),
+    inicio: fechaLocal(presupuesto.inicio),
+    fin: fechaLocal(presupuesto.fin),
+    lugar: presupuesto.lugar ?? "",
+    espacioId: presupuesto.espacioId ? String(presupuesto.espacioId) : "",
+    asistentes: Number(presupuesto.asistentes ?? 1),
+    precioBaseAcordado: presupuesto.precioBaseAcordado == null ? "" : String(presupuesto.precioBaseAcordado),
+    descuento: String(presupuesto.descuento ?? 0),
+    recursos: (presupuesto.recursos ?? []).map((item) => ({
+        recursoId: String(item.recursoId), cantidad: item.cantidad
+    }))
+} : { ...formularioInicial, recursos: [] };
 
 export default function PresupuestoFormularioModal({
     show,
@@ -40,9 +57,19 @@ export default function PresupuestoFormularioModal({
     cargandoRecursos,
     errorRecursos
 }) {
-    const [form, setForm] = useState(formularioInicial);
-    const [asistentesManual, setAsistentesManual] = useState("");
+    const [form, setForm] = useState(() => formularioDePresupuesto(presupuesto));
+    const [espacios, setEspacios] = useState([]);
+    const [cargandoEspacios, setCargandoEspacios] = useState(true);
+    const [revisionEspacios, setRevisionEspacios] = useState(0);
     const [error, setError] = useState("");
+    useEffect(() => {
+        let activo = true;
+        getEspacios().then((datos) => { if (activo) setEspacios(datos); })
+            .catch((err) => { if (activo) setError(mensajeError(err, "No fue posible cargar los espacios.")); })
+            .finally(() => { if (activo) setCargandoEspacios(false); });
+        return () => { activo = false; };
+    }, [revisionEspacios]);
+    const [asistentesManual, setAsistentesManual] = useState(() => String(presupuesto?.asistentes ?? ""));
     const [saving, setSaving] = useState(false);
     const [validated, setValidated] = useState(false);
 
@@ -99,7 +126,7 @@ export default function PresupuestoFormularioModal({
                 costoBase = Number(presupuesto.tarifaHoraTipoEvento) *
                     ((fin.getTime() - inicio.getTime()) / 3600000);
             } else {
-                costoBase = Number(presupuesto.precioBaseTipoEvento ?? 0);
+                costoBase = Number(presupuesto.precioBaseCatalogo ?? presupuesto.precioBaseTipoEvento ?? 0);
             }
         } else if (tipoEvento?.modalidadPrecio === "FIJO") {
             costoBase = Number(tipoEvento.precioBase ?? 0);
@@ -112,6 +139,7 @@ export default function PresupuestoFormularioModal({
             costoBase = Number(tipoEvento.tarifaHora ?? 0) *
                 ((fin.getTime() - inicio.getTime()) / 3600000);
         }
+        if (form.precioBaseAcordado !== "") costoBase = Number(form.precioBaseAcordado);
         const subtotalRecursos = form.recursos.reduce((total, item) => {
             const snapshot = presupuesto?.recursos?.find(
                 (recurso) => recurso.recursoId === Number(item.recursoId)
@@ -127,7 +155,7 @@ export default function PresupuestoFormularioModal({
         const subtotal = redondearMoneda(redondearMoneda(costoBase) + subtotalRecursos);
         const descuento = redondearMoneda(Number(form.descuento) || 0);
         return redondearMoneda(subtotal - descuento + recargoCliente);
-    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, solicitudSeleccionada, presupuesto, recargoCliente]);
+    }, [form.inicio, form.fin, form.recursos, form.descuento, form.precioBaseAcordado, recursos, solicitudSeleccionada, presupuesto, recargoCliente]);
     const formatoMoneda = useMemo(
         () => new Intl.NumberFormat("es-CL", {
             style: "currency",
@@ -136,28 +164,6 @@ export default function PresupuestoFormularioModal({
         }),
         []
     );
-
-    useEffect(() => {
-        if (!show) return;
-        const formularioEditado = presupuesto
-            ? {
-                solicitudId: String(presupuesto.solicitudId ?? ""),
-                inicio: fechaLocal(presupuesto.inicio),
-                fin: fechaLocal(presupuesto.fin),
-                lugar: presupuesto.lugar ?? "",
-                asistentes: Number(presupuesto.asistentes ?? 1),
-                descuento: String(presupuesto.descuento ?? 0),
-                recursos: (presupuesto.recursos ?? []).map((item) => ({
-                    recursoId: String(item.recursoId),
-                    cantidad: item.cantidad
-                }))
-            }
-            : formularioInicial;
-        setForm(formularioEditado);
-        setAsistentesManual(String(formularioEditado.asistentes || ""));
-        setError("");
-        setValidated(false);
-    }, [show, presupuesto]);
 
     function seleccionarSolicitud(event) {
         const solicitudId = event.target.value;
@@ -267,6 +273,8 @@ export default function PresupuestoFormularioModal({
 
         const formularioValido = event.currentTarget.checkValidity();
         const descuentoValido = /^\d{1,10}(?:\.\d{1,2})?$/.test(form.descuento);
+        const precioValido = form.precioBaseAcordado === "" ||
+            (/^\d{1,10}(?:\.\d{1,2})?$/.test(form.precioBaseAcordado) && Number(form.precioBaseAcordado) <= MAX_DESCUENTO);
         const cantidadesValidas = form.recursos.every((item) =>
             Number.isInteger(Number(item.cantidad)) &&
             Number(item.cantidad) >= 1 &&
@@ -276,11 +284,13 @@ export default function PresupuestoFormularioModal({
             new Date(form.fin) > new Date(form.inicio) &&
             new Date(form.inicio) > new Date();
 
-        if (!formularioValido || !descuentoValido || !cantidadesValidas || !fechasValidas || saving) {
+        if (!formularioValido || !descuentoValido || !precioValido || !cantidadesValidas || !fechasValidas || saving) {
             if (!fechasValidas) {
                 setError("El inicio debe ser futuro y el término posterior al inicio.");
             } else if (!descuentoValido || Number(form.descuento) > MAX_DESCUENTO) {
                 setError("Ingresa un descuento válido, con máximo dos decimales.");
+            } else if (!precioValido) {
+                setError("Ingresa un precio base acordado válido, con máximo dos decimales, o deja el campo vacío para usar la referencia.");
             } else if (!cantidadesValidas) {
                 setError("Cada recurso debe tener una cantidad entera entre 1 y 100000.");
             }
@@ -293,16 +303,17 @@ export default function PresupuestoFormularioModal({
             const payload = {
                 inicio: new Date(form.inicio).toISOString(),
                 fin: new Date(form.fin).toISOString(),
-                lugar: form.lugar.trim(),
+                espacioId: Number(form.espacioId),
                 asistentes: Number(form.asistentes),
                 descuento: Number(form.descuento),
+                precioBaseAcordado: form.precioBaseAcordado === "" ? null : Number(form.precioBaseAcordado),
                 recursos: form.recursos.map((item) => ({
                     recursoId: Number(item.recursoId),
                     cantidad: Number(item.cantidad)
                 }))
             };
             const guardado = presupuesto
-                ? await actualizarPresupuesto(presupuesto.id, payload)
+                ? await actualizarPresupuesto(presupuesto.id, { ...payload, version: presupuesto.version })
                 : await crearPresupuesto({
                     ...payload,
                     solicitudId: Number(form.solicitudId)
@@ -411,17 +422,24 @@ export default function PresupuestoFormularioModal({
                                 </Col>
                             </Row>
 
-                            <Form.Group controlId="presupuesto-lugar" className="mt-3">
-                                <Form.Label>Lugar *</Form.Label>
-                                <Form.Control
+                            <Form.Group controlId="presupuesto-espacio" className="mt-3">
+                                <Form.Label>Espacio registrado *</Form.Label>
+                                <Form.Select
                                     required
-                                    minLength={3}
-                                    maxLength={255}
-                                    name="lugar"
-                                    value={form.lugar}
+                                    name="espacioId"
+                                    value={form.espacioId}
                                     onChange={cambiarCampo}
-                                    disabled={saving}
-                                />
+                                    disabled={saving || cargandoEspacios}
+                                >
+                                    <option value="">Selecciona un espacio de Recursos</option>
+                                    {espacios.filter((e) => e.habilitado).map((e) => <option key={e.id} value={e.id}>
+                                        {e.nombre} · {e.capacidad} personas · {e.comuna ?? "Comuna pendiente"}
+                                    </option>)}
+                                </Form.Select>
+                                <Form.Text>Los espacios se crean y mantienen en Recursos → Espacios. El lugar preferido de la solicitud es solo un antecedente.</Form.Text>
+                                <a className="d-block small mt-1" href="/admin/recursos" target="_blank" rel="noreferrer">Administrar espacios</a>
+                                <Button variant="link" size="sm" className="p-0 mt-1" disabled={saving}
+                                    onClick={() => setRevisionEspacios((v) => v + 1)}>Actualizar lista de espacios</Button>
                             </Form.Group>
 
                             <Form.Group controlId="presupuesto-asistentes" className="mt-3">
@@ -546,6 +564,19 @@ export default function PresupuestoFormularioModal({
                                 <p className="small text-muted">No hay recursos activos en el catálogo.</p>
                             )}
 
+                            <Form.Group controlId="presupuesto-precio-acordado" className="mt-4">
+                                <Form.Label>Precio base acordado</Form.Label>
+                                <Form.Control type="number" name="precioBaseAcordado" min={0} max={MAX_DESCUENTO}
+                                    step="0.01" placeholder="Usar referencia del catálogo" value={form.precioBaseAcordado}
+                                    disabled={saving} onChange={cambiarCampo}
+                                    isInvalid={validated && form.precioBaseAcordado !== "" &&
+                                        (!/^\d{1,10}(?:\.\d{1,2})?$/.test(form.precioBaseAcordado) || Number(form.precioBaseAcordado) > MAX_DESCUENTO)} />
+                                <Form.Text className="text-muted">
+                                    Opcional. Permite acordar un precio para esta propuesta sin cambiar el catálogo.
+                                    Si queda vacío, se utiliza el precio de referencia conservado en la cotización.
+                                </Form.Text>
+                                <Form.Control.Feedback type="invalid">Usa un monto válido con máximo dos decimales.</Form.Control.Feedback>
+                            </Form.Group>
                             <Form.Group controlId="presupuesto-descuento" className="mt-4">
                                 <Form.Label>Descuento</Form.Label>
                                 <Form.Control

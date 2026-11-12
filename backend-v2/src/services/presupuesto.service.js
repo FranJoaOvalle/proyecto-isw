@@ -6,6 +6,8 @@ const ValidationException = require("../exceptions/ValidationException");
 const ForbiddenException = require("../exceptions/ForbiddenException");
 const SolicitudService = require("./solicitud.service");
 const FormalizacionService = require("./formalizacion.service");
+const UbicacionService = require("./ubicacion.service");
+const DisponibilidadService = require("./disponibilidad.service");
 
 const include = {
     cliente: {
@@ -27,7 +29,9 @@ const selectCliente = {
     inicio: true, fin: true, lugar: true, direccion: true, comuna: true,
     referenciaDireccion: true, asistentes: true, venceAt: true, version: true,
     enviadoAt: true, aceptadoAt: true, versionAceptada: true,
-    precioBaseTipoEvento: true, subtotal: true, descuento: true,
+    precioBaseTipoEvento: true, precioBaseCatalogo: true, precioBaseAcordado: true,
+    costoArriendoEspacio: true, unidadArriendoEspacio: true, subtotalArriendoEspacio: true, arriendoIncluido: true,
+    subtotal: true, descuento: true,
     recargoCliente: true, total: true,
     recursos: { select: {
         recursoId: true, nombreRecurso: true, tipoRecurso: true,
@@ -131,6 +135,12 @@ class PresupuestoService {
                 `La cantidad mínima de asistentes para esta cotización es ${cantidadMinimaSnapshot}.`
             );
         }
+        const espacioId = datos.espacioId ?? actual?.espacioId;
+        if (!espacioId) throw new ConflictException("Selecciona un espacio creado en Recursos → Espacios.");
+        await DisponibilidadService.bloquearUbicaciones(tx);
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})::text`;
+        const ubicacion = await UbicacionService.preparar({}, { espacioId, asistentes: datos.asistentes }, tx);
+        await DisponibilidadService.verificarDisponibilidad({ ...ubicacion, inicio, fin }, null, tx);
 
         let modalidadPrecioTipoEvento;
         let tarifaHoraTipoEvento = null;
@@ -147,13 +157,13 @@ class PresupuestoService {
                             "Esta cotización no conserva la tarifa horaria original. No se puede cambiar su duración con seguridad; crea una nueva propuesta."
                         );
                     }
-                    precioBase = dinero(actual.precioBaseTipoEvento);
+                    precioBase = dinero(actual.precioBaseCatalogo ?? actual.precioBaseTipoEvento);
                 } else {
                     const horas = new Prisma.Decimal(fin.getTime() - inicio.getTime()).div(3600000);
                     precioBase = dinero(new Prisma.Decimal(tarifaHoraTipoEvento).mul(horas));
                 }
             } else if (modalidadPrecioTipoEvento === "FIJO" || !cambioDuracion) {
-                precioBase = dinero(actual.precioBaseTipoEvento);
+                precioBase = dinero(actual.precioBaseCatalogo ?? actual.precioBaseTipoEvento);
             } else {
                 throw new ConflictException(
                     "Esta cotización no conserva la modalidad de precio original. No se puede cambiar su duración con seguridad."
@@ -177,6 +187,11 @@ class PresupuestoService {
                 throw new ConflictException("El tipo de evento tiene una modalidad de precio no válida.");
             }
         }
+        const precioBaseCatalogo = precioBase;
+        const precioBaseAcordado = Object.hasOwn(datos, "precioBaseAcordado")
+            ? datos.precioBaseAcordado
+            : actual?.precioBaseAcordado ?? null;
+        if (precioBaseAcordado != null) precioBase = dinero(precioBaseAcordado);
         if (precioBase.lt(0) || precioBase.gt(LIMITE_MONTO)) {
             throw new ValidationException("El precio base calculado está fuera del límite permitido.");
         }
@@ -227,10 +242,12 @@ class PresupuestoService {
             tipoEventoId: solicitud.tipoEventoId,
             inicio,
             fin,
-            lugar: datos.lugar,
+            ...ubicacion,
             asistentes: datos.asistentes,
             nombreTipoEvento: actual?.nombreTipoEvento ?? tipoEvento.nombre,
             precioBaseTipoEvento: precioBase,
+            precioBaseCatalogo,
+            precioBaseAcordado,
             modalidadPrecioTipoEvento,
             tarifaHoraTipoEvento,
             cantidadPersonasBaseTipoEvento: cantidadMinimaSnapshot,
@@ -267,6 +284,9 @@ class PresupuestoService {
     async update(id, datos) {
         return prisma.$transaction(async (tx) => {
             const actual = await this.bloquear(tx, id);
+            if (datos.version !== actual.version) {
+                throw new ConflictException("La cotización cambió. Vuelve a abrirla antes de guardar.");
+            }
             if (actual.enviadoAt || (actual.solicitud && actual.solicitud.estado !== "EN_REVISION")) {
                 throw new ConflictException("La propuesta ya fue enviada o su solicitud está cerrada. Crea una nueva cotización para cambiar sus condiciones.");
             }
@@ -275,11 +295,13 @@ class PresupuestoService {
                 tipoEventoId: actual.tipoEventoId
             };
             const cambios = {
+                espacioId: datos.espacioId ?? actual.espacioId,
                 inicio: datos.inicio ?? actual.inicio,
                 fin: datos.fin ?? actual.fin,
                 lugar: datos.lugar ?? actual.lugar,
                 asistentes: datos.asistentes ?? actual.asistentes,
                 descuento: Object.hasOwn(datos, "descuento") ? datos.descuento : actual.descuento,
+                ...(Object.hasOwn(datos, "precioBaseAcordado") ? { precioBaseAcordado: datos.precioBaseAcordado } : {}),
                 recursos: Object.hasOwn(datos, "recursos")
                     ? datos.recursos
                     : actual.recursos.map(({ recursoId, cantidad }) => ({ recursoId, cantidad }))
@@ -326,22 +348,70 @@ class PresupuestoService {
         });
     }
 
+    async prepararEnvio(tx, actual, datos, actorId) {
+        if (!actual.solicitudId) throw new ConflictException("Los presupuestos históricos sin solicitud no pueden enviarse mediante este flujo.");
+        await SolicitudService.validarEmision({ tx, solicitudId: actual.solicitudId, actorId });
+        if (actual.version !== datos.version || actual.enviadoAt) {
+            throw new ConflictException("La cotización cambió. Actualiza la página antes de enviarla.");
+        }
+        if (datos.confirmarFactibilidad !== true || datos.venceAt <= new Date() || datos.venceAt > actual.inicio) {
+            throw new ConflictException("Confirma la factibilidad e indica una vigencia futura que no supere el inicio del evento.");
+        }
+        if (actual.espacioId && actual.espacioId !== datos.espacioId) {
+            throw new ConflictException("El espacio debe coincidir con el seleccionado en el presupuesto. Edita el borrador para cambiarlo.");
+        }
+        await DisponibilidadService.bloquearUbicaciones(tx);
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(${datos.espacioId})::text`;
+        const datosEspacio = await UbicacionService.preparar({}, {
+            espacioId: datos.espacioId, asistentes: actual.asistentes,
+            referenciaDireccion: datos.referenciaDireccion
+        }, tx);
+        const ubicacion = await FormalizacionService.validarPropuesta(tx, { ...actual, ...datosEspacio });
+        const espacio = ubicacion.espacioId == null ? null : await tx.espacio.findUnique({ where: { id: ubicacion.espacioId } });
+        let subtotalArriendoEspacio = dinero(0);
+        if (espacio && !datos.arriendoIncluido) {
+            if (espacio.costoArriendo == null || !espacio.unidadArriendo) {
+                throw new ConflictException("Completa la tarifa del recinto o confirma que su arriendo está incluido en el precio base acordado.");
+            }
+            const horas = new Prisma.Decimal(actual.fin.getTime() - actual.inicio.getTime()).div(3600000);
+            const unidades = espacio.unidadArriendo === "HORA" ? horas :
+                espacio.unidadArriendo === "DIA" ? horas.div(24).ceil() : new Prisma.Decimal(1);
+            subtotalArriendoEspacio = dinero(new Prisma.Decimal(espacio.costoArriendo).mul(unidades));
+        }
+        const subtotal = dinero(new Prisma.Decimal(actual.precioBaseTipoEvento).plus(
+            actual.recursos.reduce((suma, item) => suma.plus(item.subtotal), dinero(0))
+        ).plus(subtotalArriendoEspacio));
+        const total = dinero(subtotal.minus(actual.descuento).plus(actual.recargoCliente));
+        if (subtotal.gt(LIMITE_MONTO) || total.gt(LIMITE_MONTO)) throw new ValidationException("El importe final supera el límite permitido.");
+        const importes = {
+            costoArriendoEspacio: espacio?.costoArriendo ?? null,
+            unidadArriendoEspacio: espacio?.unidadArriendo ?? null,
+            arriendoIncluido: datos.arriendoIncluido,
+            subtotalArriendoEspacio, subtotal, total,
+            montoAnticipo: dinero(total.mul(actual.porcentajeAnticipo).div(100))
+        };
+        return { ubicacion, importes };
+    }
+
+    async previsualizarEnvio(id, datos, actorId) {
+        return prisma.$transaction(async tx => {
+            const actual = await this.bloquear(tx, id);
+            const { ubicacion, importes } = await this.prepararEnvio(tx, actual, datos, actorId);
+            return { ...actual, ...ubicacion, ...importes, venceAt: datos.venceAt };
+        }, { timeout: 15000 });
+    }
+
     async enviar(id, datos, actorId) {
         return prisma.$transaction(async (tx) => {
             const actual = await this.bloquear(tx, id);
-            if (!actual.solicitudId) throw new ConflictException("Los presupuestos históricos sin solicitud no pueden enviarse mediante este flujo.");
-            await SolicitudService.validarEmision({ tx, solicitudId: actual.solicitudId, actorId });
-            if (actual.version !== datos.version || actual.enviadoAt) {
-                throw new ConflictException("La cotización cambió. Actualiza la página antes de enviarla.");
+            const { ubicacion, importes } = await this.prepararEnvio(tx, actual, datos, actorId);
+            if (datos.totalConfirmado == null || !dinero(datos.totalConfirmado).equals(importes.total)) {
+                throw new ConflictException("El importe final cambió o no fue revisado. Revisa el resumen antes de enviar.");
             }
-            if (datos.confirmarFactibilidad !== true || datos.venceAt <= new Date() || datos.venceAt > actual.inicio) {
-                throw new ConflictException("Confirma la factibilidad e indica una vigencia futura que no supere el inicio del evento.");
-            }
-            const ubicacion = await FormalizacionService.validarPropuesta(tx, { ...actual, ...datos });
             const enviado = await tx.presupuesto.update({
                 where: { id: actual.id },
                 data: {
-                    ...ubicacion, estado: "ENVIADO", venceAt: datos.venceAt,
+                    ...ubicacion, ...importes, estado: "ENVIADO", venceAt: datos.venceAt,
                     enviadoAt: new Date(), enviadoPorId: actorId,
                     version: { increment: 1 }
                 },
@@ -353,7 +423,7 @@ class PresupuestoService {
                     { presupuestoId: actual.id, version: enviado.version, venceAt: enviado.venceAt })
             } });
             return enviado;
-        });
+        }, { timeout: 15000 });
     }
 
     async aceptar(id, datos, usuario) {

@@ -4,7 +4,8 @@ import ConfirmModal from "../ConfirmModal";
 import {
     editarEvento,
     cancelarEvento,
-    eliminarEvento
+    eliminarEvento,
+    cambiarEstadoEvento
 } from "../../services/seguimiento.service";
 import { mensajeError } from "./seguimiento.utils";
 
@@ -13,6 +14,12 @@ const fechaLocal = (valor) => {
     return new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000)
         .toISOString()
         .slice(0, 16);
+};
+
+const estadosSiguientes = {
+    CONFIRMADO: { POSPUESTO: "Pospuesto", EN_CURSO: "En curso" },
+    POSPUESTO: { CONFIRMADO: "Confirmado", EN_CURSO: "En curso" },
+    EN_CURSO: { COMPLETADO: "Completado" }
 };
 
 export default function EventoAcciones({ evento, onCambio }) {
@@ -49,12 +56,15 @@ export default function EventoAcciones({ evento, onCambio }) {
         setMensaje("");
         try {
             if (accion === "editar") await editarEvento(evento.id, datos);
+            else if (accion === "estado") await cambiarEstadoEvento(evento.id, datos);
             else if (accion === "cancelar") await cancelarEvento(evento.id);
             else await eliminarEvento(evento.id);
             setAccion("");
             setMensaje(
                 accion === "editar"
                     ? "Evento actualizado correctamente."
+                    : accion === "estado"
+                      ? "Estado del evento actualizado correctamente."
                     : "Evento cancelado correctamente."
             );
             onCambio();
@@ -91,6 +101,16 @@ export default function EventoAcciones({ evento, onCambio }) {
                 </Alert>
             )}
             <div className="d-flex flex-wrap gap-2 mt-3">
+                {estadosSiguientes[evento.estado] && (
+                    <Button variant="outline-primary" onClick={() => {
+                        setForm({ estado: Object.keys(estadosSiguientes[evento.estado])[0], motivo: "" });
+                        setValidated(false);
+                        setError("");
+                        setAccion("estado");
+                    }}>
+                        Cambiar estado
+                    </Button>
+                )}
                 {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
                     <Button
                         variant="outline-primary"
@@ -126,6 +146,41 @@ export default function EventoAcciones({ evento, onCambio }) {
                     </div>
                 )}
             </div>
+            <Modal show={accion === "estado"} onHide={cerrar} centered backdrop="static">
+                <Form noValidate validated={validated} onSubmit={(e) => {
+                    e.preventDefault();
+                    setValidated(true);
+                    if (!e.currentTarget.checkValidity() || form.motivo.trim().length < 3) return;
+                    ejecutar({ estado: form.estado, motivo: form.motivo.trim() });
+                }}>
+                    <Modal.Header closeButton={!saving}><Modal.Title>Cambiar estado del evento</Modal.Title></Modal.Header>
+                    <Modal.Body>
+                        {error && <Alert variant="danger">{error}</Alert>}
+                        <Form.Group controlId="evento-estado" className="mb-3">
+                            <Form.Label>Nuevo estado</Form.Label>
+                            <Form.Select required value={form.estado ?? ""} disabled={saving}
+                                onChange={(e) => setForm((actual) => ({ ...actual, estado: e.target.value }))}>
+                                {Object.entries(estadosSiguientes[evento.estado] ?? {}).map(([valor, etiqueta]) => (
+                                    <option key={valor} value={valor}>{etiqueta}</option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+                        <Form.Group controlId="evento-motivo-estado">
+                            <Form.Label>Motivo *</Form.Label>
+                            <Form.Control as="textarea" required minLength={3} maxLength={1000} value={form.motivo ?? ""}
+                                disabled={saving} onChange={(e) => setForm((actual) => ({ ...actual, motivo: e.target.value }))} />
+                            <Form.Control.Feedback type="invalid">Indica un motivo de al menos tres caracteres.</Form.Control.Feedback>
+                        </Form.Group>
+                        <Form.Text className="d-block mt-3">
+                            El inicio y el cierre se habilitan según el horario confirmado. Las devoluciones de equipos y vehículos se registran por separado.
+                        </Form.Text>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" disabled={saving} onClick={cerrar}>Cerrar</Button>
+                        <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Actualizar estado"}</Button>
+                    </Modal.Footer>
+                </Form>
+            </Modal>
             <Modal
                 show={accion === "editar"}
                 onHide={cerrar}
@@ -185,6 +240,7 @@ export default function EventoAcciones({ evento, onCambio }) {
                                 <Form.Control
                                     name={name}
                                     type={type}
+                                    readOnly={name === "lugar"}
                                     value={form[name] ?? ""}
                                     onChange={cambiar}
                                     required

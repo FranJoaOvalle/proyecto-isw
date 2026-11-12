@@ -24,6 +24,9 @@ module.exports = {
     enviar: responder((req) =>
         service.enviar(req.validated.params.id, req.validated.body, req.usuario.id)
     ),
+    previsualizarEnvio: responder((req) =>
+        service.previsualizarEnvio(req.validated.params.id, req.validated.body, req.usuario.id)
+    ),
     aceptar: responder((req) =>
         service.aceptar(req.validated.params.id, req.validated.body, req.usuario)
     )

@@ -5,6 +5,7 @@ const SolicitudService = require("./solicitud.service");
 const IntegracionPresupuestosService = require("./integracionPresupuestos.service");
 const UbicacionService = require("./ubicacion.service");
 const DisponibilidadService = require("./disponibilidad.service");
+const ContratacionRecursosService = require("./contratacionRecursos.service");
 
 const resumenEvento = {
     id: true, solicitudId: true, presupuestoId: true, estado: true,
@@ -47,6 +48,7 @@ class FormalizacionService {
         await DisponibilidadService.verificarDisponibilidad({
             ...ubicacion, inicio: presupuesto.inicio, fin: presupuesto.fin
         }, null, tx);
+        await ContratacionRecursosService.bloquearValidar(tx, presupuesto);
         return ubicacion;
     }
 
@@ -79,6 +81,9 @@ class FormalizacionService {
             throw new ConflictException("La solicitud ya no está disponible para contratar.");
         }
         await IntegracionPresupuestosService.verificarAceptacion({ presupuesto, actorId, version });
+        if (presupuesto.espacioId == null) {
+            throw new ConflictException("Esta propuesta anterior no tiene un espacio registrado. Solicita al administrador una propuesta actualizada.");
+        }
         const ubicacion = await this.validarPropuesta(tx, presupuesto);
         const evento = await tx.evento.create({
             data: {
@@ -96,6 +101,12 @@ class FormalizacionService {
             },
             select: resumenEvento
         });
+        await ContratacionRecursosService.reservar(tx, presupuesto, evento.id);
+        await tx.reservaEspacio.create({ data: {
+            espacioId: ubicacion.espacioId, eventoId: evento.id,
+            referencia: `Contrato evento #${evento.id}`,
+            inicio: presupuesto.inicio, fin: presupuesto.fin
+        } });
         await tx.solicitudEvento.update({
             where: { id: solicitudId },
             data: {

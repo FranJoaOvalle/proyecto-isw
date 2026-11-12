@@ -38,6 +38,8 @@ export default function SolicitudFormulario({
     const [cargando, setCargando] = useState(true);
     const [saving, setSaving] = useState(false);
     const [validated, setValidated] = useState(false);
+    const [invalidarBorradores, setInvalidarBorradores] = useState(false);
+    const tieneBorradores = esAdmin && solicitud?.presupuestos?.some((p) => p.estado === "BORRADOR");
     useEffect(() => {
         let activo = true;
         async function cargar() {
@@ -87,6 +89,7 @@ export default function SolicitudFormulario({
         if (!solicitud || esAdmin)
             datos.tipoEventoId = Number(form.tipoEventoId);
         if (!solicitud && esAdmin) datos.clienteId = Number(form.clienteId);
+        if (tieneBorradores) datos.invalidarBorradores = invalidarBorradores;
         try {
             const resultado = solicitud
                 ? await editarSolicitud(solicitud.id, datos)
@@ -117,6 +120,15 @@ export default function SolicitudFormulario({
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger">{error}</Alert>}
+                    {tieneBorradores && (
+                        <Alert variant="warning">
+                            Cambiar esta solicitud dejará sus borradores anteriores cancelados. Después podrás preparar una cotización con las nuevas condiciones.
+                            <Form.Check id="solicitud-invalidar-borradores" className="mt-2" required
+                                checked={invalidarBorradores} disabled={saving}
+                                onChange={(e) => setInvalidarBorradores(e.target.checked)}
+                                label="Confirmo la cancelación de los borradores anteriores al guardar." />
+                        </Alert>
+                    )}
                     <Form.Group
                         controlId="solicitud-tipo"
                         className="mb-3"

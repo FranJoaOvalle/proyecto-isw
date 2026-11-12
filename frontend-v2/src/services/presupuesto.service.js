@@ -34,7 +34,28 @@ export const enviarPresupuesto = async (id, datos) => {
     return response.data;
 };
 
-export const aceptarPresupuesto = async (id, version) => {
-    const response = await api.post(`/presupuestos/${id}/aceptar`, { version, aceptar: true });
+export const previsualizarEnvio = async (id, datos) => {
+    const response = await api.post(`/presupuestos/${id}/previsualizar-envio`, datos);
     return response.data;
+};
+
+export const aceptarPresupuesto = async (id, version) => {
+    try {
+        const response = await api.post(`/presupuestos/${id}/aceptar`, { version, aceptar: true }, {
+            timeout: 70000
+        });
+        return response.data;
+    } catch (error) {
+        if (!error.response) {
+            try {
+                const presupuesto = await obtenerPresupuesto(id);
+                if (presupuesto.estado === "ACEPTADO" && presupuesto.versionAceptada === version && presupuesto.evento?.id) {
+                    return { presupuesto, evento: presupuesto.evento };
+                }
+            } catch {
+                // Se conserva el error original si tampoco pudo consultarse la contratación.
+            }
+        }
+        throw error;
+    }
 };

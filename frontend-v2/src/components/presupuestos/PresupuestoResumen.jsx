@@ -28,6 +28,10 @@ export default function PresupuestoResumen({ presupuesto }) {
                                 <td className="text-end">{monedaPresupuesto(recurso.subtotal)}</td>
                             </tr>
                         ))}
+                        {presupuesto.subtotalArriendoEspacio != null && <tr>
+                            <td colSpan={2}>{presupuesto.arriendoIncluido ? "Arriendo incluido en el precio base" : "Arriendo del recinto"}</td>
+                            <td className="text-end">{monedaPresupuesto(presupuesto.subtotalArriendoEspacio)}</td>
+                        </tr>}
                         <tr><td colSpan={2}>Subtotal</td><td className="text-end">{monedaPresupuesto(presupuesto.subtotal)}</td></tr>
                         <tr><td colSpan={2}>Descuento</td><td className="text-end">−{monedaPresupuesto(presupuesto.descuento)}</td></tr>
                         <tr><td colSpan={2}>Recargo</td><td className="text-end">{monedaPresupuesto(presupuesto.recargoCliente)}</td></tr>

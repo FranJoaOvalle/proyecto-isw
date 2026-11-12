@@ -30,7 +30,6 @@ class UbicacionService {
             )
         ) {
             if (
-                actual.espacioId != null &&
                 datos.lugar &&
                 datos.lugar !== actual.lugar
             )
@@ -42,6 +41,12 @@ class UbicacionService {
         const espacioId = Object.hasOwn(datos, "espacioId")
             ? datos.espacioId
             : actual.espacioId;
+        if (espacioId == null) {
+            throw new ConflictException("Selecciona un espacio registrado en Recursos → Espacios para asignar la ubicación.");
+        }
+        if (actual.solicitudId && actual.espacioId && espacioId !== actual.espacioId) {
+            throw new ConflictException("El evento debe conservar el espacio de la propuesta contratada. Revisa el acuerdo comercial antes de cambiar de recinto.");
+        }
         let lugar = datos.lugar ?? actual.lugar;
         let direccion = datos.direccion ?? actual.direccion;
         let comuna = datos.comuna ?? actual.comuna;
@@ -50,6 +55,9 @@ class UbicacionService {
                 where: { id: espacioId }
             });
             if (!espacio) throw new NotFoundException("Espacio no encontrado.");
+            if (!espacio.comuna && !(actual.espacioId === espacioId && actual.comuna)) {
+                throw new ConflictException("Completa la comuna del espacio en Recursos → Espacios antes de asignarlo.");
+            }
             const conservar =
                 actual.espacioId === espacioId &&
                 actual.direccion &&
