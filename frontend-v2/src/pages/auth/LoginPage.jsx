@@ -10,6 +10,7 @@ import {
 
 import { login, getCurrentUser } from "../../services/auth.service";
 import { useAuth } from "../../contexts/AuthContext";
+import NotificacionToast from "../../components/NotificacionToast";
 
 import "./LoginPage.css";
 
@@ -37,9 +38,15 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [validated, setValidated] = useState(false);
+    const [aviso, setAviso] = useState(() =>
+        location.state?.registroExitoso
+            ? "Cuenta creada correctamente. Ya puedes iniciar sesión."
+            : location.state?.passwordReset
+              ? "Tu contraseña fue restablecida correctamente. Ya puedes iniciar sesión."
+              : ""
+    );
 
     const from = location.state?.from?.pathname;
-    const registroExitoso = location.state?.registroExitoso;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -74,6 +81,7 @@ export default function LoginPage() {
 
     return (
         <div className="login-page">
+            <NotificacionToast mensaje={aviso} onClose={() => setAviso("")} />
             <div className="login-panel">
                 <div className="login-card">
                     <div className="mb-5">
@@ -91,37 +99,6 @@ export default function LoginPage() {
                             Inicia sesión para continuar a tu cuenta.
                         </p>
                     </div>
-
-                    <Fade
-                        in={!!registroExitoso}
-                        mountOnEnter
-                        unmountOnExit
-                    >
-                        <div>
-                            <Alert
-                                variant="success"
-                                className="py-2 px-3 mb-3"
-                            >
-                                Cuenta creada correctamente. Ya puedes iniciar sesión.
-                            </Alert>
-                        </div>
-                    </Fade>
-
-                    <Fade
-                        in={!!location.state?.passwordReset}
-                        mountOnEnter
-                        unmountOnExit
-                    >
-                        <div>
-                            <Alert
-                                variant="success"
-                                className="py-2 px-3 mb-3"
-                            >
-                                Tu contraseña fue restablecida correctamente.
-                                Ya puedes iniciar sesión.
-                            </Alert>
-                        </div>
-                    </Fade>
 
                     <Fade
                         in={!!error}

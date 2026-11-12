@@ -8,6 +8,7 @@ import {
     estadosEvento,
     varianteEstado,
     fechaSeguimiento,
+    direccionConComuna,
     mensajeError
 } from "../../components/eventos/seguimiento.utils";
 import { obtenerEventoCliente } from "../../services/eventoCliente.service";
@@ -58,25 +59,46 @@ function DetalleEvento({ id }) {
                                 <Badge bg={varianteEstado[evento.estado] ?? "secondary"} className="mb-3">
                                     {estadosEvento[evento.estado] ?? evento.estado}
                                 </Badge>
-                                <p><strong>Inicio:</strong> {fechaSeguimiento(evento.inicio)}</p>
-                                <p><strong>Término:</strong> {fechaSeguimiento(evento.fin)}</p>
-                                <p><strong>Lugar:</strong> {evento.lugar}</p>
-                                <p><strong>Dirección:</strong> {evento.direccion
-                                    ? [evento.direccion, evento.comuna].filter(Boolean).join(", ")
-                                    : "Ubicación por confirmar"}</p>
-                                {evento.referenciaDireccion && <p><strong>Referencias:</strong> {evento.referenciaDireccion}</p>}
-                                <p className="mb-0"><strong>Asistentes:</strong> {evento.asistentes}</p>
+                                <Row className="g-3">
+                                    <Col sm={6}>
+                                        <small className="d-block text-body-secondary">Inicio</small>
+                                        <span>{fechaSeguimiento(evento.inicio)}</span>
+                                    </Col>
+                                    <Col sm={6}>
+                                        <small className="d-block text-body-secondary">Término</small>
+                                        <span>{fechaSeguimiento(evento.fin)}</span>
+                                    </Col>
+                                    <Col sm={6}>
+                                        <small className="d-block text-body-secondary">Lugar</small>
+                                        <span>{evento.lugar}</span>
+                                    </Col>
+                                    <Col sm={6}>
+                                        <small className="d-block text-body-secondary">Asistentes</small>
+                                        <span>{evento.asistentes} personas</span>
+                                    </Col>
+                                </Row>
+                                <div className="border-top mt-4 pt-3">
+                                    <small className="d-block text-body-secondary">Dirección</small>
+                                    <p className="mb-0">{evento.direccion
+                                        ? direccionConComuna(evento.direccion, evento.comuna)
+                                        : "Ubicación por confirmar"}</p>
+                                    {evento.referenciaDireccion && <>
+                                        <small className="d-block text-body-secondary mt-3">Referencias de acceso</small>
+                                        <p className="mb-0 text-break">{evento.referenciaDireccion}</p>
+                                    </>}
+                                </div>
                             </Card.Body>
                         </Card>
                     </Col>
                     <Col lg={4}>
                         <Card className="shadow-sm">
                             <Card.Body className="p-4">
-                                <h2 className="h5">Organización de tu evento</h2>
-                                <p><strong>Productor:</strong> {evento.productor
+                                <h2 className="h5 mb-3">Organización de tu evento</h2>
+                                <small className="d-block text-body-secondary">Productor asignado</small>
+                                <p className="mb-4">{evento.productor
                                     ? [evento.productor.nombres, evento.productor.apellidos].filter(Boolean).join(" ")
                                     : "Sin productor asignado"}</p>
-                                <div className="d-grid gap-2">
+                                <div className="d-grid gap-2 border-top pt-3">
                                     {evento.solicitudId && (
                                         <Button as={Link} to={`/cliente/solicitudes/${evento.solicitudId}`} variant="outline-primary">Ver solicitud original</Button>
                                     )}

@@ -25,7 +25,7 @@ const include = {
 const dinero = (value) => new Prisma.Decimal(value).toDecimalPlaces(2);
 const LIMITE_MONTO = new Prisma.Decimal("9999999999.99");
 const selectCliente = {
-    id: true, solicitudId: true, nombreTipoEvento: true, estado: true,
+    id: true, solicitudId: true, nombreTipoEvento: true, estado: true, espacioId: true,
     inicio: true, fin: true, lugar: true, direccion: true, comuna: true,
     referenciaDireccion: true, asistentes: true, venceAt: true, version: true,
     enviadoAt: true, aceptadoAt: true, versionAceptada: true,

@@ -160,7 +160,10 @@ class RecursoService {
     async reservar(id, data) {
         const recursoId = Number(id);
         return prisma.$transaction(async tx => {
-            await ReservaService.bloquearEvento(tx, data.eventoId);
+            const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
+            if (evento && evento.inicio <= new Date()) {
+                throw new ConflictException("Las nuevas asignaciones del evento deben registrarse antes de su inicio.");
+            }
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${recursoId})::text`;
             const recurso = await tx.recurso.findUnique({ where: { id: recursoId } });
             if (!recurso || recurso.tipo !== "MATERIAL") {
@@ -168,6 +171,11 @@ class RecursoService {
             }
             if (!recurso.activo) {
                 throw new ConflictException("El recurso está inactivo y no admite reservas.");
+            }
+            if (evento?.solicitudId && await tx.eventoRecurso.findFirst({
+                where: { eventoId: evento.id, recursoId }
+            })) {
+                throw new ConflictException("Este equipo ya forma parte de la propuesta contratada. Revisa el acuerdo antes de cambiar su cantidad.");
             }
 
             await ContratacionRecursosService.validarReserva(tx, recurso, data);
@@ -187,6 +195,9 @@ class RecursoService {
             if (reserva.inicio <= new Date()) throw new ConflictException("Registra la devolución para liberar un equipo cuya reserva ya comenzó.");
             if (reserva.cancelada) {
                 throw new ConflictException("La reserva ya está cancelada.");
+            }
+            if (reserva.eventoId != null && reserva.referencia === `Contrato evento #${reserva.eventoId}`) {
+                throw new ConflictException("Esta reserva pertenece a la propuesta contratada. Cancela el evento o revisa el acuerdo comercial.");
             }
             if (reserva.estadoDevolucion !== "PENDIENTE") {
                 throw new ConflictException("No se puede cancelar una reserva cuya devolución ya fue registrada.");

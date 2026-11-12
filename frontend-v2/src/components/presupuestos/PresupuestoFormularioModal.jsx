@@ -346,12 +346,12 @@ export default function PresupuestoFormularioModal({
             scrollable
             backdrop="static"
         >
-            <Form noValidate validated={validated} onSubmit={guardar}>
+            <Form noValidate validated={validated} onSubmit={guardar}
+                className="d-flex flex-column overflow-hidden" style={{ maxHeight: "calc(100dvh - 3.5rem)" }}>
                 <Modal.Header closeButton={!saving}>
                     <Modal.Title>{presupuesto ? "Editar cotización" : "Nueva cotización"}</Modal.Title>
                 </Modal.Header>
-                <Modal.Body className="p-0">
-                    <div className="p-3" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                <Modal.Body className="overflow-auto p-3" style={{ minHeight: 0 }}>
                     {error && <Alert variant="danger">{error}</Alert>}
                     {presupuesto ? (
                         <Alert variant="light" className="border mb-3">
@@ -374,7 +374,7 @@ export default function PresupuestoFormularioModal({
                                     </option>
                                 ))}
                             </Form.Select>
-                            <Form.Text className="text-muted">
+                            <Form.Text className="text-body-secondary">
                                 Solo se pueden emitir cotizaciones desde solicitudes en estado EN_REVISION.
                             </Form.Text>
                         </Form.Group>
@@ -384,7 +384,7 @@ export default function PresupuestoFormularioModal({
                         <>
                             <Alert variant="light" className="border">
                                 <strong>{nombreCliente}</strong>
-                                <span className="d-block text-muted">
+                                <span className="d-block text-body-secondary">
                                     {solicitudSeleccionada.tipoEvento?.nombre} · mínimo para guardar {minimoAsistentes} asistentes
                                 </span>
                             </Alert>
@@ -477,7 +477,7 @@ export default function PresupuestoFormularioModal({
                                         </Form.Control.Feedback>
                                     </Col>
                                 </Row>
-                                <Form.Text className="text-muted">
+                                <Form.Text className="text-body-secondary">
                                     {presupuesto
                                         ? `La cotización conserva este mínimo de asistentes (${minimoAsistentes}).`
                                         : `El mínimo se ajusta al tipo de evento de la solicitud (${minimoAsistentes}).`}
@@ -487,7 +487,7 @@ export default function PresupuestoFormularioModal({
                             <div className="d-flex justify-content-between align-items-center mt-4 mb-2">
                                 <div>
                                     <h3 className="h6 mb-0">Recursos adicionales</h3>
-                                    <small className="text-muted">Selecciona recursos del catálogo y sus cantidades.</small>
+                                    <small className="text-body-secondary">Selecciona recursos del catálogo y sus cantidades.</small>
                                 </div>
                                 <Button
                                     type="button"
@@ -500,7 +500,7 @@ export default function PresupuestoFormularioModal({
                                 </Button>
                             </div>
 
-                            {cargandoRecursos && <div className="text-muted py-2"><Spinner size="sm" className="me-2" />Cargando catálogo...</div>}
+                            {cargandoRecursos && <div className="text-body-secondary py-2"><Spinner size="sm" className="me-2" />Cargando catálogo...</div>}
                             {errorRecursos && <Alert variant="warning" className="py-2">{errorRecursos}</Alert>}
                             {form.recursos.map((item, indice) => (
                                 <Row className="g-2 align-items-end mb-2" key={`${indice}-${item.recursoId}`}>
@@ -561,7 +561,7 @@ export default function PresupuestoFormularioModal({
                                 </Row>
                             ))}
                             {!cargandoRecursos && !errorRecursos && !recursos.length && (
-                                <p className="small text-muted">No hay recursos activos en el catálogo.</p>
+                                <p className="small text-body-secondary">No hay recursos activos en el catálogo.</p>
                             )}
 
                             <Form.Group controlId="presupuesto-precio-acordado" className="mt-4">
@@ -571,7 +571,7 @@ export default function PresupuestoFormularioModal({
                                     disabled={saving} onChange={cambiarCampo}
                                     isInvalid={validated && form.precioBaseAcordado !== "" &&
                                         (!/^\d{1,10}(?:\.\d{1,2})?$/.test(form.precioBaseAcordado) || Number(form.precioBaseAcordado) > MAX_DESCUENTO)} />
-                                <Form.Text className="text-muted">
+                                <Form.Text className="text-body-secondary">
                                     Opcional. Permite acordar un precio para esta propuesta sin cambiar el catálogo.
                                     Si queda vacío, se utiliza el precio de referencia conservado en la cotización.
                                 </Form.Text>
@@ -596,19 +596,17 @@ export default function PresupuestoFormularioModal({
                             </Form.Group>
                         </>
                     )}
-                    </div>
                 </Modal.Body>
-                <Modal.Footer className="d-flex flex-column align-items-stretch gap-3">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <span className="fw-semibold">
-                            Total estimado (subtotal − descuento + recargo)
-                            <small className="d-block text-muted fw-normal">
-                                Recargo cliente: {formatoMoneda.format(recargoCliente)}
-                            </small>
-                        </span>
+                <Modal.Footer className="d-flex flex-column align-items-stretch gap-2">
+                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 w-100">
+                        <span className="fw-semibold">Total estimado sin arriendo</span>
                         <strong className="fs-5">{formatoMoneda.format(totalEstimado)}</strong>
                     </div>
-                    <div className="d-flex justify-content-end gap-2">
+                    <small className="text-body-secondary w-100">
+                        Incluye recursos, descuento y recargo ({formatoMoneda.format(recargoCliente)}).
+                        El arriendo y el total final se revisan antes de enviar.
+                    </small>
+                    <div className="d-flex justify-content-end gap-2 w-100">
                         <Button variant="secondary" onClick={onHide} disabled={saving}>
                             Cerrar
                         </Button>

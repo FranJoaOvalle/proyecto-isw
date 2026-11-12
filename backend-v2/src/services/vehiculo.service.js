@@ -82,7 +82,10 @@ class VehiculoService {
     async reservar(id, data) {
         const vehiculoId = Number(id);
         return prisma.$transaction(async tx => {
-            await ReservaService.bloquearEvento(tx, data.eventoId);
+            const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
+            if (evento && evento.inicio <= new Date()) {
+                throw new ConflictException("Las nuevas asignaciones del evento deben registrarse antes de su inicio.");
+            }
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})::text`;
             const vehiculo = await this.getById(vehiculoId, tx);
             if (!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE") {

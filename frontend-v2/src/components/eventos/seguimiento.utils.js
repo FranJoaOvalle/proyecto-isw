@@ -30,6 +30,13 @@ export const nombreAutor = (usuario) =>
         : usuario?.email;
 export const fechaSeguimiento = (fecha) =>
     new Date(fecha).toLocaleString("es-CL");
+export const direccionConComuna = (direccion, comuna) => {
+    if (!direccion || !comuna) return direccion || comuna || "";
+    const repetida = direccion.split(",").some((parte) =>
+        parte.trim().toLocaleLowerCase("es-CL") === comuna.trim().toLocaleLowerCase("es-CL")
+    );
+    return repetida ? direccion : `${direccion}, ${comuna}`;
+};
 export const mensajeError = (error, fallback) =>
     error.response?.data?.error?.message ||
     error.response?.data?.message ||

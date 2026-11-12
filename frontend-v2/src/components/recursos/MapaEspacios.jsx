@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import { Badge, Button, Card, ListGroup, Spinner } from "react-bootstrap";
 import { guardarUbicacionEspacio } from "../../services/espacio.service";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import "leaflet/dist/leaflet.css";
 
 function estadoEspacio(espacio) {

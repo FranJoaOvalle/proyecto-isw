@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Modal, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../contexts/AuthContext";
+import NotificacionToast from "../components/NotificacionToast";
 import {
     updateProfile,
     changePassword,
@@ -26,6 +27,7 @@ export default function ProfilePage() {
     const [showDeactivateModal, setShowDeactivateModal] = useState(false);
     const [deactivating, setDeactivating] = useState(false);
 
+    /* eslint-disable react-hooks/set-state-in-effect -- El formulario se rellena cuando llega el usuario autenticado. */
     useEffect(() => {
         if (!usuario) return;
 
@@ -66,6 +68,7 @@ export default function ProfilePage() {
             email: usuario.email
         });
     }, [usuario]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -154,7 +157,7 @@ export default function ProfilePage() {
                     </p>
                 </div>
 
-                {success && <Alert variant="success">{success}</Alert>}
+                <NotificacionToast mensaje={success} onClose={() => setSuccess("")} />
                 {error && <Alert variant="danger">{error}</Alert>}
 
                 <Card className="mb-4">

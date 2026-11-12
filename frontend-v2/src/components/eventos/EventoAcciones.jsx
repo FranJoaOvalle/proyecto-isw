@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Alert, Button, Form, Modal } from "react-bootstrap";
 import ConfirmModal from "../ConfirmModal";
+import NotificacionToast from "../NotificacionToast";
 import {
     editarEvento,
     cancelarEvento,
-    eliminarEvento,
     cambiarEstadoEvento
 } from "../../services/seguimiento.service";
 import { mensajeError } from "./seguimiento.utils";
@@ -23,6 +23,20 @@ const estadosSiguientes = {
 };
 
 export default function EventoAcciones({ evento, onCambio }) {
+    const tieneReservas = [evento.reservasEspacio, evento.reservasRecurso, evento.reservasVehiculo]
+        .some((reservas) => reservas?.some((reserva) => !reserva.cancelada));
+    const minimoAsistentes = evento.presupuesto?.cantidadPersonasBaseTipoEvento ?? 1;
+    const maximoAsistentes = Math.min(
+        evento.presupuesto?.asistentes ?? 2147483647,
+        evento.espacio?.capacidad ?? 2147483647
+    );
+    const horarioBloqueado = evento.solicitudId != null || tieneReservas;
+    let avisoHorario = null;
+    if (evento.solicitudId != null) {
+        avisoHorario = "El horario pertenece a la propuesta contratada. Solicita una revisión comercial para modificarlo.";
+    } else if (tieneReservas) {
+        avisoHorario = "Para cambiar el horario, primero cancela las reservas vinculadas.";
+    }
     const [accion, setAccion] = useState("");
     const [form, setForm] = useState({});
     const [saving, setSaving] = useState(false);
@@ -57,8 +71,7 @@ export default function EventoAcciones({ evento, onCambio }) {
         try {
             if (accion === "editar") await editarEvento(evento.id, datos);
             else if (accion === "estado") await cambiarEstadoEvento(evento.id, datos);
-            else if (accion === "cancelar") await cancelarEvento(evento.id);
-            else await eliminarEvento(evento.id);
+            else await cancelarEvento(evento.id);
             setAccion("");
             setMensaje(
                 accion === "editar"
@@ -80,16 +93,7 @@ export default function EventoAcciones({ evento, onCambio }) {
     };
     return (
         <>
-            {mensaje && (
-                <Alert
-                    variant="success"
-                    className="mt-3"
-                    dismissible
-                    onClose={() => setMensaje("")}
-                >
-                    {mensaje}
-                </Alert>
-            )}
+            <NotificacionToast mensaje={mensaje} onClose={() => setMensaje("")} />
             {error && (
                 <Alert
                     variant="danger"
@@ -132,18 +136,9 @@ export default function EventoAcciones({ evento, onCambio }) {
                     </Button>
                 )}
                 {evento.estado === "CANCELADO" && (
-                    <div>
-                        <Button
-                            variant="outline-danger"
-                            disabled
-                        >
-                            Eliminar definitivamente
-                        </Button>
-                        <small className="d-block text-secondary mt-1">
-                            Conserva un presupuesto contratado e historial
-                            protegido.
-                        </small>
-                    </div>
+                    <small className="text-secondary">
+                        La eliminación definitiva no está disponible porque el evento conserva un presupuesto contratado y su historial.
+                    </small>
                 )}
             </div>
             <Modal show={accion === "estado"} onHide={cerrar} centered backdrop="static">
@@ -240,16 +235,13 @@ export default function EventoAcciones({ evento, onCambio }) {
                                 <Form.Control
                                     name={name}
                                     type={type}
-                                    readOnly={name === "lugar"}
                                     value={form[name] ?? ""}
                                     onChange={cambiar}
                                     required
-                                    disabled={saving}
-                                    min={type === "number" ? 1 : undefined}
+                                    disabled={saving || (type === "datetime-local" && horarioBloqueado)}
+                                    min={type === "number" ? minimoAsistentes : undefined}
+                                    max={type === "number" ? maximoAsistentes : undefined}
                                     step={type === "number" ? 1 : undefined}
-                                    maxLength={
-                                        name === "lugar" ? 250 : undefined
-                                    }
                                     isInvalid={
                                         validated &&
                                         name === "fin" &&
@@ -267,6 +259,10 @@ export default function EventoAcciones({ evento, onCambio }) {
                                 </Form.Control.Feedback>
                             </Form.Group>
                         ))}
+                        {evento.presupuesto && <Form.Text className="d-block mb-3">
+                            Asistentes permitidos: entre {minimoAsistentes} y {maximoAsistentes} según la propuesta contratada y la capacidad del espacio.
+                        </Form.Text>}
+                        {avisoHorario && <Form.Text className="d-block mb-3">{avisoHorario}</Form.Text>}
                         <Form.Group
                             controlId="evento-observaciones"
                             className="mb-3"

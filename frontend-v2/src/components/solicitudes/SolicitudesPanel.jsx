@@ -16,6 +16,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../PageHeader";
 import EmptyState from "../EmptyState";
 import ConfirmModal from "../ConfirmModal";
+import NotificacionToast from "../NotificacionToast";
 import TableToolbar from "../admin/TableToolbar";
 import SolicitudFormulario from "./SolicitudFormulario";
 import { estadoPropuestaCliente, nombresEstadoPresupuesto, propuestaVigente } from "../presupuestos/presupuesto.utils";
@@ -28,7 +29,9 @@ import {
 } from "../../services/solicitud.service";
 import {
     estadosEvento,
+    varianteEstado,
     fechaSeguimiento,
+    direccionConComuna,
     mensajeError
 } from "../eventos/seguimiento.utils";
 
@@ -37,6 +40,18 @@ const estados = {
     EN_REVISION: "En revisión",
     CONTRATADA: "Contratada",
     RECHAZADA: "Rechazada"
+};
+const accionesHistorial = {
+    CREACION: "Solicitud creada",
+    EDICION: "Solicitud editada",
+    INICIO_REVISION: "Revisión iniciada",
+    ENVIO_PROPUESTA: "Propuesta enviada",
+    FORMALIZACION: "Contratación confirmada",
+    CANCELACION_PROPUESTA: "Propuesta cancelada",
+    VENCIMIENTO_PROPUESTAS: "Propuestas vencidas",
+    INVALIDACION_BORRADORES: "Borradores invalidados",
+    RETIRO_CLIENTE: "Solicitud retirada",
+    RECHAZO_ADMIN: "Solicitud rechazada"
 };
 const etapa = (s, esAdmin) =>
     s.evento
@@ -158,7 +173,7 @@ function Panel({ id, tipoEventoId }) {
                           ? "Solicitudes de eventos"
                           : "Mis solicitudes"
                 }
-                description="Consulta y gestiona solicitudes previas a la contratación."
+                description="Consulta los datos, propuestas y avances de cada solicitud."
             >
                 {!esAdmin && <Button variant="outline-primary" className="me-2" disabled={cargando || saving}
                     onClick={() => setRevision((valor) => valor + 1)}>Actualizar</Button>}
@@ -176,15 +191,7 @@ function Panel({ id, tipoEventoId }) {
                     </Button>
                 )}
             </PageHeader>
-            {mensaje && (
-                <Alert
-                    variant="success"
-                    dismissible
-                    onClose={() => setMensaje("")}
-                >
-                    {mensaje}
-                </Alert>
-            )}
+            <NotificacionToast mensaje={mensaje} onClose={() => setMensaje("")} />
             {error && (
                 <Alert variant="danger">
                     {error}{" "}
@@ -241,46 +248,48 @@ function Panel({ id, tipoEventoId }) {
                         <>
                             <Card className="shadow-sm mb-4">
                                 <Card.Body className="p-4">
-                                    <div className="d-flex justify-content-between gap-3">
-                                        <h2 className="h4">
+                                    <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                                        <h2 className="h4 mb-0">
                                             {solicitud.tipoEvento.nombre}
                                         </h2>
-                                        <Badge
-                                            bg={
-                                                solicitud.evento
-                                                    ? "success"
-                                                    : "secondary"
-                                            }
-                                        >
+                                        <Badge bg={solicitud.evento
+                                            ? varianteEstado[solicitud.evento.estado] ?? "secondary"
+                                            : "secondary"}>
                                             {etapa(solicitud, esAdmin)}
                                         </Badge>
                                     </div>
-                                    <p className="text-secondary">
-                                        {fechaSeguimiento(solicitud.inicio)} —{" "}
-                                        {fechaSeguimiento(solicitud.fin)}
-                                    </p>
-                                    <p>
-                                        Asistentes estimados:{" "}
-                                        {solicitud.asistentes}
-                                    </p>
-                                    <p>
-                                        Lugar preferido:{" "}
-                                        {solicitud.lugar || "Por definir"}
-                                    </p>
+                                    <Row className="g-3">
+                                        <Col sm={6}>
+                                            <small className="d-block text-body-secondary">Inicio</small>
+                                            <span>{fechaSeguimiento(solicitud.inicio)}</span>
+                                        </Col>
+                                        <Col sm={6}>
+                                            <small className="d-block text-body-secondary">Término</small>
+                                            <span>{fechaSeguimiento(solicitud.fin)}</span>
+                                        </Col>
+                                        <Col sm={6}>
+                                            <small className="d-block text-body-secondary">Asistentes estimados</small>
+                                            <span>{solicitud.asistentes} personas</span>
+                                        </Col>
+                                        <Col sm={6}>
+                                            <small className="d-block text-body-secondary">Lugar preferido</small>
+                                            <span>{solicitud.lugar || "Por definir"}</span>
+                                        </Col>
+                                    </Row>
                                     {solicitud.observaciones && (
-                                        <p
-                                            className="text-break"
-                                            style={{ whiteSpace: "pre-wrap" }}
-                                        >
-                                            {solicitud.observaciones}
-                                        </p>
+                                        <div className="border-top mt-4 pt-3">
+                                            <small className="d-block text-body-secondary">Observaciones</small>
+                                            <p className="mb-0 text-break" style={{ whiteSpace: "pre-wrap" }}>
+                                                {solicitud.observaciones}
+                                            </p>
+                                        </div>
                                     )}
                                     {solicitud.motivoCierre && (
                                         <Alert variant="secondary">
                                             {solicitud.motivoCierre}
                                         </Alert>
                                     )}
-                                    <div className="d-flex flex-wrap gap-2">
+                                    <div className="d-flex flex-wrap gap-2 mt-3">
                                         {editable && (
                                             <Button
                                                 variant="outline-primary"
@@ -339,72 +348,76 @@ function Panel({ id, tipoEventoId }) {
                                 </Card.Body>
                             </Card>
                             {solicitud.evento && (
-                                <Card className="mb-4">
-                                    <Card.Body>
-                                        <h2 className="h5">
+                                <Card className="shadow-sm mb-4">
+                                    <Card.Body className="p-4">
+                                        <h2 className="h5 mb-3">
                                             Evento contratado #
                                             {solicitud.evento.id}
                                         </h2>
-                                        <p>
-                                            {solicitud.evento.tipoEvento.nombre}{" "}
-                                            · {solicitud.evento.lugar}
-                                        </p>
-                                        {solicitud.evento.direccion && <p>{solicitud.evento.direccion}, {solicitud.evento.comuna}</p>}
-                                        <p>
-                                            {fechaSeguimiento(
-                                                solicitud.evento.inicio
-                                            )}{" "}
-                                            —{" "}
-                                            {fechaSeguimiento(
-                                                solicitud.evento.fin
-                                            )}
-                                        </p>
-                                        {esAdmin && (
-                                            <Button
-                                                as={Link}
-                                                to={`/admin/eventos/${solicitud.evento.id}`}
-                                                variant="outline-primary"
-                                            >
-                                                Ver evento
-                                            </Button>
-                                        )}
+                                        <Row className="g-3">
+                                            <Col sm={6}>
+                                                <small className="d-block text-body-secondary">Tipo de evento</small>
+                                                <span>{solicitud.evento.tipoEvento.nombre}</span>
+                                            </Col>
+                                            <Col sm={6}>
+                                                <small className="d-block text-body-secondary">Recinto</small>
+                                                <span>{solicitud.evento.lugar}</span>
+                                                {solicitud.evento.direccion &&
+                                                    <small className="d-block text-body-secondary">{direccionConComuna(solicitud.evento.direccion, solicitud.evento.comuna)}</small>}
+                                            </Col>
+                                            <Col sm={6}>
+                                                <small className="d-block text-body-secondary">Inicio</small>
+                                                <span>{fechaSeguimiento(solicitud.evento.inicio)}</span>
+                                            </Col>
+                                            <Col sm={6}>
+                                                <small className="d-block text-body-secondary">Término</small>
+                                                <span>{fechaSeguimiento(solicitud.evento.fin)}</span>
+                                            </Col>
+                                        </Row>
+                                        <Button as={Link}
+                                            to={`/${esAdmin ? "admin" : "cliente"}/eventos/${solicitud.evento.id}`}
+                                            variant="outline-primary" className="mt-3">
+                                            Ver evento
+                                        </Button>
                                     </Card.Body>
                                 </Card>
                             )}
-                            <h2 className="h5">Antecedentes comerciales</h2>
-                            {solicitud.presupuestos.length ? (
-                                <ListGroup className="mb-4">
-                                    {solicitud.presupuestos.map((p) => (
-                                        <ListGroup.Item key={p.id}>
-                                            Presupuesto #{p.id} · {esAdmin ? nombresEstadoPresupuesto[p.estado] ?? p.estado : estadoPropuestaCliente(p)}
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                            ) : (
-                                <p className="text-secondary">
-                                    Aún no hay propuestas vinculadas a esta solicitud.
-                                </p>
-                            )}
-                            <Button as={Link} to={esAdmin ? "/admin/presupuestos" : `/cliente/compra?solicitudId=${solicitud.id}`}
-                                variant="outline-primary" className="mb-4">
-                                {esAdmin ? "Gestionar presupuestos" : "Revisar propuestas"}
-                            </Button>
-                            <h2 className="h5">Historial de la solicitud</h2>
-                            <ListGroup>
-                                {historial.map((h) => (
-                                    <ListGroup.Item key={h.id}>
-                                        <strong>
-                                            {h.accion.replaceAll("_", " ")}
-                                        </strong>
-                                        <small className="d-block text-secondary">
-                                            {fechaSeguimiento(h.createdAt)}
-                                        </small>
-                                        {h.motivo && (
-                                            <p className="mb-0">{h.motivo}</p>
-                                        )}
-                                    </ListGroup.Item>
-                                ))}
-                            </ListGroup>
+                            <Card className="shadow-sm mb-4">
+                                <Card.Body className="p-4">
+                                    <h2 className="h5 mb-3">Antecedentes comerciales</h2>
+                                    {solicitud.presupuestos.length ? (
+                                        <ListGroup variant="flush" className="mb-3">
+                                            {solicitud.presupuestos.map((p) => (
+                                                <ListGroup.Item key={p.id} className="px-0">
+                                                    Presupuesto #{p.id} · {esAdmin ? nombresEstadoPresupuesto[p.estado] ?? p.estado : estadoPropuestaCliente(p)}
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    ) : (
+                                        <p className="text-body-secondary mb-3">
+                                            Aún no hay propuestas vinculadas a esta solicitud.
+                                        </p>
+                                    )}
+                                    <Button as={Link} to={esAdmin ? "/admin/presupuestos" : `/cliente/compra?solicitudId=${solicitud.id}`}
+                                        variant="outline-primary">
+                                        {esAdmin ? "Gestionar presupuestos" : "Revisar propuestas"}
+                                    </Button>
+                                </Card.Body>
+                            </Card>
+                            <Card className="shadow-sm">
+                                <Card.Body className="p-4">
+                                    <h2 className="h5 mb-3">Historial de la solicitud</h2>
+                                    <ListGroup variant="flush">
+                                        {historial.map((h) => (
+                                            <ListGroup.Item key={h.id} className="px-0">
+                                                <strong>{accionesHistorial[h.accion] ?? h.accion.replaceAll("_", " ")}</strong>
+                                                <small className="d-block text-body-secondary">{fechaSeguimiento(h.createdAt)}</small>
+                                                {h.motivo && <p className="mb-0 mt-1">{h.motivo}</p>}
+                                            </ListGroup.Item>
+                                        ))}
+                                    </ListGroup>
+                                </Card.Body>
+                            </Card>
                         </>
                     )
                 ) : (
@@ -428,7 +441,9 @@ function Panel({ id, tipoEventoId }) {
                                                 <h2 className="h5">
                                                     {s.tipoEvento.nombre}
                                                 </h2>
-                                                <Badge bg="secondary">
+                                                <Badge bg={s.evento
+                                                    ? varianteEstado[s.evento.estado] ?? "secondary"
+                                                    : "secondary"}>
                                                     {etapa(s, esAdmin)}
                                                 </Badge>
                                                 <p className="mt-3">

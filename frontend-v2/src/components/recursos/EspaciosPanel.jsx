@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import ReservaEventoSelector from "./ReservaEventoSelector";
-import { datosReservaEvento } from "./reserva.utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert,
@@ -16,7 +14,7 @@ import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
 import MapaEspacios from "./MapaEspacios";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import {
     cancelarReservaEspacio,
     createEspacio,
@@ -75,7 +73,7 @@ function textoTarifa(espacio) {
     return `${moneda.format(Number(espacio.costoArriendo))} / ${unidad}`;
 }
 
-export default function EspaciosPanel({ eventoInicial }) {
+export default function EspaciosPanel() {
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -95,7 +93,7 @@ export default function EspaciosPanel({ eventoInicial }) {
     const [rangoAplicado, setRangoAplicado] = useState(null);
     const [selectedSpace, setSelectedSpace] = useState(null);
     const [reservas, setReservas] = useState([]);
-    const [booking, setBooking] = useState({ ...initialBooking, ...datosReservaEvento(eventoInicial) });
+    const [booking, setBooking] = useState(initialBooking);
     const [showBookings, setShowBookings] = useState(false);
     const [bookingSaving, setBookingSaving] = useState(false);
     const [bookingCancel, setBookingCancel] = useState(null);
@@ -264,12 +262,8 @@ export default function EspaciosPanel({ eventoInicial }) {
     };
 
     const abrirReservas = async espacio => {
-        if (eventoInicial && eventoInicial.espacioId !== espacio.id) {
-            setError("Selecciona el mismo espacio que está asignado al evento. Las reservas no cambian el recinto contratado.");
-            return;
-        }
         setSelectedSpace(espacio);
-        setBooking({ ...initialBooking, ...datosReservaEvento(eventoInicial) });
+        setBooking({ ...initialBooking });
         setError("");
         setShowBookings(true);
         try {
@@ -296,12 +290,11 @@ export default function EspaciosPanel({ eventoInicial }) {
             const fin = fechaIso(booking.fin);
             if (new Date(fin) <= new Date(inicio)) throw new Error("El término debe ser posterior al inicio.");
             await reservarEspacio(selectedSpace.id, {
-                ...(booking.eventoId ? { eventoId: Number(booking.eventoId) } : {}),
                 inicio,
                 fin,
                 referencia: booking.referencia.trim()
             });
-            setBooking({ ...initialBooking, ...datosReservaEvento(eventoInicial) });
+            setBooking({ ...initialBooking });
             setReservas(await getReservasEspacio(selectedSpace.id));
             setSuccess("Reserva registrada correctamente.");
             await cargarEspacios();
@@ -545,10 +538,9 @@ export default function EspaciosPanel({ eventoInicial }) {
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-                    <p className="text-secondary">Las reservas se registran con una referencia para identificar el evento.</p>
-                    <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
-                        <h3 className="h6 fw-bold">Nueva reserva</h3>
-                        <ReservaEventoSelector value={booking.eventoId} disabled={bookingSaving} eventoInicial={eventoInicial} onChange={evento => setBooking(current => ({ ...current, ...datosReservaEvento(evento) }))} />
+                    <p className="text-secondary">Aquí puedes consultar todas las reservas y registrar bloqueos independientes. Los eventos reservan su recinto al guardar la ubicación.</p>
+                    {selectedSpace?.habilitado ? <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
+                        <h3 className="h6 fw-bold">Reserva independiente</h3>
                         <div className="row g-3">
                             <Form.Group className="col-md-4">
                                 <Form.Label>Referencia</Form.Label>
@@ -566,7 +558,7 @@ export default function EspaciosPanel({ eventoInicial }) {
                                 <Button type="submit" className="w-100" disabled={bookingSaving}>{bookingSaving ? <Spinner size="sm" /> : "Reservar"}</Button>
                             </div>
                         </div>
-                    </Form>
+                    </Form> : <Alert variant="secondary">Este espacio está deshabilitado para nuevas reservas.</Alert>}
                     <h3 className="h6 fw-bold">Historial de reservas</h3>
                     {reservas.length === 0 ? (
                         <EmptyState icon="bi-calendar-x" title="Sin reservas" description="Este espacio todavía no tiene reservas registradas." />
@@ -581,7 +573,7 @@ export default function EspaciosPanel({ eventoInicial }) {
                                             <td>{fechaLocal(reserva.inicio)}</td>
                                             <td>{fechaLocal(reserva.fin)}</td>
                                             <td><Badge bg={reserva.cancelada ? "secondary" : "success"}>{reserva.cancelada ? "Cancelada" : "Vigente"}</Badge></td>
-                                            <td className="text-end">{!reserva.cancelada && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}</td>
+                                            <td className="text-end">{!reserva.cancelada && reserva.eventoId == null && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}</td>
                                         </tr>
                                     ))}
                                 </tbody>

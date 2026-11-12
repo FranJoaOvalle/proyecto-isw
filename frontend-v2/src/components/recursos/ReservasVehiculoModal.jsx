@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import ReservaEventoSelector from "./ReservaEventoSelector";
 import { datosReservaEvento } from "./reserva.utils";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Form, Modal, Spinner, Table } from "react-bootstrap";
@@ -31,6 +30,9 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
     const [estadoDevolucion, setEstadoDevolucion] = useState("CONFORME");
     const [observaciones, setObservaciones] = useState("");
     const [cancelar, setCancelar] = useState(null);
+    const reservasVisibles = eventoInicial
+        ? reservas.filter(reserva => reserva.eventoId === eventoInicial.id)
+        : reservas;
 
     const cargar = useCallback(async () => {
         if (!vehiculo) return;
@@ -123,13 +125,16 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-                    <p className="text-secondary">Un vehículo no puede tener reservas superpuestas. Si aún no se registra la devolución, seguirá bloqueado para nuevas salidas.</p>
+                    <p className="text-secondary">{eventoInicial
+                        ? `Asigna el vehículo al evento #${eventoInicial.id}. La devolución se registra en Vehículos.`
+                        : "Consulta las asignaciones y registra aquí las devoluciones o una reserva independiente."}</p>
+                    {!vehiculo?.habilitado || vehiculo?.estado !== "DISPONIBLE" ?
+                    <Alert variant="secondary">Este vehículo no admite nuevas asignaciones.</Alert> :
                     <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
-                        <h3 className="h6 fw-bold">Nueva asignación</h3>
-                        <ReservaEventoSelector value={form.eventoId} disabled={saving} eventoInicial={eventoInicial} onChange={evento => setForm(current => ({ ...current, ...datosReservaEvento(evento) }))} />
+                        <h3 className="h6 fw-bold">{eventoInicial ? "Nueva asignación para este evento" : "Reserva independiente"}</h3>
                         <div className="row g-3 align-items-end">
                             <Form.Group className="col-md-4">
-                                <Form.Label>Evento o referencia</Form.Label>
+                                <Form.Label>Referencia</Form.Label>
                                 <Form.Control value={form.referencia} onChange={event => setForm(current => ({ ...current, referencia: event.target.value }))} minLength={2} maxLength={150} required disabled={saving} />
                             </Form.Group>
                             <Form.Group className="col-md-3">
@@ -142,15 +147,15 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                             </Form.Group>
                             <div className="col-md-2"><Button type="submit" className="w-100" disabled={saving}>Asignar</Button></div>
                         </div>
-                    </Form>
-                    <h3 className="h6 fw-bold">Historial</h3>
-                    {loading ? <div className="text-center py-4"><Spinner animation="border" /></div> : reservas.length === 0 ? (
+                    </Form>}
+                    <h3 className="h6 fw-bold">{eventoInicial ? "Asignaciones de este evento" : "Historial"}</h3>
+                    {loading ? <div className="text-center py-4"><Spinner animation="border" /></div> : reservasVisibles.length === 0 ? (
                         <EmptyState icon="bi-truck" title="Sin asignaciones" description="Este vehículo todavía no tiene salidas registradas." />
                     ) : (
                         <div className="table-responsive">
                             <Table size="sm" className="align-middle">
                                 <thead><tr><th>Evento</th><th>Salida</th><th>Regreso</th><th>Estado</th><th>Observaciones</th><th className="text-end">Acciones</th></tr></thead>
-                                <tbody>{reservas.map(reserva => (
+                                <tbody>{reservasVisibles.map(reserva => (
                                     <tr key={reserva.id}>
                                         <td>{reserva.referencia}{reserva.eventoId && <Link className="d-block" to={`/admin/eventos/${reserva.eventoId}`}>Evento #{reserva.eventoId}</Link>}</td>
                                         <td>{fechaTexto(reserva.inicio)}</td>
@@ -158,8 +163,8 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                                         <td><Badge bg={reserva.cancelada ? "secondary" : reserva.estadoDevolucion === "PENDIENTE" ? "warning" : reserva.estadoDevolucion === "CONFORME" ? "success" : "danger"} text={!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" ? "dark" : undefined}>{reserva.cancelada ? "Cancelada" : reserva.estadoDevolucion === "PENDIENTE" ? "Pendiente de devolución" : reserva.estadoDevolucion === "CONFORME" ? "Devuelto conforme" : "Devuelto con observaciones"}</Badge></td>
                                         <td>{reserva.observacionesDevolucion || "—"}</td>
                                         <td className="text-end text-nowrap">{!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                            <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>
-                                            <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>
+                                            {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>}
+                                            {new Date(reserva.inicio) > new Date() && (eventoInicial || reserva.eventoId == null) && <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>}
                                         </>}</td>
                                     </tr>
                                 ))}</tbody>

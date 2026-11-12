@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Col, Container, Row, Spinner } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Alert, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import { useAuth } from "../../contexts/AuthContext";
 import PageHeader from "../../components/PageHeader";
 import EmptyState from "../../components/EmptyState";
@@ -53,13 +52,15 @@ function ListadoEventos() {
 
     return (
         <Container className="py-5">
-            <PageHeader title="Mis eventos" description="Consulta los eventos que has contratado.">
-                <Button as={Link} to="/cliente/solicitudes" variant="outline-primary">Mis solicitudes</Button>
-            </PageHeader>
-            <TableToolbar search={buscar} onSearchChange={setBuscar}
-                searchPlaceholder="Buscar por tipo, lugar o número de evento..."
-                estado={estado} onEstadoChange={setEstado}
-                opcionesEstado={{ "": "Todos los estados", ...estadosEvento }} />
+            <PageHeader title="Mis eventos" description="Consulta los eventos que has contratado." />
+            <Card className="shadow-sm mb-4">
+                <Card.Body className="pb-0">
+                    <TableToolbar search={buscar} onSearchChange={setBuscar}
+                        searchPlaceholder="Buscar por tipo, lugar o número de evento..."
+                        estado={estado} onEstadoChange={setEstado}
+                        opcionesEstado={{ "": "Todos los estados", ...estadosEvento }} />
+                </Card.Body>
+            </Card>
             {error ? (
                 <Alert variant="danger">{error} <Button variant="link" onClick={recargar}>Reintentar</Button></Alert>
             ) : cargando ? (

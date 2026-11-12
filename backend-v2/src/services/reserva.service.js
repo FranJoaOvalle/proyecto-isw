@@ -25,6 +25,28 @@ class ReservaService {
         }
     }
 
+    async validarAsistentes(tx, evento, cantidad) {
+        const presupuesto = await tx.presupuesto.findUnique({
+            where: { id: evento.presupuestoId },
+            select: { asistentes: true, cantidadPersonasBaseTipoEvento: true }
+        });
+        if (!presupuesto) throw new NotFoundException("Presupuesto del evento no encontrado.");
+        if (cantidad > presupuesto.asistentes) {
+            throw new ConflictException("La cantidad de asistentes supera la propuesta contratada. Solicita una revisión comercial.");
+        }
+        if (presupuesto.cantidadPersonasBaseTipoEvento != null &&
+            cantidad < presupuesto.cantidadPersonasBaseTipoEvento) {
+            throw new ConflictException(`La cantidad mínima acordada es ${presupuesto.cantidadPersonasBaseTipoEvento} asistentes.`);
+        }
+        if (evento.espacioId == null) return;
+        const espacio = await tx.espacio.findUnique({
+            where: { id: evento.espacioId }, select: { capacidad: true }
+        });
+        if (espacio && cantidad > espacio.capacidad) {
+            throw new ConflictException("La capacidad del espacio es menor a los asistentes del evento.");
+        }
+    }
+
     ocupacionMaxima(reservas, inicio, fin, ahora = new Date()) {
         const movimientos = [];
         for (const reserva of reservas) {
@@ -87,8 +109,12 @@ class ReservaService {
                     ? evento[campo].getTime() !== datos[campo].getTime()
                     : (evento[campo] ?? null) !== (datos[campo] ?? null)
             );
-            const cambiaOperacion = ["inicio", "fin", "lugar", "asistentes", "espacioId", "direccion", "comuna"].some(difiere);
+            const cambiaOperacion = ["inicio", "fin", "lugar", "espacioId", "direccion", "comuna"].some(difiere);
             const cambiaHorario = ["inicio", "fin"].some(difiere);
+            if (evento.solicitudId != null && cambiaHorario) {
+                throw new ConflictException("El horario forma parte de la propuesta contratada. Solicita una revisión comercial antes de modificarlo.");
+            }
+            if (difiere("asistentes")) await this.validarAsistentes(tx, evento, datos.asistentes);
             const cambiaProductor = difiere("productorId");
             const productorId = Object.hasOwn(datos, "productorId") ? datos.productorId : evento.productorId;
             if (productorId != null && (cambiaOperacion || cambiaProductor || datos.estado === "EN_CURSO")) {
@@ -101,7 +127,7 @@ class ReservaService {
                 (lugar) => DisponibilidadService.normalizarRecinto(lugar)
             );
             const espaciosRegistrados = await tx.espacio.findMany({
-                select: { id: true, nombre: true, direccion: true }
+                select: { id: true, nombre: true, direccion: true, habilitado: true }
             });
             const ids = espaciosRegistrados
                 .filter(
@@ -130,6 +156,14 @@ class ReservaService {
                     where: { eventoId: actual.id, cancelada: false }
                 })
             ]);
+            const espacioId = datos.espacioId ?? evento.espacioId;
+            const cambiaReservaEspacio = difiere("espacioId") || cambiaHorario;
+            const reservarEspacio = datos.estado !== "CANCELADO" && espacioId != null &&
+                (!espacios.length || cambiaReservaEspacio) &&
+                (Object.hasOwn(datos, "espacioId") || cambiaHorario);
+            if (reservarEspacio && !espaciosRegistrados.some(espacio => espacio.id === espacioId && espacio.habilitado)) {
+                throw new ConflictException("El recinto está deshabilitado para nuevas reservas.");
+            }
             const completarUbicacion =
                 evento.espacioId != null &&
                 datos.espacioId === evento.espacioId &&
@@ -142,10 +176,10 @@ class ReservaService {
                 datos.estado !== "CANCELADO" &&
                 cambiaOperacion &&
                 !completarUbicacion &&
-                (espacios.length || recursos.length || vehiculos.length)
+                ((espacios.length && !cambiaReservaEspacio) || recursos.length || vehiculos.length)
             ) {
                 throw new ConflictException(
-                    "El evento tiene reservas vinculadas. Cancélalas y vuelve a reservar antes de cambiar fechas, lugar o asistentes."
+                    "El evento tiene reservas vinculadas. Cancélalas y vuelve a reservar antes de cambiar fechas o lugar."
                 );
             }
             if (
@@ -160,7 +194,7 @@ class ReservaService {
                 );
             }
             if (datos.estado !== "CANCELADO" &&
-                (cambiaOperacion || cambiaProductor || ["CONFIRMADO", "EN_CURSO"].includes(datos.estado))) {
+                (cambiaOperacion || cambiaProductor || reservarEspacio || ["CONFIRMADO", "EN_CURSO"].includes(datos.estado))) {
                 await DisponibilidadService.verificarDisponibilidad(
                     {
                         inicio,
@@ -226,10 +260,17 @@ class ReservaService {
             if (planRecursos && fin > ahora) {
                 await ContratacionRecursosService.reservar(tx, planRecursos, evento.id);
             }
-            if (cambiaHorario && evento.solicitudId != null && actualizado.espacioId != null && fin > ahora) {
+            if (reservarEspacio) {
+                if (espacios.length) {
+                    await tx.reservaEspacio.updateMany({
+                        where: { eventoId: evento.id, cancelada: false },
+                        data: { cancelada: true }
+                    });
+                }
                 await tx.reservaEspacio.create({ data: {
                     espacioId: actualizado.espacioId, eventoId: evento.id,
-                    referencia: `Contrato evento #${evento.id}`, inicio, fin
+                    referencia: `${evento.solicitudId ? "Contrato evento" : "Evento"} #${evento.id}`,
+                    inicio, fin
                 } });
             }
             return actualizado;

@@ -4,8 +4,6 @@ const ConflictException = require("../exceptions/ConflictException");
 const ValidationException = require("../exceptions/ValidationException");
 
 const DisponibilidadService = require("./disponibilidad.service");
-const UbicacionService = require("./ubicacion.service");
-const ReservaService = require("./reserva.service");
 
 const validarTarifa = ({ costoArriendo, unidadArriendo }) => {
     const tieneCosto = costoArriendo !== undefined && costoArriendo !== null;
@@ -145,10 +143,11 @@ class EspacioService {
         });
     }
 
-    async reservar(id, data, usuario) {
+    async reservar(id, data) {
+        if (data.eventoId != null) {
+            throw new ConflictException("Las reservas de eventos se gestionan desde el evento. Guarda allí la ubicación.");
+        }
         return prisma.$transaction(async tx => {
-            const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
-            if (evento) await DisponibilidadService.bloquearUbicaciones(tx);
             const espacioId = Number(id);
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})::text`;
             const espacio = await this.getById(espacioId, tx);
@@ -156,18 +155,8 @@ class EspacioService {
                 throw new ConflictException("El espacio está deshabilitado para nuevas reservas.");
             }
 
-            if (evento) {
-                if (evento.espacioId !== espacioId) {
-                    throw new ConflictException("La reserva debe corresponder al espacio asignado al evento. Define primero su ubicación desde el evento; reservar no cambia el recinto contratado.");
-                }
-                if (evento.asistentes > espacio.capacidad) throw new ConflictException("La capacidad del espacio es menor a los asistentes del evento.");
-                if (data.inicio > evento.inicio || data.fin < evento.fin) throw new ConflictException("La reserva del espacio debe cubrir el horario completo del evento.");
-                const otra = await tx.reservaEspacio.findFirst({ where: { eventoId: evento.id, cancelada: false } });
-                if (otra) throw new ConflictException("El evento ya tiene un espacio reservado. Cancela esa reserva antes de asignar otro.");
-            }
             const eventos = await tx.evento.findMany({
-                where: { estado: { not: "CANCELADO" }, inicio: { lt: data.fin }, fin: { gt: data.inicio },
-                    ...(evento ? { id: { not: evento.id } } : {}) },
+                where: { estado: { not: "CANCELADO" }, inicio: { lt: data.fin }, fin: { gt: data.inicio } },
                 select: { espacioId: true, lugar: true, direccion: true }
             });
             if (eventos.some(e => e.espacioId === espacioId ||
@@ -188,18 +177,8 @@ class EspacioService {
                 throw new ConflictException("El espacio ya tiene una reserva en ese horario.");
             }
 
-            if (evento) {
-                const ubicacion = UbicacionService.desdeEspacio(espacio, evento);
-                await DisponibilidadService.verificarDisponibilidad({
-                    ...ubicacion, inicio: evento.inicio, fin: evento.fin, productorId: evento.productorId
-                }, evento.id, tx);
-                const cambios = Object.entries(ubicacion).filter(([campo, valor]) => (evento[campo] ?? null) !== (valor ?? null)).map(([campo, valor]) => ({
-                    usuarioId: usuario.id, campo, valorAnterior: evento[campo] == null ? null : String(evento[campo]), valorNuevo: valor == null ? null : String(valor)
-                }));
-                await tx.evento.update({ where: { id: evento.id }, data: { ...ubicacion, cambios: { create: cambios } } });
-            }
             return tx.reservaEspacio.create({
-                data: { ...data, espacioId }
+                data: { referencia: data.referencia, inicio: data.inicio, fin: data.fin, espacioId }
             });
         });
     }
@@ -215,6 +194,9 @@ class EspacioService {
             reserva = await tx.reservaEspacio.findUnique({ where: { id: Number(id) } });
             if (reserva.cancelada) {
                 throw new ConflictException("La reserva ya está cancelada.");
+            }
+            if (reserva.eventoId != null) {
+                throw new ConflictException("La reserva pertenece a un evento. Cambia su recinto o cancela el evento desde Eventos.");
             }
 
             return tx.reservaEspacio.update({

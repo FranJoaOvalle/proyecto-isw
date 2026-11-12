@@ -8,12 +8,19 @@ export default function EventoUbicacion({ evento, onCambio }) {
     const [show, setShow] = useState(false);
     const [espacios, setEspacios] = useState([]);
     const [form, setForm] = useState({});
-    const modo = "registrado";
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [validated, setValidated] = useState(false);
     const completo = Boolean(evento.direccion && evento.comuna);
+    const espaciosPermitidos = espacios.filter((espacio) =>
+        (espacio.habilitado || espacio.id === evento.espacioId) &&
+        (!evento.solicitudId || !evento.espacioId || espacio.id === evento.espacioId)
+    );
+    let textoBoton = "Definir ubicación";
+    if (completo) {
+        textoBoton = evento.solicitudId ? "Editar referencias de acceso" : "Editar ubicación";
+    }
 
     const abrir = async () => {
         setError("");
@@ -70,8 +77,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
         setError("");
         try {
             await editarEvento(evento.id, {
-                espacioId:
-                    modo === "registrado" ? Number(form.espacioId) : null,
+                espacioId: Number(form.espacioId),
                 lugar: form.lugar.trim(),
                 direccion: form.direccion.trim(),
                 comuna: form.comuna.trim(),
@@ -86,15 +92,19 @@ export default function EventoUbicacion({ evento, onCambio }) {
         }
     };
     const elegido = espacios.find((item) => item.id === Number(form.espacioId));
+    const datosRecintoDifieren = elegido && (
+        form.lugar !== elegido.nombre ||
+        form.direccion !== elegido.direccion ||
+        (elegido.comuna && form.comuna !== elegido.comuna)
+    );
     return (
         <>
             {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
                 <Button
-                    className="mt-3"
                     variant="outline-primary"
                     onClick={abrir}
                 >
-                    {completo ? "Editar ubicación" : "Definir ubicación"}
+                    {textoBoton}
                 </Button>
             )}
             <Modal
@@ -115,57 +125,40 @@ export default function EventoUbicacion({ evento, onCambio }) {
                             </p>
                         )}
                         <p className="text-secondary">La ubicación se obtiene de Recursos → Espacios. En eventos contratados se conserva el recinto de la propuesta aceptada.</p>
-                        {modo === "registrado" && (
-                            <Form.Group
-                                controlId="ubicacion-espacio"
-                                className="mb-3"
+                        <Form.Group
+                            controlId="ubicacion-espacio"
+                            className="mb-3"
+                        >
+                            <Form.Label>Recinto</Form.Label>
+                            <Form.Select
+                                value={form.espacioId ?? ""}
+                                required
+                                disabled={saving || loading}
+                                onChange={(e) =>
+                                    seleccionar(e.target.value)
+                                }
                             >
-                                <Form.Label>Recinto</Form.Label>
-                                <Form.Select
-                                    value={form.espacioId ?? ""}
-                                    required
-                                    disabled={saving || loading}
-                                    onChange={(e) =>
-                                        seleccionar(e.target.value)
-                                    }
-                                >
-                                    <option value="">
-                                        Selecciona un recinto
+                                <option value="">
+                                    Selecciona un recinto
+                                </option>
+                                {espaciosPermitidos.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.nombre} · {item.capacidad} personas
+                                        {!item.habilitado && " · Deshabilitado"}
                                     </option>
-                                    {espacios
-                                        .filter(
-                                            (item) =>
-                                                item.habilitado ||
-                                                item.id === evento.espacioId
-                                        )
-                                        .filter((item) => !evento.solicitudId || !evento.espacioId || item.id === evento.espacioId)
-                                        .map((item) => (
-                                            <option
-                                                key={item.id}
-                                                value={item.id}
-                                            >
-                                                {" "}
-                                                {item.nombre} · {item.capacidad}{" "}
-                                                personas
-                                                {!item.habilitado
-                                                    ? " · Deshabilitado"
-                                                    : ""}
-                                            </option>
-                                        ))}
-                                </Form.Select>
-                                <Form.Text>
-                                    Seleccionar el recinto no crea una reserva.
-                                    Confirma su disponibilidad en Gestionar
-                                    reservas.
-                                </Form.Text>
-                                {elegido && (form.lugar !== elegido.nombre || form.direccion !== elegido.direccion || elegido.comuna && form.comuna !== elegido.comuna) && (
-                                    <div className="mt-2">
-                                        <Form.Text>Se conservan los datos confirmados del evento.</Form.Text>
-                                        <Button variant="link" className="p-0 d-block" disabled={saving || loading} onClick={() => seleccionar(form.espacioId)}>Usar datos actuales del recinto</Button>
-                                    </div>
-                                )}
-                            </Form.Group>
-                        )}
+                                ))}
+                            </Form.Select>
+                            <Form.Text>
+                                Al guardar, se comprueba la disponibilidad y se
+                                registra la reserva del recinto si aún falta.
+                            </Form.Text>
+                            {datosRecintoDifieren && (
+                                <div className="mt-2">
+                                    <Form.Text>Se conservan los datos confirmados del evento.</Form.Text>
+                                    <Button variant="link" className="p-0 d-block" disabled={saving || loading} onClick={() => seleccionar(form.espacioId)}>Usar datos actuales del recinto</Button>
+                                </div>
+                            )}
+                        </Form.Group>
                         {[
                             ["lugar", "Nombre del lugar", 250],
                             ["direccion", "Dirección", 250],
@@ -225,11 +218,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
                         </Button>
                         <Button
                             type="submit"
-                            disabled={
-                                saving ||
-                                loading ||
-                                (modo === "registrado" && !form.espacioId)
-                            }
+                            disabled={saving || loading || !form.espacioId}
                         >
                             {saving ? "Guardando..." : "Guardar ubicación"}
                         </Button>
