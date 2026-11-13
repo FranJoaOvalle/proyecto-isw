@@ -4,6 +4,7 @@
   "private": true,
   "main": "src/server.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "tsx watch src/server.js",
     "start": "tsx src/server.js",
     "prisma:generate": "prisma generate",
