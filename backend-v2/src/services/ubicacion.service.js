@@ -55,9 +55,6 @@ class UbicacionService {
                 where: { id: espacioId }
             });
             if (!espacio) throw new NotFoundException("Espacio no encontrado.");
-            if (!espacio.comuna && !(actual.espacioId === espacioId && actual.comuna)) {
-                throw new ConflictException("Completa la comuna del espacio en Recursos → Espacios antes de asignarlo.");
-            }
             const conservar =
                 actual.espacioId === espacioId &&
                 actual.direccion &&

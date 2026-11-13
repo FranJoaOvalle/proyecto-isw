@@ -14,6 +14,7 @@ import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
 import MapaEspacios from "./MapaEspacios";
+import { fechaMinimaReserva } from "./reserva.utils";
 import NotificacionToast from "../NotificacionToast";
 import {
     cancelarReservaEspacio,
@@ -74,6 +75,7 @@ function textoTarifa(espacio) {
 }
 
 export default function EspaciosPanel() {
+    const inicioMinimo = fechaMinimaReserva();
     const [espacios, setEspacios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -288,6 +290,7 @@ export default function EspaciosPanel() {
         try {
             const inicio = fechaIso(booking.inicio);
             const fin = fechaIso(booking.fin);
+            if (new Date(inicio) <= new Date()) throw new Error("El inicio de la reserva debe ser futuro.");
             if (new Date(fin) <= new Date(inicio)) throw new Error("El término debe ser posterior al inicio.");
             await reservarEspacio(selectedSpace.id, {
                 inicio,
@@ -548,11 +551,11 @@ export default function EspaciosPanel() {
                             </Form.Group>
                             <Form.Group className="col-md-3">
                                 <Form.Label>Inicio</Form.Label>
-                                <Form.Control type="datetime-local" value={booking.inicio} onChange={event => setBooking(current => ({ ...current, inicio: event.target.value }))} required disabled={bookingSaving} />
+                                <Form.Control type="datetime-local" value={booking.inicio} onChange={event => setBooking(current => ({ ...current, inicio: event.target.value }))} min={inicioMinimo} required disabled={bookingSaving} />
                             </Form.Group>
                             <Form.Group className="col-md-3">
                                 <Form.Label>Término</Form.Label>
-                                <Form.Control type="datetime-local" value={booking.fin} onChange={event => setBooking(current => ({ ...current, fin: event.target.value }))} required disabled={bookingSaving} />
+                                <Form.Control type="datetime-local" value={booking.fin} onChange={event => setBooking(current => ({ ...current, fin: event.target.value }))} min={booking.inicio || inicioMinimo} required disabled={bookingSaving} />
                             </Form.Group>
                             <div className="col-md-2 d-flex align-items-end">
                                 <Button type="submit" className="w-100" disabled={bookingSaving}>{bookingSaving ? <Spinner size="sm" /> : "Reservar"}</Button>

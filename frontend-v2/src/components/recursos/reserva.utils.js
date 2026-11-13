@@ -14,3 +14,10 @@ export function datosReservaEvento(evento) {
         fin: fechaLocal(evento.fin, true)
     };
 }
+
+export function fechaMinimaReserva() {
+    const fecha = new Date(Math.ceil(Date.now() / 60000) * 60000);
+    return new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+}

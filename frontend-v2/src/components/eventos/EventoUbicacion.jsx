@@ -124,7 +124,6 @@ export default function EventoUbicacion({ evento, onCambio }) {
                                 <Spinner size="sm" /> Cargando recintos...
                             </p>
                         )}
-                        <p className="text-secondary">La ubicación se obtiene de Recursos → Espacios. En eventos contratados se conserva el recinto de la propuesta aceptada.</p>
                         <Form.Group
                             controlId="ubicacion-espacio"
                             className="mb-3"
@@ -148,10 +147,6 @@ export default function EventoUbicacion({ evento, onCambio }) {
                                     </option>
                                 ))}
                             </Form.Select>
-                            <Form.Text>
-                                Al guardar, se comprueba la disponibilidad y se
-                                registra la reserva del recinto si aún falta.
-                            </Form.Text>
                             {datosRecintoDifieren && (
                                 <div className="mt-2">
                                     <Form.Text>Se conservan los datos confirmados del evento.</Form.Text>
@@ -176,7 +171,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
                                     minLength={2}
                                     maxLength={max}
                                     disabled={saving || loading}
-                                    readOnly
+                                    readOnly={campo !== "comuna" || Boolean(elegido?.comuna)}
                                     onChange={(e) =>
                                         setForm((current) => ({
                                             ...current,

@@ -150,6 +150,7 @@ class EspacioService {
         return prisma.$transaction(async tx => {
             const espacioId = Number(id);
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${espacioId})::text`;
+            if (data.inicio <= new Date()) throw new ValidationException("El inicio de la reserva debe ser futuro.");
             const espacio = await this.getById(espacioId, tx);
             if (!espacio.habilitado) {
                 throw new ConflictException("El espacio está deshabilitado para nuevas reservas.");

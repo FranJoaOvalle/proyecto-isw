@@ -110,11 +110,7 @@ function Panel({ id, tipoEventoId }) {
                         setHistorial(h);
                     }
                 } else {
-                    const datos = await listarSolicitudes(
-                        Object.fromEntries(
-                            Object.entries(consulta).filter(([, v]) => v !== "")
-                        )
-                    );
+                    const datos = await listarSolicitudes(consulta);
                     if (activo) setLista(datos);
                 }
             } catch (err) {
@@ -207,7 +203,11 @@ function Panel({ id, tipoEventoId }) {
                 <Form
                     onSubmit={(e) => {
                         e.preventDefault();
-                        setConsulta({ ...filtros, pagina: 1 });
+                        setConsulta({
+                            pagina: 1,
+                            ...(filtros.buscar.trim() ? { buscar: filtros.buscar.trim() } : {}),
+                            ...(filtros.estado ? { estado: filtros.estado } : {})
+                        });
                     }}
                 >
                     <TableToolbar

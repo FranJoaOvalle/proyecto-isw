@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { datosReservaEvento } from "./reserva.utils";
+import { datosReservaEvento, fechaMinimaReserva } from "./reserva.utils";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Form, Modal, Spinner, Table } from "react-bootstrap";
 
@@ -41,6 +41,7 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
         : reservas;
     const incluidoEnContrato = eventoInicial?.solicitudId &&
         eventoInicial.recursos?.some(item => item.recursoId === recurso?.id);
+    const inicioMinimo = fechaMinimaReserva();
 
     const cargar = useCallback(async () => {
         if (!recurso) return;
@@ -75,6 +76,7 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
         try {
             const inicio = fechaIso(form.inicio);
             const fin = fechaIso(form.fin);
+            if (new Date(inicio) <= new Date()) throw new Error("El inicio de la reserva debe ser futuro.");
             if (new Date(fin) <= new Date(inicio)) throw new Error("El término debe ser posterior al inicio.");
             await reservarRecurso(recurso.id, {
                 ...(form.eventoId ? { eventoId: Number(form.eventoId) } : {}),
@@ -156,11 +158,11 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
                             </Form.Group>
                             <Form.Group className="col-lg-3">
                                 <Form.Label>Inicio</Form.Label>
-                                <Form.Control type="datetime-local" value={form.inicio} onChange={event => setForm(current => ({ ...current, inicio: event.target.value }))} required disabled={saving} />
+                                <Form.Control type="datetime-local" value={form.inicio} onChange={event => setForm(current => ({ ...current, inicio: event.target.value }))} min={inicioMinimo} required disabled={saving} />
                             </Form.Group>
                             <Form.Group className="col-lg-3">
                                 <Form.Label>Término</Form.Label>
-                                <Form.Control type="datetime-local" value={form.fin} onChange={event => setForm(current => ({ ...current, fin: event.target.value }))} required disabled={saving} />
+                                <Form.Control type="datetime-local" value={form.fin} onChange={event => setForm(current => ({ ...current, fin: event.target.value }))} min={form.inicio || inicioMinimo} required disabled={saving} />
                             </Form.Group>
                             <div className="col-lg-2"><Button type="submit" className="w-100" disabled={saving}>{saving ? <Spinner size="sm" /> : "Reservar"}</Button></div>
                         </div>

@@ -165,6 +165,7 @@ class RecursoService {
                 throw new ConflictException("Las nuevas asignaciones del evento deben registrarse antes de su inicio.");
             }
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${recursoId})::text`;
+            if (data.inicio <= new Date()) throw new ValidationException("El inicio de la reserva debe ser futuro.");
             const recurso = await tx.recurso.findUnique({ where: { id: recursoId } });
             if (!recurso || recurso.tipo !== "MATERIAL") {
                 throw new NotFoundException("Recurso material no encontrado.");
