@@ -3,8 +3,6 @@ const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 const ForbiddenException = require("../exceptions/ForbiddenException");
 
-const DisponibilidadService = require("./disponibilidad.service");
-
 class ActividadService {
 
     async validarUsuarioAgenda(usuario) {
@@ -21,14 +19,14 @@ class ActividadService {
         }
     }
 
-    async obtenerProductorAutenticado(usuario, tx = prisma) {
+    async obtenerProductorAutenticado(usuario) {
         await this.validarUsuarioAgenda(usuario);
 
         if (usuario.rol === "ADMIN") {
             return null;
         }
 
-        const productor = await tx.productor.findUnique({
+        const productor = await prisma.productor.findUnique({
             where: {
                 usuarioId: usuario.id
             },
@@ -46,15 +44,15 @@ class ActividadService {
         return productor.id;
     }
 
-    async verificarAccesoActividad(id, usuario, tx = prisma) {
+    async verificarAccesoActividad(id, usuario) {
         const productorId =
-            await this.obtenerProductorAutenticado(usuario, tx);
+            await this.obtenerProductorAutenticado(usuario);
 
         if (productorId === null) {
             return;
         }
 
-        const actividad = await tx.actividad.findFirst({
+        const actividad = await prisma.actividad.findFirst({
             where: {
                 id: Number(id),
                 estado: { not: "CANCELADA" },
@@ -74,12 +72,12 @@ class ActividadService {
         }
     }
 
-    async validarEventoProductor(eventoId, productorId, tx = prisma) {
+    async validarEventoProductor(eventoId, productorId) {
         if (eventoId === undefined || eventoId === null) {
             return;
         }
 
-        const evento = await tx.evento.findUnique({
+        const evento = await prisma.evento.findUnique({
             where: {
                 id: Number(eventoId)
             },
@@ -178,20 +176,15 @@ class ActividadService {
         });
     }
 
-    async getById(id, usuario, tx = prisma) {
-        let productorId = null;
+    async getById(id, usuario) {
         if (usuario) {
             await this.validarUsuarioAgenda(usuario);
-            productorId = await this.obtenerProductorAutenticado(usuario, tx);
+            await this.verificarAccesoActividad(id, usuario);
         }
 
-        const actividad = await tx.actividad.findFirst({
+        const actividad = await prisma.actividad.findUnique({
             where: {
-                id: Number(id),
-                ...(productorId == null ? {} : {
-                    estado: { not: "CANCELADA" },
-                    productores: { some: { productorId } }
-                })
+                id: Number(id)
             },
             include: {
                 productores: {
@@ -218,9 +211,9 @@ class ActividadService {
         return actividad;
     }
 
-    async validarRelaciones({ eventoId, productores }, tx = prisma) {
+    async validarRelaciones({ eventoId, productores }) {
         if (eventoId !== undefined && eventoId !== null) {
-            const evento = await tx.evento.findUnique({
+            const evento = await prisma.evento.findUnique({
                 where: {
                     id: Number(eventoId)
                 },
@@ -272,7 +265,7 @@ class ActividadService {
             );
         }
 
-        const productoresExistentes = await tx.productor.findMany({
+        const productoresExistentes = await prisma.productor.findMany({
             where: {
                 id: {
                     in: ids
@@ -292,7 +285,7 @@ class ActividadService {
 
     async validarConflictos(
         { inicio, fin, lugar, productores, eventoId },
-        actividadIdExcluir = null, tx = prisma
+        actividadIdExcluir = null
     ) {
         const fechaInicio = new Date(inicio);
         const fechaFin = new Date(fin);
@@ -321,7 +314,7 @@ class ActividadService {
         ];
 
         if (productorIds.length > 0) {
-            const actividadConflicto = await tx.actividad.findFirst({
+            const actividadConflicto = await prisma.actividad.findFirst({
                 where: {
                     estado: {
                         not: "CANCELADA"
@@ -379,7 +372,7 @@ class ActividadService {
                 };
             }
 
-            const eventoConflicto = await tx.evento.findFirst({
+            const eventoConflicto = await prisma.evento.findFirst({
                 where: condicionesEvento,
                 select: {
                     id: true
@@ -397,7 +390,7 @@ class ActividadService {
             typeof lugar === "string" ? lugar.trim() : "";
 
         if (lugarNormalizado) {
-            const actividadEnLugar = await tx.actividad.findFirst({
+            const actividadEnLugar = await prisma.actividad.findFirst({
                 where: {
                     estado: {
                         not: "CANCELADA"
@@ -441,10 +434,10 @@ class ActividadService {
                 fin: {
                     gt: fechaInicio
                 },
-                OR: [
-                    { lugar: { equals: lugarNormalizado, mode: "insensitive" } },
-                    { direccion: { equals: lugarNormalizado, mode: "insensitive" } }
-                ]
+                lugar: {
+                    equals: lugarNormalizado,
+                    mode: "insensitive"
+                }
             };
 
             if (eventoId !== undefined && eventoId !== null) {
@@ -453,7 +446,7 @@ class ActividadService {
                 };
             }
 
-            const eventoEnLugar = await tx.evento.findFirst({
+            const eventoEnLugar = await prisma.evento.findFirst({
                 where: condicionesEventoLugar,
                 select: {
                     id: true
@@ -468,14 +461,7 @@ class ActividadService {
         }
     }
 
-    async create(data, usuario, tx = prisma) {
-        if (tx === prisma) {
-            return prisma.$transaction(async tx => {
-                await DisponibilidadService.bloquearUbicaciones(tx);
-                return this.create(data, usuario, tx);
-            }, { timeout: 15000 });
-        }
-
+    async create(data, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
         const {
@@ -484,7 +470,7 @@ class ActividadService {
         } = data;
 
         const productorAutenticado =
-            await this.obtenerProductorAutenticado(usuario, tx);
+            await this.obtenerProductorAutenticado(usuario);
 
         let productores;
 
@@ -497,7 +483,7 @@ class ActividadService {
             await this.validarEventoProductor(
                 datosActividad.eventoId,
                 productorAutenticado
-            , tx);
+            );
         } else {
             if (
                 !Array.isArray(productoresSolicitados) ||
@@ -513,15 +499,15 @@ class ActividadService {
             await this.validarRelaciones({
                 eventoId: datosActividad.eventoId,
                 productores
-            }, tx);
+            });
         }
 
         await this.validarConflictos({
             ...datosActividad,
             productores
-        }, null, tx);
+        });
 
-        return tx.actividad.create({
+        return prisma.actividad.create({
             data: {
                 ...datosActividad,
                 productores: {
@@ -542,17 +528,10 @@ class ActividadService {
         });
     }
 
-    async update(id, data, usuario, tx = prisma) {
-        if (tx === prisma) {
-            return prisma.$transaction(async tx => {
-                await DisponibilidadService.bloquearUbicaciones(tx);
-                return this.update(id, data, usuario, tx);
-            }, { timeout: 15000 });
-        }
-
+    async update(id, data, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
-        const actividadActual = await this.getById(id, usuario, tx);
+        const actividadActual = await this.getById(id, usuario);
 
         if (
             actividadActual.estado === "CANCELADA" &&
@@ -614,23 +593,23 @@ class ActividadService {
 
             if (eventoNuevoId !== eventoActualId) {
                 const productorId =
-                    await this.obtenerProductorAutenticado(usuario, tx);
+                    await this.obtenerProductorAutenticado(usuario);
 
                 await this.validarEventoProductor(
                     eventoNuevoId,
                     productorId
-                , tx);
+                );
             }
         } else {
             await this.validarRelaciones({
                 eventoId: datosFinales.eventoId,
                 productores: productoresFinales
-            }, tx);
+            });
         }
 
-        await this.validarConflictos(datosFinales, id, tx);
+        await this.validarConflictos(datosFinales, id);
 
-        return tx.actividad.update({
+        return prisma.actividad.update({
             where: {
                 id: Number(id)
             },
@@ -660,14 +639,7 @@ class ActividadService {
         });
     }
 
-    async changeStatus(id, estado, usuario, tx = prisma) {
-        if (tx === prisma) {
-            return prisma.$transaction(async tx => {
-                await DisponibilidadService.bloquearUbicaciones(tx);
-                return this.changeStatus(id, estado, usuario, tx);
-            }, { timeout: 15000 });
-        }
-
+    async changeStatus(id, estado, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
         if (
@@ -679,7 +651,7 @@ class ActividadService {
             );
         }
 
-        const actividad = await this.getById(id, usuario, tx);
+        const actividad = await this.getById(id, usuario);
 
         if (actividad.estado === estado) {
             throw new ConflictException(
@@ -708,10 +680,10 @@ class ActividadService {
                 lugar: actividad.lugar,
                 eventoId: actividad.eventoId,
                 productores
-            }, id, tx);
+            }, id);
         }
 
-        return tx.actividad.update({
+        return prisma.actividad.update({
             where: {
                 id: Number(id)
             },
@@ -729,17 +701,10 @@ class ActividadService {
         });
     }
 
-    async remove(id, usuario, tx = prisma) {
-        if (tx === prisma) {
-            return prisma.$transaction(async tx => {
-                await DisponibilidadService.bloquearUbicaciones(tx);
-                return this.remove(id, usuario, tx);
-            }, { timeout: 15000 });
-        }
-
+    async remove(id, usuario) {
         await this.validarUsuarioAgenda(usuario);
 
-        const actividad = await this.getById(id, usuario, tx);
+        const actividad = await this.getById(id, usuario);
 
         if (actividad.estado === "CANCELADA") {
             throw new ConflictException(
@@ -747,7 +712,7 @@ class ActividadService {
             );
         }
 
-        return tx.actividad.update({
+        return prisma.actividad.update({
             where: {
                 id: Number(id)
             },
@@ -757,24 +722,17 @@ class ActividadService {
         });
     }
 
-    async removePhysical(id, usuario, tx = prisma) {
-        if (tx === prisma) {
-            return prisma.$transaction(async tx => {
-                await DisponibilidadService.bloquearUbicaciones(tx);
-                return this.removePhysical(id, usuario, tx);
-            }, { timeout: 15000 });
-        }
-
+    async removePhysical(id, usuario) {
         if (!usuario || usuario.rol !== "ADMIN") {
             throw new ForbiddenException(
                 "Solo un administrador puede eliminar físicamente una actividad."
             );
         }
 
-        await this.getById(id, undefined, tx);
+        await this.getById(id);
 
         try {
-            return await tx.actividad.delete({
+            return await prisma.actividad.delete({
                 where: {
                     id: Number(id)
                 }
