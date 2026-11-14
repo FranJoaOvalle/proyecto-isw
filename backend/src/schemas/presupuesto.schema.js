@@ -7,6 +7,7 @@ const body = z.object({
     observaciones: z.string().trim().max(2000).nullable().optional(),
     servicios: z.array(z.object({ servicioId: id, cantidad: z.number().int().min(1).max(100000) }).strict()).min(1).max(100)
 }).strict().refine(d => new Set(d.servicios.map(s => s.servicioId)).size === d.servicios.length, 'No repita servicios en el presupuesto.');
+
 module.exports = {
     createSchema: z.object({ body }),
     updateSchema: z.object({ params, body }),

@@ -1,0 +1,2 @@
+ALTER TABLE "Vehiculo"
+ADD COLUMN "habilitado" BOOLEAN NOT NULL DEFAULT true;
