@@ -8,19 +8,25 @@ export default function EventoUbicacion({ evento, onCambio }) {
     const [show, setShow] = useState(false);
     const [espacios, setEspacios] = useState([]);
     const [form, setForm] = useState({});
-    const [modo, setModo] = useState("externo");
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [validated, setValidated] = useState(false);
     const completo = Boolean(evento.direccion && evento.comuna);
+    const espaciosPermitidos = espacios.filter((espacio) =>
+        (espacio.habilitado || espacio.id === evento.espacioId) &&
+        (!evento.solicitudId || !evento.espacioId || espacio.id === evento.espacioId)
+    );
+    let textoBoton = "Definir ubicación";
+    if (completo) {
+        textoBoton = evento.solicitudId ? "Editar referencias de acceso" : "Editar ubicación";
+    }
 
     const abrir = async () => {
         setError("");
         setValidated(false);
         setLoading(true);
         setShow(true);
-        setModo(evento.espacioId ? "registrado" : "externo");
         setForm({
             espacioId: evento.espacioId ? String(evento.espacioId) : "",
             lugar: evento.lugar,
@@ -71,8 +77,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
         setError("");
         try {
             await editarEvento(evento.id, {
-                espacioId:
-                    modo === "registrado" ? Number(form.espacioId) : null,
+                espacioId: Number(form.espacioId),
                 lugar: form.lugar.trim(),
                 direccion: form.direccion.trim(),
                 comuna: form.comuna.trim(),
@@ -87,15 +92,19 @@ export default function EventoUbicacion({ evento, onCambio }) {
         }
     };
     const elegido = espacios.find((item) => item.id === Number(form.espacioId));
+    const datosRecintoDifieren = elegido && (
+        form.lugar !== elegido.nombre ||
+        form.direccion !== elegido.direccion ||
+        (elegido.comuna && form.comuna !== elegido.comuna)
+    );
     return (
         <>
             {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
                 <Button
-                    className="mt-3"
                     variant="outline-primary"
                     onClick={abrir}
                 >
-                    {completo ? "Editar ubicación" : "Definir ubicación"}
+                    {textoBoton}
                 </Button>
             )}
             <Modal
@@ -108,79 +117,43 @@ export default function EventoUbicacion({ evento, onCambio }) {
                     <Modal.Header closeButton={!saving}>
                         <Modal.Title>Ubicación del evento</Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>
+                    <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
                         {error && <Alert variant="danger">{error}</Alert>}
                         {loading && (
                             <p>
                                 <Spinner size="sm" /> Cargando recintos...
                             </p>
                         )}
-                        <Form.Group controlId="ubicacion-modo" className="mb-3">
-                            <Form.Label>Tipo de ubicación</Form.Label>
+                        <Form.Group
+                            controlId="ubicacion-espacio"
+                            className="mb-3"
+                        >
+                            <Form.Label>Recinto</Form.Label>
                             <Form.Select
-                                value={modo}
+                                value={form.espacioId ?? ""}
+                                required
                                 disabled={saving || loading}
-                                onChange={(e) => {
-                                    setModo(e.target.value);
-                                    setValidated(false);
-                                }}
+                                onChange={(e) =>
+                                    seleccionar(e.target.value)
+                                }
                             >
-                                <option value="registrado">
-                                    Recinto registrado
+                                <option value="">
+                                    Selecciona un recinto
                                 </option>
-                                <option value="externo">Otra ubicación</option>
-                            </Form.Select>
-                        </Form.Group>
-                        {modo === "registrado" && (
-                            <Form.Group
-                                controlId="ubicacion-espacio"
-                                className="mb-3"
-                            >
-                                <Form.Label>Recinto</Form.Label>
-                                <Form.Select
-                                    value={form.espacioId ?? ""}
-                                    required
-                                    disabled={saving || loading}
-                                    onChange={(e) =>
-                                        seleccionar(e.target.value)
-                                    }
-                                >
-                                    <option value="">
-                                        Selecciona un recinto
+                                {espaciosPermitidos.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.nombre} · {item.capacidad} personas
+                                        {!item.habilitado && " · Deshabilitado"}
                                     </option>
-                                    {espacios
-                                        .filter(
-                                            (item) =>
-                                                item.habilitado ||
-                                                item.id === evento.espacioId
-                                        )
-                                        .map((item) => (
-                                            <option
-                                                key={item.id}
-                                                value={item.id}
-                                            >
-                                                {" "}
-                                                {item.nombre} · {item.capacidad}{" "}
-                                                personas
-                                                {!item.habilitado
-                                                    ? " · Deshabilitado"
-                                                    : ""}
-                                            </option>
-                                        ))}
-                                </Form.Select>
-                                <Form.Text>
-                                    Seleccionar el recinto no crea una reserva.
-                                    Confirma su disponibilidad en Gestionar
-                                    reservas.
-                                </Form.Text>
-                                {elegido && (form.lugar !== elegido.nombre || form.direccion !== elegido.direccion || elegido.comuna && form.comuna !== elegido.comuna) && (
-                                    <div className="mt-2">
-                                        <Form.Text>Se conservan los datos confirmados del evento.</Form.Text>
-                                        <Button variant="link" className="p-0 d-block" disabled={saving || loading} onClick={() => seleccionar(form.espacioId)}>Usar datos actuales del recinto</Button>
-                                    </div>
-                                )}
-                            </Form.Group>
-                        )}
+                                ))}
+                            </Form.Select>
+                            {datosRecintoDifieren && (
+                                <div className="mt-2">
+                                    <Form.Text>Se conservan los datos confirmados del evento.</Form.Text>
+                                    <Button variant="link" className="p-0 d-block" disabled={saving || loading} onClick={() => seleccionar(form.espacioId)}>Usar datos actuales del recinto</Button>
+                                </div>
+                            )}
+                        </Form.Group>
                         {[
                             ["lugar", "Nombre del lugar", 250],
                             ["direccion", "Dirección", 250],
@@ -198,11 +171,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
                                     minLength={2}
                                     maxLength={max}
                                     disabled={saving || loading}
-                                    readOnly={
-                                        modo === "registrado" &&
-                                        (campo !== "comuna" ||
-                                            Boolean(elegido?.comuna))
-                                    }
+                                    readOnly={campo !== "comuna" || Boolean(elegido?.comuna)}
                                     onChange={(e) =>
                                         setForm((current) => ({
                                             ...current,
@@ -244,11 +213,7 @@ export default function EventoUbicacion({ evento, onCambio }) {
                         </Button>
                         <Button
                             type="submit"
-                            disabled={
-                                saving ||
-                                loading ||
-                                (modo === "registrado" && !form.espacioId)
-                            }
+                            disabled={saving || loading || !form.espacioId}
                         >
                             {saving ? "Guardando..." : "Guardar ubicación"}
                         </Button>

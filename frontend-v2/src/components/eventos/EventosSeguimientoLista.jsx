@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
     Alert,
     Button,
+    Card,
     Col,
     Container,
     Form,
@@ -61,43 +62,46 @@ export default function EventosSeguimientoLista() {
                         : "Consulta el seguimiento de los eventos que tienes asignados."
                 }
             />
-            <Form
-                className="mb-4"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    setConsulta(
-                        Object.fromEntries(
-                            Object.entries(filtros).filter(([, v]) => v)
-                        )
-                    );
-                }}
-            >
-                <TableToolbar
-                    search={filtros.buscar}
-                    onSearchChange={(buscar) =>
-                        setFiltros({ ...filtros, buscar })
-                    }
-                    searchPlaceholder="Buscar por tipo de evento o lugar..."
-                    estado={filtros.estado}
-                    onEstadoChange={(estado) =>
-                        setFiltros({ ...filtros, estado })
-                    }
-                    opcionesEstado={{ "": "Todos", ...estadosEvento }}
-                >
-                    <div className="d-flex gap-2">
-                        <Button type="submit">Buscar</Button>
-                        <Button
-                            variant="outline-secondary"
-                            onClick={() => {
-                                setFiltros({ buscar: "", estado: "" });
-                                setConsulta({});
-                            }}
+            <Card className="shadow-sm mb-4">
+                <Card.Body className="pb-0">
+                    <Form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            setConsulta(
+                                Object.fromEntries(
+                                    Object.entries(filtros).filter(([, v]) => v)
+                                )
+                            );
+                        }}
+                    >
+                        <TableToolbar
+                            search={filtros.buscar}
+                            onSearchChange={(buscar) =>
+                                setFiltros({ ...filtros, buscar })
+                            }
+                            searchPlaceholder="Buscar por tipo de evento o lugar..."
+                            estado={filtros.estado}
+                            onEstadoChange={(estado) =>
+                                setFiltros({ ...filtros, estado })
+                            }
+                            opcionesEstado={{ "": "Todos", ...estadosEvento }}
                         >
-                            Limpiar
-                        </Button>
-                    </div>
-                </TableToolbar>
-            </Form>
+                            <div className="d-flex gap-2">
+                                <Button type="submit">Buscar</Button>
+                                <Button
+                                    variant="outline-secondary"
+                                    onClick={() => {
+                                        setFiltros({ buscar: "", estado: "" });
+                                        setConsulta({});
+                                    }}
+                                >
+                                    Limpiar
+                                </Button>
+                            </div>
+                        </TableToolbar>
+                    </Form>
+                </Card.Body>
+            </Card>
             {error ? (
                 <Alert variant="danger">
                     {error}{" "}

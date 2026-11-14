@@ -424,6 +424,12 @@ model Presupuesto {
   // Snapshot del catálogo al momento de cotizar
   nombreTipoEvento     String
   precioBaseTipoEvento Decimal @db.Decimal(12, 2)
+  precioBaseCatalogo Decimal? @db.Decimal(12, 2)
+  precioBaseAcordado Decimal? @db.Decimal(12, 2)
+  costoArriendoEspacio Decimal? @db.Decimal(12, 2)
+  unidadArriendoEspacio UnidadArriendo?
+  subtotalArriendoEspacio Decimal? @db.Decimal(12, 2)
+  arriendoIncluido Boolean?
   modalidadPrecioTipoEvento ModalidadPrecioTipoEvento?
   tarifaHoraTipoEvento Decimal? @db.Decimal(12, 2)
   cantidadPersonasBaseTipoEvento Int?

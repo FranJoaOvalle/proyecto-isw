@@ -1,19 +1,37 @@
-import { Table } from "react-bootstrap";
-import { fechaSeguimiento } from "../eventos/seguimiento.utils";
+import { Col, Row, Table } from "react-bootstrap";
+import { direccionConComuna, fechaSeguimiento } from "../eventos/seguimiento.utils";
 import { monedaPresupuesto } from "./presupuesto.utils";
 
 export default function PresupuestoResumen({ presupuesto }) {
+    const totalEstimado = presupuesto.estado === "BORRADOR" && presupuesto.subtotalArriendoEspacio == null;
     return (
         <>
-            <p className="mb-1">{fechaSeguimiento(presupuesto.inicio)} — {fechaSeguimiento(presupuesto.fin)}</p>
-            <p className="mb-1">{presupuesto.lugar} · {presupuesto.asistentes} asistentes</p>
-            {presupuesto.direccion && (
-                <p className="text-secondary mb-1">{presupuesto.direccion}, {presupuesto.comuna}</p>
-            )}
-            {presupuesto.referenciaDireccion && <p className="text-secondary">{presupuesto.referenciaDireccion}</p>}
-            {presupuesto.venceAt && <p>Válida hasta: {fechaSeguimiento(presupuesto.venceAt)}</p>}
+            <Row className="g-3 mb-3">
+                <Col sm={6}>
+                    <small className="d-block text-body-secondary">Inicio</small>
+                    <span>{fechaSeguimiento(presupuesto.inicio)}</span>
+                </Col>
+                <Col sm={6}>
+                    <small className="d-block text-body-secondary">Término</small>
+                    <span>{fechaSeguimiento(presupuesto.fin)}</span>
+                </Col>
+                <Col sm={6}>
+                    <small className="d-block text-body-secondary">Recinto</small>
+                    <span>{presupuesto.lugar}</span>
+                    {presupuesto.direccion && <small className="d-block text-body-secondary">{direccionConComuna(presupuesto.direccion, presupuesto.comuna)}</small>}
+                    {presupuesto.referenciaDireccion && <small className="d-block text-body-secondary">{presupuesto.referenciaDireccion}</small>}
+                </Col>
+                <Col sm={6}>
+                    <small className="d-block text-body-secondary">Asistentes</small>
+                    <span>{presupuesto.asistentes} personas</span>
+                </Col>
+                {presupuesto.venceAt && <Col sm={6}>
+                    <small className="d-block text-body-secondary">Vigencia de la propuesta</small>
+                    <span>{fechaSeguimiento(presupuesto.venceAt)}</span>
+                </Col>}
+            </Row>
             <div className="table-responsive">
-                <Table size="sm" className="align-middle">
+                <Table size="sm" className="align-middle mb-0">
                     <thead>
                         <tr><th>Concepto</th><th className="text-end">Cantidad</th><th className="text-end">Importe</th></tr>
                     </thead>
@@ -28,10 +46,17 @@ export default function PresupuestoResumen({ presupuesto }) {
                                 <td className="text-end">{monedaPresupuesto(recurso.subtotal)}</td>
                             </tr>
                         ))}
-                        <tr><td colSpan={2}>Subtotal</td><td className="text-end">{monedaPresupuesto(presupuesto.subtotal)}</td></tr>
-                        <tr><td colSpan={2}>Descuento</td><td className="text-end">−{monedaPresupuesto(presupuesto.descuento)}</td></tr>
-                        <tr><td colSpan={2}>Recargo</td><td className="text-end">{monedaPresupuesto(presupuesto.recargoCliente)}</td></tr>
-                        <tr className="fw-semibold"><td colSpan={2}>Total</td><td className="text-end">{monedaPresupuesto(presupuesto.total)}</td></tr>
+                        {presupuesto.subtotalArriendoEspacio != null && <tr>
+                            <td colSpan={2}>{presupuesto.arriendoIncluido ? "Arriendo incluido en el precio base" : "Arriendo del recinto"}</td>
+                            <td className="text-end">{monedaPresupuesto(presupuesto.subtotalArriendoEspacio)}</td>
+                        </tr>}
+                        <tr className="text-body-secondary"><td colSpan={2}>Subtotal</td><td className="text-end">{monedaPresupuesto(presupuesto.subtotal)}</td></tr>
+                        <tr className="text-body-secondary"><td colSpan={2}>Descuento</td><td className="text-end">−{monedaPresupuesto(presupuesto.descuento)}</td></tr>
+                        <tr className="text-body-secondary"><td colSpan={2}>Recargo</td><td className="text-end">{monedaPresupuesto(presupuesto.recargoCliente)}</td></tr>
+                        <tr className="fw-bold border-top">
+                            <td colSpan={2}>{totalEstimado ? "Total estimado sin arriendo" : "Total"}</td>
+                            <td className="text-end">{monedaPresupuesto(presupuesto.total)}</td>
+                        </tr>
                     </tbody>
                 </Table>
             </div>

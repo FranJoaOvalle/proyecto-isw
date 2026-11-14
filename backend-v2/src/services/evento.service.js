@@ -2,14 +2,43 @@ const prisma = require("../config/prisma");
 
 const ForbiddenException = require("../exceptions/ForbiddenException");
 const ConflictException = require("../exceptions/ConflictException");
+const NotFoundException = require("../exceptions/NotFoundException");
 
 const SeguimientoService = require("./seguimiento.service");
-const DisponibilidadService = require("./disponibilidad.service");
-
 const ReservaService = require("./reserva.service");
 const UbicacionService = require("./ubicacion.service");
 
+const resumenCliente = {
+    id: true, solicitudId: true, presupuestoId: true,
+    inicio: true, fin: true, lugar: true, direccion: true, comuna: true,
+    referenciaDireccion: true, asistentes: true, estado: true, imagen_url: true,
+    tipoEvento: { select: { id: true, nombre: true, imagen_url: true } },
+    productor: { select: { id: true, nombres: true, apellidos: true } }
+};
+
 class EventoService {
+
+    alcanceCliente(usuario) {
+        if (usuario?.rol !== "CLIENTE") throw new ForbiddenException();
+        return { cliente: { usuarioId: usuario.id } };
+    }
+
+    async listarCliente(usuario) {
+        return prisma.evento.findMany({
+            where: this.alcanceCliente(usuario),
+            select: resumenCliente,
+            orderBy: [{ inicio: "desc" }, { id: "desc" }]
+        });
+    }
+
+    async detalleCliente(id, usuario) {
+        const evento = await prisma.evento.findFirst({
+            where: { id: Number(id), ...this.alcanceCliente(usuario) },
+            select: resumenCliente
+        });
+        if (!evento) throw new NotFoundException("Evento no encontrado.");
+        return evento;
+    }
 
     validarAdmin(usuario) {
         if (usuario?.rol !== "ADMIN") {
@@ -21,6 +50,9 @@ class EventoService {
 
     async actualizar(id, datos, usuario) {
         this.validarAdmin(usuario);
+        if (Object.hasOwn(datos, "estado")) {
+            throw new ConflictException("Utiliza la acción de cambio de estado e indica su motivo.");
+        }
         const actual = await SeguimientoService.evento(id, usuario);
 
         if (["CANCELADO", "COMPLETADO"].includes(actual.estado)) {
@@ -36,48 +68,6 @@ class EventoService {
         if (fin <= inicio) {
             throw new ConflictException(
                 "El término debe ser posterior al inicio."
-            );
-        }
-
-        const productorId = Object.hasOwn(datos, "productorId")
-            ? datos.productorId
-            : actual.productorId;
-
-        if (datos.productorId != null) {
-            const productor = await prisma.productor.findFirst({
-                where: {
-                    id: datos.productorId,
-                    usuario: { activo: true, rol: "PRODUCTOR" }
-                }
-            });
-            if (!productor) {
-                throw new ConflictException(
-                    "El productor seleccionado no existe o está inactivo."
-                );
-            }
-        }
-
-        if (
-            datos.inicio ||
-            datos.fin ||
-            datos.lugar ||
-            Object.hasOwn(datos, "espacioId") ||
-            Object.hasOwn(datos, "productorId")
-        ) {
-            await DisponibilidadService.verificarDisponibilidad(
-                {
-                    inicio,
-                    fin,
-                    lugar: datos.lugar ?? actual.lugar,
-                    direccion: datos.direccion ?? actual.direccion,
-                    productorId,
-                    espacioId: Object.hasOwn(datos, "espacioId")
-                        ? datos.espacioId
-                        : datos.lugar && datos.lugar !== actual.lugar
-                          ? null
-                          : actual.espacioId
-                },
-                id
             );
         }
 
@@ -105,25 +95,26 @@ class EventoService {
                           : String(valor)
             }));
 
-        if (
-            cambios.some((cambio) =>
-                [
-                    "inicio",
-                    "fin",
-                    "lugar",
-                    "asistentes",
-                    "espacioId",
-                    "direccion",
-                    "comuna"
-                ].includes(cambio.campo)
-            )
-        ) {
-            return ReservaService.actualizarEvento(actual, datos, cambios);
+        return ReservaService.actualizarEvento(actual, datos, cambios);
+    }
+
+    async cambiarEstado(id, datos, usuario) {
+        this.validarAdmin(usuario);
+        if (typeof datos.motivo !== "string" || datos.motivo.trim().length < 3 || datos.motivo.trim().length > 1000) {
+            throw new ConflictException("Indica un motivo de entre tres y mil caracteres.");
         }
-        return prisma.evento.update({
-            where: { id: Number(id) },
-            data: { ...datos, cambios: { create: cambios } }
-        });
+        const actual = await SeguimientoService.evento(id, usuario);
+        return ReservaService.actualizarEvento(actual, { estado: datos.estado }, [{
+            usuarioId: usuario.id,
+            campo: "estado",
+            valorAnterior: actual.estado,
+            valorNuevo: datos.estado
+        }, {
+            usuarioId: usuario.id,
+            campo: "motivoEstado",
+            valorAnterior: null,
+            valorNuevo: datos.motivo.trim()
+        }]);
     }
 
     async cancelar(id, usuario) {

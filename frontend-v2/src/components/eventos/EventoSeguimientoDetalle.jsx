@@ -23,6 +23,7 @@ import {
     estadosEvento,
     varianteEstado,
     fechaSeguimiento,
+    direccionConComuna,
     mensajeError
 } from "./seguimiento.utils";
 
@@ -116,62 +117,60 @@ function Detalle({ id }) {
                                 </div>
                                 <Row className="g-3">
                                     <Col md={6}>
-                                        <strong>Inicio:</strong>{" "}
-                                        {fechaSeguimiento(evento.inicio)}
+                                        <small className="d-block text-body-secondary">Inicio</small>
+                                        <span>{fechaSeguimiento(evento.inicio)}</span>
                                     </Col>
                                     <Col md={6}>
-                                        <strong>Término:</strong>{" "}
-                                        {fechaSeguimiento(evento.fin)}
+                                        <small className="d-block text-body-secondary">Término</small>
+                                        <span>{fechaSeguimiento(evento.fin)}</span>
                                     </Col>
                                     <Col md={6}>
-                                        <strong>Lugar:</strong> {evento.lugar}
+                                        <small className="d-block text-body-secondary">Lugar</small>
+                                        <span>{evento.lugar}</span>
                                     </Col>
                                     <Col md={6}>
-                                        <strong>Asistentes:</strong>{" "}
-                                        {evento.asistentes}
+                                        <small className="d-block text-body-secondary">Asistentes</small>
+                                        <span>{evento.asistentes} personas</span>
                                     </Col>
                                     <Col md={6}>
-                                        <strong>Productor:</strong>{" "}
-                                        {evento.productor
+                                        <small className="d-block text-body-secondary">Productor</small>
+                                        <span>{evento.productor
                                             ? `${evento.productor.nombres} ${evento.productor.apellidos}`
-                                            : "Sin productor asignado"}
+                                            : "Sin productor asignado"}</span>
                                     </Col>
                                     <Col md={6}>
-                                        <strong>Cliente:</strong>{" "}
-                                        {evento.cliente.empresa?.razonSocial ||
-                                            `${evento.cliente.persona?.nombres || ""} ${evento.cliente.persona?.apellidos || ""}`}
+                                        <small className="d-block text-body-secondary">Cliente</small>
+                                        <span>{evento.cliente.empresa?.razonSocial ||
+                                            `${evento.cliente.persona?.nombres || ""} ${evento.cliente.persona?.apellidos || ""}`}</span>
                                     </Col>
                                 </Row>
-                                <div className="mt-3">
-                                    {evento.direccion && <p className="mb-1"><strong>Dirección:</strong> {evento.direccion}{evento.comuna ? ', '+evento.comuna : ''}</p>}
+                                <div className="border-top mt-4 pt-3">
+                                    {evento.direccion && <p className="mb-1"><small className="text-body-secondary me-2">Dirección</small>{direccionConComuna(evento.direccion, evento.comuna)}</p>}
                                     {!(evento.direccion && evento.comuna) && <p className="text-warning mb-1">Ubicación por completar. Se conserva el lugar histórico.</p>}
-                                    {evento.referenciaDireccion && <p className="mb-1 text-break"><strong>Acceso:</strong> {evento.referenciaDireccion}</p>}
-                                    {usuario?.rol === "ADMIN" && <EventoUbicacion evento={evento} onCambio={async () => setEvento(await getEventoSeguimiento(id))} />}
+                                    {evento.referenciaDireccion && <p className="mb-1 text-break"><small className="text-body-secondary me-2">Acceso</small>{evento.referenciaDireccion}</p>}
                                 </div>
                                 {evento.observaciones && (
-                                    <p
-                                        className="mt-3 mb-0 text-break"
-                                        style={{ whiteSpace: "pre-wrap" }}
-                                    >
-                                        {evento.observaciones}
-                                    </p>
+                                    <div className="mt-3">
+                                        <small className="d-block text-body-secondary">Observaciones</small>
+                                        <p className="mb-0 text-break" style={{ whiteSpace: "pre-wrap" }}>
+                                            {evento.observaciones}
+                                        </p>
+                                    </div>
                                 )}
-                                {usuario?.rol === "ADMIN" && (
-                                    <AsignarProductor
-                                        evento={evento}
-                                        onCambio={() =>
-                                            getEventoSeguimiento(id)
-                                                .then(setEvento)
-                                                .catch((err) =>
-                                                    setError(
-                                                        mensajeError(
-                                                            err,
-                                                            "No fue posible actualizar el evento."
-                                                        )
+                                {usuario?.rol === "ADMIN" && !["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
+                                    <div className="d-flex flex-wrap gap-2 mt-3">
+                                        <EventoUbicacion evento={evento} onCambio={async () => setEvento(await getEventoSeguimiento(id))} />
+                                        <AsignarProductor
+                                            evento={evento}
+                                            onCambio={() =>
+                                                getEventoSeguimiento(id)
+                                                    .then(setEvento)
+                                                    .catch((err) =>
+                                                        setError(mensajeError(err, "No fue posible actualizar el evento."))
                                                     )
-                                                )
-                                        }
-                                    />
+                                            }
+                                        />
+                                    </div>
                                 )}
                                 {usuario?.rol === "ADMIN" && (
                                     <EventoAcciones
@@ -192,7 +191,8 @@ function Detalle({ id }) {
                                 )}
                             </Card.Body>
                         </Card>
-                        <EventoReservas evento={evento} administrar={usuario?.rol === "ADMIN"} />
+                        <EventoReservas evento={evento} administrar={usuario?.rol === "ADMIN"}
+                            onCambio={async () => setEvento(await getEventoSeguimiento(id))} />
                         <SeguimientoPanel eventoId={id} />
                     </>
                 )

@@ -22,6 +22,7 @@ router.get("/:id", authorize("ADMIN", "CLIENTE"), validator(idSchema), controlle
 router.patch("/:id", authorize("ADMIN"), validator(updateSchema), controller.update);
 router.patch("/:id/estado", authorize("ADMIN"), validator(estadoSchema), controller.cancelar);
 router.post("/:id/enviar", authorize("ADMIN"), validator(envioSchema), controller.enviar);
+router.post("/:id/previsualizar-envio", authorize("ADMIN"), validator(envioSchema), controller.previsualizarEnvio);
 router.post("/:id/aceptar", authorize("CLIENTE"), validator(aceptacionSchema), controller.aceptar);
 
 module.exports = router;

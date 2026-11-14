@@ -4,7 +4,7 @@ import { Alert, Badge, Button, Card, Form, InputGroup, Modal, Spinner, Table } f
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import ReservasVehiculoModal from "./ReservasVehiculoModal";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import { createVehiculo, deleteVehiculo, getVehiculos, updateVehiculo } from "../../services/vehiculo.service";
 
 const inicial = {
@@ -42,7 +42,7 @@ const intervaloHora = (dia, hora) => {
     };
 };
 
-export default function VehiculosPanel({ eventoInicial }) {
+export default function VehiculosPanel() {
     const [vehiculos, setVehiculos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -240,7 +240,7 @@ export default function VehiculosPanel({ eventoInicial }) {
             <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
                 <div>
                     <h2 className="h4 fw-bold mb-1">Flota de vehículos</h2>
-                    <p className="text-secondary mb-0">Registra los vehículos, su mantención y las asignaciones a eventos.</p>
+                    <p className="text-secondary mb-0">Administra la flota, consulta las asignaciones y registra devoluciones.</p>
                 </div>
                 <Button onClick={abrirCrear}><i className="bi bi-plus-lg me-2" />Nuevo vehículo</Button>
             </div>
@@ -427,7 +427,6 @@ export default function VehiculosPanel({ eventoInicial }) {
             </Modal>
 
             <ReservasVehiculoModal
-                eventoInicial={eventoInicial}
                 vehiculo={reservasVehiculo}
                 show={Boolean(reservasVehiculo)}
                 onHide={() => setReservasVehiculo(null)}

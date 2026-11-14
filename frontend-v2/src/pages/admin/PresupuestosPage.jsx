@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     Alert,
@@ -12,6 +12,7 @@ import {
 import PageHeader from "../../components/PageHeader";
 import EmptyState from "../../components/EmptyState";
 import ConfirmModal from "../../components/ConfirmModal";
+import NotificacionToast from "../../components/NotificacionToast";
 import TableToolbar from "../../components/admin/TableToolbar";
 import PresupuestoFormularioModal from "../../components/presupuestos/PresupuestoFormularioModal";
 import PresupuestoEnvioModal from "../../components/presupuestos/PresupuestoEnvioModal";
@@ -50,7 +51,9 @@ const moneda = (valor) =>
     });
 
 const fecha = (valor) =>
-    valor ? new Date(valor).toLocaleString("es-CL") : "—";
+    valor ? new Date(valor).toLocaleDateString("es-CL") : "—";
+const hora = (valor) =>
+    valor ? new Date(valor).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) : "";
 
 const nombreCliente = (cliente) =>
     cliente?.empresa?.razonSocial ||
@@ -93,12 +96,19 @@ async function listarSolicitudesRevision() {
     return [...comoLista(primera), ...restantes.flatMap(comoLista)];
 }
 
+const cargarListas = () => Promise.allSettled([
+    listarPresupuestos(),
+    listarSolicitudesRevision(),
+    getTiposEvento(true),
+    listarRecursos()
+]);
+
 export default function PresupuestosPage() {
     const [presupuestos, setPresupuestos] = useState([]);
     const [solicitudes, setSolicitudes] = useState([]);
     const [recursos, setRecursos] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [cargandoRecursos, setCargandoRecursos] = useState(false);
+    const [cargandoRecursos, setCargandoRecursos] = useState(true);
     const [error, setError] = useState("");
     const [errorListado, setErrorListado] = useState("");
     const [errorSolicitudes, setErrorSolicitudes] = useState("");
@@ -111,21 +121,11 @@ export default function PresupuestosPage() {
     const [cancelando, setCancelando] = useState(false);
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("TODOS");
+    const revisionCarga = useRef(0);
+    const montado = useRef(false);
 
-    const cargarDatos = useCallback(async () => {
-        setCargando(true);
-        setCargandoRecursos(true);
-        setError("");
-        setErrorListado("");
-        setErrorSolicitudes("");
-
-        const [resultadoPresupuestos, resultadoSolicitudes, resultadoTipos, resultadoRecursos] =
-            await Promise.allSettled([
-                listarPresupuestos(),
-                listarSolicitudesRevision(),
-                getTiposEvento(true),
-                listarRecursos()
-            ]);
+    const aplicarDatos = useCallback((resultados) => {
+        const [resultadoPresupuestos, resultadoSolicitudes, resultadoTipos, resultadoRecursos] = resultados;
 
         if (resultadoPresupuestos.status === "fulfilled") {
             try {
@@ -186,9 +186,28 @@ export default function PresupuestosPage() {
         setCargando(false);
     }, []);
 
+    const cargarDatos = useCallback(async () => {
+        const revision = ++revisionCarga.current;
+        setCargando(true);
+        setCargandoRecursos(true);
+        setError("");
+        setErrorListado("");
+        setErrorSolicitudes("");
+        const resultados = await cargarListas();
+        if (montado.current && revision === revisionCarga.current) aplicarDatos(resultados);
+    }, [aplicarDatos]);
+
     useEffect(() => {
-        cargarDatos();
-    }, [cargarDatos]);
+        montado.current = true;
+        const revision = ++revisionCarga.current;
+        cargarListas().then((resultados) => {
+            if (montado.current && revision === revisionCarga.current) aplicarDatos(resultados);
+        });
+        return () => {
+            montado.current = false;
+            revisionCarga.current += 1;
+        };
+    }, [aplicarDatos]);
 
     const presupuestosVisibles = useMemo(() => {
         const termino = busqueda.trim().toLocaleLowerCase("es-CL");
@@ -251,19 +270,23 @@ export default function PresupuestosPage() {
                 title="Presupuestos"
                 description="Prepara cotizaciones a partir de solicitudes que están en revisión."
             >
-                <Button
-                    onClick={abrirNuevaCotizacion}
-                    disabled={cargando || !solicitudes.length}
-                >
-                    <i className="bi bi-plus-lg me-2" />Nueva cotización
-                </Button>
+                <div className="d-flex flex-column align-items-start align-items-md-end gap-2">
+                    <Button
+                        onClick={abrirNuevaCotizacion}
+                        disabled={cargando || !solicitudes.length}
+                    >
+                        <i className="bi bi-plus-lg me-2" />Nueva cotización
+                    </Button>
+                    {!cargando && !errorSolicitudes && !solicitudes.length && (
+                        <small className="text-body-secondary" style={{ maxWidth: 320 }}>
+                            No hay solicitudes listas para cotizar. Revisa las pendientes en{" "}
+                            <Link to="/admin/solicitudes">Solicitudes</Link> y pasa una a «En revisión».
+                        </small>
+                    )}
+                </div>
             </PageHeader>
 
-            {mensaje && (
-                <Alert variant="success" dismissible onClose={() => setMensaje("")}>
-                    {mensaje}
-                </Alert>
-            )}
+            <NotificacionToast mensaje={mensaje} onClose={() => setMensaje("")} />
             {(errorListado || errorSolicitudes || errorRecursos || error) && (
                 <Alert variant={errorListado || error ? "danger" : "warning"}>
                     {errorListado || error || errorSolicitudes || errorRecursos}
@@ -272,11 +295,6 @@ export default function PresupuestosPage() {
                     </Button>
                 </Alert>
             )}
-            <Alert variant="info">
-                Las cotizaciones solo se pueden emitir desde solicitudes en estado <strong>EN_REVISION</strong>.
-                Si una solicitud está pendiente, primero debe pasar a revisión.
-            </Alert>
-
             <Card className="shadow-sm border-0">
                 <Card.Body>
                     <TableToolbar
@@ -299,7 +317,7 @@ export default function PresupuestosPage() {
                     {cargando ? (
                         <div className="text-center py-5">
                             <Spinner animation="border" role="status" />
-                            <p className="text-muted mt-2 mb-0">Cargando presupuestos...</p>
+                            <p className="text-body-secondary mt-2 mb-0">Cargando presupuestos...</p>
                         </div>
                     ) : errorListado ? (
                         <EmptyState
@@ -317,15 +335,13 @@ export default function PresupuestosPage() {
                         />
                     ) : (
                         <div className="table-responsive">
-                            <Table hover className="align-middle mb-0">
+                            <Table hover className="align-middle mb-0" style={{ minWidth: 720 }}>
                                 <thead>
                                     <tr>
                                         <th>Folio</th>
                                         <th>Cliente / Evento</th>
                                         <th>Fecha</th>
-                                        <th className="text-end">Subtotal</th>
-                                        <th className="text-end">Descuento</th>
-                                        <th className="text-end">Total</th>
+                                        <th className="text-end">Monto</th>
                                         <th>Estado</th>
                                         <th aria-label="Acciones" />
                                     </tr>
@@ -336,21 +352,29 @@ export default function PresupuestosPage() {
                                             <td>
                                                 <strong>#{presupuesto.id}</strong>
                                                 {presupuesto.solicitudId && (
-                                                    <small className="d-block text-muted">
+                                                    <small className="d-block text-body-secondary">
                                                         Solicitud #{presupuesto.solicitudId}
                                                     </small>
                                                 )}
                                             </td>
                                             <td>
                                                 <strong>{nombreCliente(presupuesto.cliente)}</strong>
-                                                <small className="d-block text-muted">
+                                                <small className="d-block text-body-secondary">
                                                     {presupuesto.tipoEvento?.nombre ?? presupuesto.nombreTipoEvento}
                                                 </small>
                                             </td>
-                                            <td>{fecha(presupuesto.inicio)}</td>
-                                            <td className="text-end">{moneda(presupuesto.subtotal)}</td>
-                                            <td className="text-end">{moneda(presupuesto.descuento)}</td>
-                                            <td className="text-end fw-semibold">{moneda(presupuesto.total)}</td>
+                                            <td>
+                                                <span className="d-block">{fecha(presupuesto.inicio)}</span>
+                                                <small className="text-body-secondary">{hora(presupuesto.inicio)}</small>
+                                            </td>
+                                            <td className="text-end">
+                                                <strong>{moneda(presupuesto.total)}</strong>
+                                                <small className="d-block text-body-secondary">
+                                                    Subtotal {moneda(presupuesto.subtotal)}
+                                                </small>
+                                                {Number(presupuesto.descuento) > 0 &&
+                                                    <small className="d-block text-body-secondary">Descuento {moneda(presupuesto.descuento)}</small>}
+                                            </td>
                                             <td>
                                                 <Badge bg={varianteEstado[presupuesto.estado] ?? "secondary"}>
                                                     {nombresEstado[presupuesto.estado] ?? presupuesto.estado}
@@ -400,7 +424,8 @@ export default function PresupuestosPage() {
                 </Card.Body>
             </Card>
 
-            <PresupuestoFormularioModal
+            {mostrarFormulario && <PresupuestoFormularioModal
+                key={presupuestoEditar ? `${presupuestoEditar.id}-${presupuestoEditar.version}` : "nuevo"}
                 show={mostrarFormulario}
                 onHide={cerrarFormulario}
                 onGuardado={presupuestoGuardado}
@@ -409,7 +434,7 @@ export default function PresupuestosPage() {
                 recursos={recursos}
                 cargandoRecursos={cargandoRecursos}
                 errorRecursos={errorRecursos}
-            />
+            />}
 
             {presupuestoEnviar && (
                 <PresupuestoEnvioModal

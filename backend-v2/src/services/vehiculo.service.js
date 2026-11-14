@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
+const ValidationException = require("../exceptions/ValidationException");
 
 const ReservaService = require("./reserva.service");
 
@@ -82,8 +83,12 @@ class VehiculoService {
     async reservar(id, data) {
         const vehiculoId = Number(id);
         return prisma.$transaction(async tx => {
-            await ReservaService.bloquearEvento(tx, data.eventoId);
+            const evento = await ReservaService.bloquearEvento(tx, data.eventoId);
+            if (evento && evento.inicio <= new Date()) {
+                throw new ConflictException("Las nuevas asignaciones del evento deben registrarse antes de su inicio.");
+            }
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(${vehiculoId})::text`;
+            if (data.inicio <= new Date()) throw new ValidationException("El inicio de la reserva debe ser futuro.");
             const vehiculo = await this.getById(vehiculoId, tx);
             if (!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE") {
                 throw new ConflictException("El vehículo no está disponible para nuevas reservas.");

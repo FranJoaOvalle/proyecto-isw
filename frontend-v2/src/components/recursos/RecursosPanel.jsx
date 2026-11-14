@@ -13,7 +13,7 @@ import {
 import ConfirmModal from "../ConfirmModal";
 import EmptyState from "../EmptyState";
 import TableToolbar from "../admin/TableToolbar";
-import NotificacionToast from "./NotificacionToast";
+import NotificacionToast from "../NotificacionToast";
 import {
     createRecurso,
     deleteRecurso,
@@ -57,7 +57,7 @@ const intervaloHora = (dia, hora) => {
     };
 };
 
-export default function RecursosPanel({ eventoInicial }) {
+export default function RecursosPanel() {
     const [recursos, setRecursos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -306,7 +306,7 @@ export default function RecursosPanel({ eventoInicial }) {
                 <div>
                     <h2 className="h4 fw-bold mb-1">Inventario de recursos</h2>
                     <p className="text-secondary mb-0">
-                        Administra equipos y materiales, su estado de mantención y las reservas por evento.
+                        Administra equipos, consulta sus reservas y registra devoluciones.
                     </p>
                 </div>
                 <Button onClick={abrirCrear}>
@@ -547,7 +547,6 @@ export default function RecursosPanel({ eventoInicial }) {
             </ConfirmModal>
 
             <ReservasRecursoModal
-                eventoInicial={eventoInicial}
                 recurso={recursoReservado}
                 show={Boolean(recursoReservado)}
                 onHide={() => setRecursoReservado(null)}

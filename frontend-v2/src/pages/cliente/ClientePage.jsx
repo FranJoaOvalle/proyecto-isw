@@ -2,6 +2,7 @@ import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../contexts/AuthContext";
+import PageHeader from "../../components/PageHeader";
 
 const getNombreCliente = (usuario) => {
     const cliente = usuario?.cliente;
@@ -21,26 +22,35 @@ export default function ClientePage() {
 
     return (
         <Container className="py-5">
-            <div className="mb-5">
-                <h1 className="fw-bold">
-                    {nombre ? `Hola, ${nombre}` : "Mi cuenta"}
-                </h1>
-
-                <p className="text-secondary mb-0">
-                    Gestiona tu cuenta y revisa las opciones disponibles.
-                </p>
-            </div>
+            <PageHeader
+                title={nombre ? `Hola, ${nombre}` : "Mi cuenta"}
+                description="Gestiona tus solicitudes, propuestas y eventos desde un solo lugar."
+            />
 
             <Row className="g-4">
-                <Col md={6}><Card className="h-100 shadow-sm"><Card.Body className="p-4"><Card.Title className="fw-bold">Mis solicitudes</Card.Title><Card.Text>Solicita un evento y consulta su revisión o contratación.</Card.Text><Button as={Link} to="/cliente/solicitudes">Ver solicitudes</Button></Card.Body></Card></Col>
                 <Col md={6}>
                     <Card className="h-100 shadow-sm">
-                        <Card.Body className="p-4">
+                        <Card.Body className="d-flex flex-column p-4">
+                            <i className="bi bi-file-earmark-text text-primary fs-4 mb-3" aria-hidden="true" />
+                            <Card.Title className="fw-bold">Mis solicitudes</Card.Title>
+                            <Card.Text className="text-body-secondary mb-4">
+                                Solicita un evento y consulta su revisión o contratación.
+                            </Card.Text>
+                            <Button as={Link} to="/cliente/solicitudes" className="mt-auto align-self-start">
+                                Ver solicitudes
+                            </Button>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={6}>
+                    <Card className="h-100 shadow-sm">
+                        <Card.Body className="d-flex flex-column p-4">
+                            <i className="bi bi-shop text-primary fs-4 mb-3" aria-hidden="true" />
                             <Card.Title className="fw-bold">
                                 Catálogo
                             </Card.Title>
 
-                            <Card.Text className="text-secondary">
+                            <Card.Text className="text-body-secondary mb-4">
                                 Revisa los tipos de eventos y servicios
                                 disponibles.
                             </Card.Text>
@@ -48,6 +58,8 @@ export default function ClientePage() {
                             <Button
                                 as={Link}
                                 to="/catalogo"
+                                variant="outline-primary"
+                                className="mt-auto align-self-start"
                             >
                                 Ver catálogo
                             </Button>
@@ -57,12 +69,13 @@ export default function ClientePage() {
 
                 <Col md={6}>
                     <Card className="h-100 shadow-sm">
-                        <Card.Body className="p-4">
+                        <Card.Body className="d-flex flex-column p-4">
+                            <i className="bi bi-person text-primary fs-4 mb-3" aria-hidden="true" />
                             <Card.Title className="fw-bold">
                                 Mi perfil
                             </Card.Title>
 
-                            <Card.Text className="text-secondary">
+                            <Card.Text className="text-body-secondary mb-4">
                                 Revisa y actualiza los datos asociados a tu
                                 cuenta.
                             </Card.Text>
@@ -71,6 +84,7 @@ export default function ClientePage() {
                                 as={Link}
                                 to="/perfil"
                                 variant="outline-primary"
+                                className="mt-auto align-self-start"
                             >
                                 Administrar perfil
                             </Button>
@@ -80,20 +94,22 @@ export default function ClientePage() {
 
                 <Col md={6}>
                     <Card className="h-100 shadow-sm">
-                        <Card.Body className="p-4">
+                        <Card.Body className="d-flex flex-column p-4">
+                            <i className="bi bi-receipt text-primary fs-4 mb-3" aria-hidden="true" />
                             <Card.Title className="fw-bold">
                                 Compra / Contrato
                             </Card.Title>
 
-                            <Card.Text className="text-secondary">
-                                Inicia el proceso de compra o contratación de un evento.
+                            <Card.Text className="text-body-secondary mb-4">
+                                Revisa las propuestas recibidas y confirma tu contratación.
                             </Card.Text>
 
                             <Button
                                 as={Link}
                                 to="/cliente/compra"
+                                className="mt-auto align-self-start"
                             >
-                                Ir a Compra / Contrato
+                                Ver propuestas
                             </Button>
                         </Card.Body>
                     </Card>
@@ -101,12 +117,13 @@ export default function ClientePage() {
 
                 <Col md={6}>
                     <Card className="h-100 shadow-sm">
-                        <Card.Body className="p-4">
+                        <Card.Body className="d-flex flex-column p-4">
+                            <i className="bi bi-calendar-event text-primary fs-4 mb-3" aria-hidden="true" />
                             <Card.Title className="fw-bold">
-                                Historial del eventos
+                                Mis eventos
                             </Card.Title>
 
-                            <Card.Text className="text-secondary">
+                            <Card.Text className="text-body-secondary mb-4">
                                 Revisa los eventos que has contratado y su estado actual.
                             </Card.Text>
 
@@ -114,6 +131,7 @@ export default function ClientePage() {
                                 as={Link}
                                 to="/cliente/eventos"
                                 variant="outline-primary"
+                                className="mt-auto align-self-start"
                             >
                                 Ver mis eventos
                             </Button>

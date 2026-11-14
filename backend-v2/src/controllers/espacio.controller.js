@@ -30,8 +30,7 @@ module.exports = {
     reservas: responder(req => espacioService.getReservas(req.validated.params.id)),
     reservar: responder(req => espacioService.reservar(
         req.validated.params.id,
-        req.validated.body,
-        req.usuario
+        req.validated.body
     ), 201),
     cancelarReserva: responder(req => espacioService.cancelarReserva(
         req.validated.params.id

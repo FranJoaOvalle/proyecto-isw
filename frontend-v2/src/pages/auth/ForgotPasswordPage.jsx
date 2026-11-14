@@ -9,6 +9,7 @@ import {
 import { Link } from "react-router-dom";
 
 import { forgotPassword } from "../../services/auth.service";
+import NotificacionToast from "../../components/NotificacionToast";
 import "./LoginPage.css";
 
 export default function ForgotPasswordPage() {
@@ -58,6 +59,7 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="login-page">
+            <NotificacionToast mensaje={success} onClose={() => setSuccess("")} />
             <div className="login-panel">
                 <div className="login-card">
                     <div className="mb-4">
@@ -70,21 +72,6 @@ export default function ForgotPasswordPage() {
                             un enlace para restablecer tu contraseña.
                         </p>
                     </div>
-
-                    <Fade
-                        in={!!success}
-                        mountOnEnter
-                        unmountOnExit
-                    >
-                        <div>
-                            <Alert
-                                variant="success"
-                                className="py-2 px-3 mb-3"
-                            >
-                                {success}
-                            </Alert>
-                        </div>
-                    </Fade>
 
                     <Fade
                         in={!!error}

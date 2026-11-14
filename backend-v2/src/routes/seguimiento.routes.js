@@ -10,10 +10,26 @@ const {
     historialSchema,
     registroSchema,
     detalleSchema,
-    comentarioSchema
+    comentarioSchema,
+    estadoEventoSchema
 } = require("../schemas/seguimiento.schema");
 
 const router = express.Router();
+
+router.get(
+    "/cliente",
+    authMiddleware,
+    authorize("CLIENTE"),
+    seguimientoController.eventosCliente
+);
+
+router.get(
+    "/cliente/:id",
+    authMiddleware,
+    authorize("CLIENTE"),
+    validator(eventoIdSchema),
+    seguimientoController.eventoCliente
+);
 
 router.get(
     "/",
@@ -37,6 +53,14 @@ router.patch(
     authorize("ADMIN"),
     validator(editarEventoSchema),
     seguimientoController.editarEvento
+);
+
+router.patch(
+    "/:id/estado",
+    authMiddleware,
+    authorize("ADMIN"),
+    validator(estadoEventoSchema),
+    seguimientoController.cambiarEstado
 );
 
 router.patch(

@@ -137,12 +137,9 @@ class DisponibilidadService {
                     ...(productorId != null
                         ? [{ productores: { some: { productorId } } }]
                         : []),
-                    {
-                        lugar: {
-                            equals: (direccion || lugar).trim(),
-                            mode: "insensitive"
-                        }
-                    }
+                    ...[lugar, direccion].filter(Boolean).map((valor) => ({
+                        lugar: { equals: valor.trim(), mode: "insensitive" }
+                    }))
                 ]
             }
         });

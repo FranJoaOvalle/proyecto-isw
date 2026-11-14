@@ -5,6 +5,11 @@ export const editarEvento = async (id, datos) => {
     return response.data;
 };
 
+export const cambiarEstadoEvento = async (id, datos) => {
+    const response = await api.patch(`/eventos/${id}/estado`, datos);
+    return response.data;
+};
+
 export const cancelarEvento = async (id) => {
     const response = await api.patch(`/eventos/${id}/cancelar`);
 

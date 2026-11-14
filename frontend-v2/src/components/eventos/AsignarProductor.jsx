@@ -3,6 +3,7 @@ import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { getProductores } from "../../services/productor.service";
 import { editarEvento } from "../../services/seguimiento.service";
 import { mensajeError } from "./seguimiento.utils";
+import NotificacionToast from "../NotificacionToast";
 
 export default function AsignarProductor({ evento, onCambio }) {
     const [mostrar, setMostrar] = useState(false);
@@ -44,16 +45,8 @@ export default function AsignarProductor({ evento, onCambio }) {
     }
     if (["CANCELADO", "COMPLETADO"].includes(evento.estado)) return null;
     return (
-        <div className="mt-3">
-            {mensaje && (
-                <Alert
-                    variant="success"
-                    dismissible
-                    onClose={() => setMensaje("")}
-                >
-                    {mensaje}
-                </Alert>
-            )}
+        <div>
+            <NotificacionToast mensaje={mensaje} onClose={() => setMensaje("")} />
             <Button
                 variant="outline-primary"
                 onClick={abrir}

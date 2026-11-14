@@ -12,6 +12,7 @@ import {
     Spinner
 } from "react-bootstrap";
 import EmptyState from "../EmptyState";
+import NotificacionToast from "../NotificacionToast";
 import {
     getSeguimientos,
     getAutoresSeguimiento,
@@ -129,15 +130,7 @@ export default function SeguimientoPanel({ eventoId }) {
                     Registrar acontecimiento
                 </Button>
             </div>
-            {mensaje && (
-                <Alert
-                    variant="success"
-                    dismissible
-                    onClose={() => setMensaje("")}
-                >
-                    {mensaje}
-                </Alert>
-            )}
+            <NotificacionToast mensaje={mensaje} onClose={() => setMensaje("")} />
             <Card className="shadow-sm mb-4">
                 <Card.Body>
                     <Form

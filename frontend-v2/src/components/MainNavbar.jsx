@@ -96,11 +96,11 @@ export default function MainNavbar() {
                         {usuario?.rol === "CLIENTE" && (
                             <Nav.Link
                                 as={Link}
-                                to="/cliente/compra"
+                                to="/cliente"
                                 className="d-flex align-items-center"
                             >
-                                <i className="bi bi-cart3 me-2" />
-                                Compra / Contrato
+                                <i className="bi bi-grid me-2" />
+                                Mi panel
                             </Nav.Link>
                         )}
 

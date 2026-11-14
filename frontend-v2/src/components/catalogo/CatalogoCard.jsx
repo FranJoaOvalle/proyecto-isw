@@ -83,8 +83,8 @@ export default function CatalogoCard({
                 <div className="bg-body-tertiary rounded p-3 mt-2">
                     <small className="text-secondary d-block mb-1">
                         {tipoEvento.modalidadPrecio === "POR_HORA"
-                            ? "Tarifa por hora"
-                            : "Precio fijo"}
+                            ? "Tarifa de referencia por hora"
+                            : "Precio base de referencia"}
                     </small>
 
                     <span className="fs-4 fw-bold">
@@ -95,6 +95,7 @@ export default function CatalogoCard({
                         {tipoEvento.modalidadPrecio === "POR_HORA" && "/hora"}
                     </span>
 
+                    <small className="text-secondary d-block mt-2">El importe final se acuerda en el presupuesto.</small>
                     <hr />
 
                     <small className="text-secondary d-block mb-1">

@@ -2,6 +2,18 @@
 
 Esta guía resume la estructura, alcance y convenciones de la versión V2 del proyecto. Todas las ramas `refactor/*` parten actualmente desde la misma base funcional.
 
+## Inicio rápido de `refactor/sebastian`
+
+Se necesita Node.js, PostgreSQL y acceso a Internet para cargar los mapas de OpenStreetMap.
+
+1. En `backend-v2/`, ejecuta `npm ci`. La instalación genera automáticamente el cliente de Prisma.
+2. Copia `backend-v2/.env.example` a `backend-v2/.env` y reemplaza el usuario, clave y nombre de la base PostgreSQL. Define una clave JWT propia. Para enviar correos de recuperación, configura un servidor SMTP real.
+3. En `backend-v2/`, ejecuta `npx prisma migrate deploy` y luego `npm start`. Comprueba que `http://localhost:3001/api/health` responda con `database: ok`.
+4. En `frontend-v2/`, ejecuta `npm ci`, copia `.env.example` a `.env` y ejecuta `npm run dev`. Si el backend usa otro puerto, ajusta `VITE_API_URL` en ese archivo y reinicia Vite.
+5. Abre `http://localhost:5173`. Para ver marcadores en el mapa, registra espacios con direcciones y pulsa **Ubicar en OpenStreetMap**. Las coordenadas se guardan en PostgreSQL.
+
+En una base de desarrollo vacía puedes ejecutar `npx prisma db seed` desde `backend-v2/` para crear usuarios de prueba. **Ese comando borra los datos existentes de la base elegida.** Después, `npm run seed:espacios-demo` agrega recintos de ejemplo para probar el mapa. Los mosaicos y la búsqueda de direcciones dependen de OpenStreetMap y de la conexión de cada equipo.
+
 ## 1. Ramas
 
 La estructura de trabajo es:

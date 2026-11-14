@@ -24,6 +24,7 @@ const updateSolicitudSchema = z.object({
     params,
     body: solicitudBaseSchema
         .partial()
+        .extend({ invalidarBorradores: z.boolean().optional() })
         .strict()
         .refine((v) => Object.keys(v).length > 0, "Debes proporcionar cambios.")
 });

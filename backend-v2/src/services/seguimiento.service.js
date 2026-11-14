@@ -36,6 +36,8 @@ class SeguimientoService {
             where: { id: Number(id), ...this.alcance(usuario) },
             include: {
                 ...eventoInclude,
+                presupuesto: { select: { asistentes: true, cantidadPersonasBaseTipoEvento: true } },
+                recursos: { select: { recursoId: true } },
                 reservasEspacio: {
                     include: { espacio: true },
                     orderBy: { inicio: "asc" }

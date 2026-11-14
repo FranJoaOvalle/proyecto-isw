@@ -200,6 +200,11 @@ class SolicitudService {
     async editar(id, datos, usuario) {
         return prisma.$transaction(async (tx) => {
         const actual = await this.bloquear(tx, id, usuario);
+        const { invalidarBorradores, ...campos } = datos;
+        if (usuario.rol !== "ADMIN" && invalidarBorradores !== undefined) {
+            throw new ForbiddenException("Solo ADMIN puede invalidar borradores.");
+        }
+        datos = campos;
         if (
             !["PENDIENTE", "EN_REVISION"].includes(actual.estado) ||
             (usuario.rol === "CLIENTE" && actual.estado !== "PENDIENTE")
@@ -208,13 +213,13 @@ class SolicitudService {
                 "La solicitud ya no admite estos cambios."
             );
         }
-        // No existe todavía detector comercial fiable de emisión/versionado.
         if (actual.presupuestos.length) {
             await IntegracionPresupuestosService.verificarEdicionSolicitud({
                 tx,
                 solicitudId: actual.id,
                 actorId: usuario.id,
-                cambios: datos
+                cambios: datos,
+                invalidarBorradores: invalidarBorradores === true
             });
         }
         if (usuario.rol === "CLIENTE" && Object.hasOwn(datos, "tipoEventoId")) {
