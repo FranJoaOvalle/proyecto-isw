@@ -7,6 +7,11 @@ export const listarPresupuestos = async () => {
     return extraerLista(response.data, "presupuestos");
 };
 
+export const consultarFrecuenciaCliente = async (solicitudId) => {
+    const response = await api.get(`/presupuestos/solicitudes/${solicitudId}/frecuencia-cliente`);
+    return response.data;
+};
+
 export const obtenerPresupuesto = async (id) => {
     const response = await api.get(`/presupuestos/${id}`);
     return response.data?.presupuesto ?? response.data;

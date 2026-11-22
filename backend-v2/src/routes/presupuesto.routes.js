@@ -8,6 +8,7 @@ const {
     updateSchema,
     idSchema,
     estadoSchema,
+    frecuenciaSchema,
     envioSchema,
     aceptacionSchema
 } = require("../schemas/presupuesto.schema");
@@ -16,6 +17,12 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+router.get(
+    "/solicitudes/:solicitudId/frecuencia-cliente",
+    authorize("ADMIN"),
+    validator(frecuenciaSchema),
+    controller.frecuenciaCliente
+);
 router.get("/", authorize("ADMIN", "CLIENTE"), controller.getAll);
 router.post("/", authorize("ADMIN"), validator(createSchema), controller.create);
 router.get("/:id", authorize("ADMIN", "CLIENTE"), validator(idSchema), controller.getById);

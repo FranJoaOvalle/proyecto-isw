@@ -5,12 +5,13 @@ const params = z.object({ id });
 
 const camposCotizacion = {
     espacioId: id,
-    precioBaseAcordado: z.number().finite().min(0).max(9999999999.99).multipleOf(0.01).nullable().optional(),
     descuento: z.number().finite().min(0).max(9999999999.99)
         .refine(
             (value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8,
             "El descuento admite hasta dos decimales."
-        ),
+        )
+        .nullable()
+        .optional(),
     inicio: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
     fin: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
     lugar: z.string().trim().min(3).max(255).optional(),
@@ -34,6 +35,9 @@ const sinRecursosDuplicados = (data) =>
     new Set(data.recursos.map(({ recursoId }) => recursoId)).size === data.recursos.length;
 
 module.exports = {
+    frecuenciaSchema: z.object({
+        params: z.object({ solicitudId: id })
+    }),
     createSchema: z.object({
         body: datosCreacion.extend({ solicitudId: id })
             .refine(

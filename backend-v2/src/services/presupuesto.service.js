@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const env = require("../config/env");
 const { Prisma } = require("../../generated/prisma/client");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
@@ -24,6 +25,8 @@ const include = {
 };
 const dinero = (value) => new Prisma.Decimal(value).toDecimalPlaces(2);
 const LIMITE_MONTO = new Prisma.Decimal("9999999999.99");
+// Regla provisional configurable: tres eventos efectivamente completados califican al cliente.
+const CLIENTE_FRECUENTE_MIN_EVENTOS_COMPLETADOS = env.CLIENTE_FRECUENTE_MIN_EVENTOS_COMPLETADOS;
 const selectCliente = {
     id: true, solicitudId: true, nombreTipoEvento: true, estado: true, espacioId: true,
     inicio: true, fin: true, lugar: true, direccion: true, comuna: true,
@@ -45,6 +48,36 @@ const selectCliente = {
 };
 
 class PresupuestoService {
+
+    async validarAdministrador(tx, actorId) {
+        if (!Number.isInteger(Number(actorId))) {
+            throw new ForbiddenException("Solo un administrador activo puede gestionar cotizaciones.");
+        }
+        const actor = await tx.usuario.findUnique({
+            where: { id: Number(actorId) },
+            select: { rol: true, activo: true }
+        });
+        if (!actor?.activo || actor.rol !== "ADMIN") {
+            throw new ForbiddenException("Solo un administrador activo puede gestionar cotizaciones.");
+        }
+    }
+
+    async frecuenciaClientePorSolicitud(solicitudId) {
+        const solicitud = await prisma.solicitudEvento.findUnique({
+            where: { id: Number(solicitudId) },
+            select: { clienteId: true }
+        });
+        if (!solicitud) throw new NotFoundException("Solicitud no encontrada.");
+        const eventosCompletados = await prisma.evento.count({
+            where: { clienteId: solicitud.clienteId, estado: "COMPLETADO" }
+        });
+        return {
+            clienteId: solicitud.clienteId,
+            eventosCompletados,
+            minimoEventos: CLIENTE_FRECUENTE_MIN_EVENTOS_COMPLETADOS,
+            esFrecuente: eventosCompletados >= CLIENTE_FRECUENTE_MIN_EVENTOS_COMPLETADOS
+        };
+    }
 
     alcance(usuario) {
         if (!usuario || !["ADMIN", "CLIENTE"].includes(usuario.rol)) throw new ForbiddenException();
@@ -188,9 +221,8 @@ class PresupuestoService {
             }
         }
         const precioBaseCatalogo = precioBase;
-        const precioBaseAcordado = Object.hasOwn(datos, "precioBaseAcordado")
-            ? datos.precioBaseAcordado
-            : actual?.precioBaseAcordado ?? null;
+        // Los acuerdos históricos se conservan, pero el cliente ya no puede enviar un monto libre.
+        const precioBaseAcordado = actual?.precioBaseAcordado ?? null;
         if (precioBaseAcordado != null) precioBase = dinero(precioBaseAcordado);
         if (precioBase.lt(0) || precioBase.gt(LIMITE_MONTO)) {
             throw new ValidationException("El precio base calculado está fuera del límite permitido.");
@@ -210,6 +242,13 @@ class PresupuestoService {
             if (!existente && !recurso?.activo) {
                 throw new ValidationException(`El recurso ${item.recursoId} no existe o está inactivo.`);
             }
+            const superaAsistentes = item.cantidad > datos.asistentes;
+            const aumentaCantidadHistorica = existente && item.cantidad > existente.cantidad;
+            if (superaAsistentes && (!existente || aumentaCantidadHistorica)) {
+                throw new ValidationException(
+                    `La cantidad del recurso no puede superar los ${datos.asistentes} asistentes. Una cantidad histórica superior solo puede conservarse sin aumentarla.`
+                );
+            }
             const precioUnitario = dinero(existente?.precioUnitario ?? recurso.precioUnitario);
             return {
                 recursoId: item.recursoId,
@@ -226,7 +265,23 @@ class PresupuestoService {
             dinero(0)
         );
         const subtotal = dinero(precioBase.plus(subtotalRecursos));
-        const descuento = dinero(datos.descuento ?? actual?.descuento ?? 0);
+        const descuentoSolicitado = Object.hasOwn(datos, "descuento") ? datos.descuento : undefined;
+        const descuento = dinero(
+            descuentoSolicitado == null ? actual?.descuento ?? 0 : descuentoSolicitado
+        );
+        const descuentoAumentado = !actual
+            ? descuento.gt(0)
+            : descuento.gt(dinero(actual.descuento ?? 0));
+        if (descuentoAumentado) {
+            const eventosCompletados = await tx.evento.count({
+                where: { clienteId: cliente.id, estado: "COMPLETADO" }
+            });
+            if (eventosCompletados < CLIENTE_FRECUENTE_MIN_EVENTOS_COMPLETADOS) {
+                throw new ValidationException(
+                    "El descuento solo está disponible para clientes frecuentes."
+                );
+            }
+        }
         if (descuento.gt(subtotal)) {
             throw new ValidationException("El descuento no puede superar el subtotal.");
         }
@@ -235,7 +290,8 @@ class PresupuestoService {
         if (subtotal.gt(LIMITE_MONTO) || total.gt(LIMITE_MONTO)) {
             throw new ValidationException("El monto supera el máximo permitido.");
         }
-        const porcentajeAnticipo = dinero(30);
+        // Las cotizaciones existentes conservan su porcentaje pactado.
+        const porcentajeAnticipo = dinero(actual?.porcentajeAnticipo ?? 50);
 
         return {
             clienteId: solicitud.clienteId,
@@ -273,7 +329,14 @@ class PresupuestoService {
                 solicitudId: datos.solicitudId,
                 actorId
             });
-            const valores = await this.calcular(tx, datos, solicitud);
+            if (datos.asistentes !== solicitud.asistentes) {
+                throw new ConflictException("La cantidad de asistentes debe coincidir con la Solicitud.");
+            }
+            const valores = await this.calcular(
+                tx,
+                { ...datos, asistentes: solicitud.asistentes },
+                solicitud
+            );
             return tx.presupuesto.create({
                 data: { ...valores, solicitudId: solicitud.id },
                 include
@@ -281,14 +344,18 @@ class PresupuestoService {
         });
     }
 
-    async update(id, datos) {
+    async update(id, datos, actorId) {
         return prisma.$transaction(async (tx) => {
+            await this.validarAdministrador(tx, actorId);
             const actual = await this.bloquear(tx, id);
             if (datos.version !== actual.version) {
                 throw new ConflictException("La cotización cambió. Vuelve a abrirla antes de guardar.");
             }
             if (actual.enviadoAt || (actual.solicitud && actual.solicitud.estado !== "EN_REVISION")) {
                 throw new ConflictException("La propuesta ya fue enviada o su solicitud está cerrada. Crea una nueva cotización para cambiar sus condiciones.");
+            }
+            if (Object.hasOwn(datos, "asistentes") && datos.asistentes !== actual.asistentes) {
+                throw new ConflictException("Los asistentes de una cotización se conservan desde su Solicitud y no pueden modificarse.");
             }
             const solicitud = actual.solicitud ?? {
                 clienteId: actual.clienteId,
@@ -299,7 +366,7 @@ class PresupuestoService {
                 inicio: datos.inicio ?? actual.inicio,
                 fin: datos.fin ?? actual.fin,
                 lugar: datos.lugar ?? actual.lugar,
-                asistentes: datos.asistentes ?? actual.asistentes,
+                asistentes: actual.asistentes,
                 descuento: Object.hasOwn(datos, "descuento") ? datos.descuento : actual.descuento,
                 ...(Object.hasOwn(datos, "precioBaseAcordado") ? { precioBaseAcordado: datos.precioBaseAcordado } : {}),
                 recursos: Object.hasOwn(datos, "recursos")
@@ -325,6 +392,7 @@ class PresupuestoService {
 
     async cancelar(id, actorId) {
         return prisma.$transaction(async (tx) => {
+            await this.validarAdministrador(tx, actorId);
             const actual = await this.bloquear(tx, id, ["BORRADOR", "ENVIADO"]);
             const compromiso = await tx.pago.findFirst({ where: {
                 presupuestoId: actual.id, estado: { in: ["PENDIENTE", "PAGADO"] }

@@ -24,6 +24,7 @@ import {
     listarPresupuestos
 } from "../../services/presupuesto.service";
 import { mensajeError } from "../../components/eventos/seguimiento.utils";
+import { useAuth } from "../../contexts/AuthContext";
 
 const nombresEstado = {
     BORRADOR: "Borrador",
@@ -59,7 +60,7 @@ const nombreCliente = (cliente) =>
     cliente?.empresa?.razonSocial ||
     [cliente?.persona?.nombres, cliente?.persona?.apellidos]
         .filter(Boolean)
-        .join(" ") || (cliente?.id ? `Cliente #${cliente.id}` : "Cliente");
+        .join(" ") || cliente?.usuario?.email || "Cliente";
 
 const comoLista = (resultado, etiqueta = "El servidor") => {
     const lista = Array.isArray(resultado) ? resultado : resultado?.items;
@@ -104,6 +105,8 @@ const cargarListas = () => Promise.allSettled([
 ]);
 
 export default function PresupuestosPage() {
+    const { usuario } = useAuth();
+    const esAdmin = usuario?.rol === "ADMIN";
     const [presupuestos, setPresupuestos] = useState([]);
     const [solicitudes, setSolicitudes] = useState([]);
     const [recursos, setRecursos] = useState([]);
@@ -116,6 +119,7 @@ export default function PresupuestosPage() {
     const [mensaje, setMensaje] = useState("");
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [presupuestoEditar, setPresupuestoEditar] = useState(null);
+    const [modoConsulta, setModoConsulta] = useState(false);
     const [presupuestoEnviar, setPresupuestoEnviar] = useState(null);
     const [presupuestoCancelar, setPresupuestoCancelar] = useState(null);
     const [cancelando, setCancelando] = useState(false);
@@ -214,8 +218,6 @@ export default function PresupuestosPage() {
         return presupuestos.filter((presupuesto) => {
             const coincideEstado = filtroEstado === "TODOS" || presupuesto.estado === filtroEstado;
             const texto = [
-                presupuesto.id,
-                presupuesto.solicitudId,
                 presupuesto.tipoEvento?.nombre,
                 nombreCliente(presupuesto.cliente)
             ].join(" ").toLocaleLowerCase("es-CL");
@@ -240,11 +242,21 @@ export default function PresupuestosPage() {
     }
 
     function abrirNuevaCotizacion() {
+        if (!esAdmin) return;
+        setModoConsulta(false);
         setPresupuestoEditar(null);
         setMostrarFormulario(true);
     }
 
     function abrirEdicion(presupuesto) {
+        if (!esAdmin || presupuesto.estado !== "BORRADOR") return;
+        setModoConsulta(false);
+        setPresupuestoEditar(presupuesto);
+        setMostrarFormulario(true);
+    }
+
+    function abrirDetalle(presupuesto) {
+        setModoConsulta(true);
         setPresupuestoEditar(presupuesto);
         setMostrarFormulario(true);
     }
@@ -252,12 +264,15 @@ export default function PresupuestosPage() {
     function cerrarFormulario() {
         setMostrarFormulario(false);
         setPresupuestoEditar(null);
+        setModoConsulta(false);
     }
 
     function presupuestoGuardado() {
+        if (modoConsulta || !esAdmin) return;
         const estabaEditando = Boolean(presupuestoEditar);
         setMostrarFormulario(false);
         setPresupuestoEditar(null);
+        setModoConsulta(false);
         setMensaje(estabaEditando
             ? "Cotización actualizada correctamente."
             : "Cotización creada correctamente.");
@@ -273,7 +288,7 @@ export default function PresupuestosPage() {
                 <div className="d-flex flex-column align-items-start align-items-md-end gap-2">
                     <Button
                         onClick={abrirNuevaCotizacion}
-                        disabled={cargando || !solicitudes.length}
+                        disabled={!esAdmin || cargando || !solicitudes.length}
                     >
                         <i className="bi bi-plus-lg me-2" />Nueva cotización
                     </Button>
@@ -300,7 +315,7 @@ export default function PresupuestosPage() {
                     <TableToolbar
                         search={busqueda}
                         onSearchChange={setBusqueda}
-                        searchPlaceholder="Buscar por cliente, tipo o folio..."
+                        searchPlaceholder="Buscar por cliente o tipo de evento..."
                         estado={filtroEstado}
                         onEstadoChange={setFiltroEstado}
                         opcionesEstado={{
@@ -338,7 +353,7 @@ export default function PresupuestosPage() {
                             <Table hover className="align-middle mb-0" style={{ minWidth: 720 }}>
                                 <thead>
                                     <tr>
-                                        <th>Folio</th>
+                                        <th>Cotización</th>
                                         <th>Cliente / Evento</th>
                                         <th>Fecha</th>
                                         <th className="text-end">Monto</th>
@@ -350,12 +365,8 @@ export default function PresupuestosPage() {
                                     {presupuestosVisibles.map((presupuesto) => (
                                         <tr key={presupuesto.id}>
                                             <td>
-                                                <strong>#{presupuesto.id}</strong>
-                                                {presupuesto.solicitudId && (
-                                                    <small className="d-block text-body-secondary">
-                                                        Solicitud #{presupuesto.solicitudId}
-                                                    </small>
-                                                )}
+                                                <strong>{presupuesto.nombreTipoEvento ?? presupuesto.tipoEvento?.nombre ?? "Cotización"}</strong>
+                                                <small className="d-block text-body-secondary">{fecha(presupuesto.inicio)}</small>
                                             </td>
                                             <td>
                                                 <strong>{nombreCliente(presupuesto.cliente)}</strong>
@@ -381,7 +392,7 @@ export default function PresupuestosPage() {
                                                 </Badge>
                                             </td>
                                             <td className="text-end">
-                                                {presupuesto.estado === "BORRADOR" && (
+                                                {presupuesto.estado === "BORRADOR" && esAdmin && (
                                                     <div className="d-flex justify-content-end gap-2">
                                                         <Button
                                                             variant="outline-primary"
@@ -390,7 +401,7 @@ export default function PresupuestosPage() {
                                                         >
                                                             Editar
                                                         </Button>
-                                                        {presupuesto.solicitudId && presupuesto.solicitud?.estado === "EN_REVISION" && (
+                                                        {esAdmin && presupuesto.solicitudId && presupuesto.solicitud?.estado === "EN_REVISION" && (
                                                             <Button size="sm" onClick={() => setPresupuestoEnviar(presupuesto)}>
                                                                 Enviar propuesta
                                                             </Button>
@@ -404,7 +415,12 @@ export default function PresupuestosPage() {
                                                         </Button>
                                                     </div>
                                                 )}
-                                                {presupuesto.estado === "ENVIADO" && (
+                                                {presupuesto.estado !== "BORRADOR" && (
+                                                    <Button variant="outline-secondary" size="sm" onClick={() => abrirDetalle(presupuesto)}>
+                                                        Ver detalle
+                                                    </Button>
+                                                )}
+                                                {presupuesto.estado === "ENVIADO" && esAdmin && (
                                                     <Button variant="outline-danger" size="sm" onClick={() => setPresupuestoCancelar(presupuesto)}>
                                                         Cancelar propuesta
                                                     </Button>
@@ -430,6 +446,8 @@ export default function PresupuestosPage() {
                 onHide={cerrarFormulario}
                 onGuardado={presupuestoGuardado}
                 presupuesto={presupuestoEditar}
+                modoConsulta={modoConsulta}
+                esAdmin={esAdmin}
                 solicitudes={solicitudes}
                 recursos={recursos}
                 cargandoRecursos={cargandoRecursos}
@@ -457,7 +475,7 @@ export default function PresupuestosPage() {
                 confirmText="Cancelar presupuesto"
                 loading={cancelando}
             >
-                ¿Quieres cancelar el presupuesto #{presupuestoCancelar?.id}? Esta acción no elimina su historial.
+                ¿Quieres cancelar la cotización de {nombreCliente(presupuestoCancelar?.cliente)} para {presupuestoCancelar?.nombreTipoEvento ?? presupuestoCancelar?.tipoEvento?.nombre ?? "el evento"}? Esta acción no elimina su historial.
             </ConfirmModal>
         </Container>
     );

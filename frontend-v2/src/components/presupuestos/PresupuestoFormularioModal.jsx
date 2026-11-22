@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { mensajeError } from "../eventos/seguimiento.utils";
 import { getEspacios } from "../../services/espacio.service";
+import { getTiposEvento } from "../../services/tipoEvento.service";
 import {
     actualizarPresupuesto,
-    crearPresupuesto
+    crearPresupuesto,
+    consultarFrecuenciaCliente
 } from "../../services/presupuesto.service";
 
 const MAX_ASISTENTES = 1000000;
@@ -23,35 +25,42 @@ const fechaLocal = (valor) => {
 
 const formularioInicial = {
     solicitudId: "",
+    tipoEventoId: "",
     inicio: "",
     fin: "",
     lugar: "",
     espacioId: "",
     asistentes: 0,
-    precioBaseAcordado: "",
-    descuento: "0",
+    descuento: "",
     recursos: []
 };
 
 const formularioDePresupuesto = (presupuesto) => presupuesto ? {
     solicitudId: String(presupuesto.solicitudId ?? ""),
+    tipoEventoId: String(presupuesto.tipoEventoId ?? presupuesto.tipoEvento?.id ?? ""),
     inicio: fechaLocal(presupuesto.inicio),
     fin: fechaLocal(presupuesto.fin),
     lugar: presupuesto.lugar ?? "",
     espacioId: presupuesto.espacioId ? String(presupuesto.espacioId) : "",
     asistentes: Number(presupuesto.asistentes ?? 1),
-    precioBaseAcordado: presupuesto.precioBaseAcordado == null ? "" : String(presupuesto.precioBaseAcordado),
     descuento: String(presupuesto.descuento ?? 0),
     recursos: (presupuesto.recursos ?? []).map((item) => ({
         recursoId: String(item.recursoId), cantidad: item.cantidad
     }))
 } : { ...formularioInicial, recursos: [] };
 
+const nombreClienteSolicitud = (solicitud) =>
+    solicitud?.cliente?.empresa?.razonSocial ||
+    [solicitud?.cliente?.persona?.nombres, solicitud?.cliente?.persona?.apellidos].filter(Boolean).join(" ") ||
+    solicitud?.cliente?.usuario?.email || "Cliente";
+
 export default function PresupuestoFormularioModal({
     show,
     onHide,
     onGuardado,
     presupuesto = null,
+    modoConsulta = false,
+    esAdmin = false,
     solicitudes,
     recursos,
     cargandoRecursos,
@@ -60,18 +69,34 @@ export default function PresupuestoFormularioModal({
     const [form, setForm] = useState(() => formularioDePresupuesto(presupuesto));
     const [espacios, setEspacios] = useState([]);
     const [cargandoEspacios, setCargandoEspacios] = useState(true);
-    const [revisionEspacios, setRevisionEspacios] = useState(0);
     const [error, setError] = useState("");
+    const [tiposEvento, setTiposEvento] = useState([]);
+    const [cargandoTiposEvento, setCargandoTiposEvento] = useState(true);
+    const [frecuenciaCliente, setFrecuenciaCliente] = useState(null);
+    const [errorFrecuencia, setErrorFrecuencia] = useState(null);
     useEffect(() => {
         let activo = true;
         getEspacios().then((datos) => { if (activo) setEspacios(datos); })
             .catch((err) => { if (activo) setError(mensajeError(err, "No fue posible cargar los espacios.")); })
             .finally(() => { if (activo) setCargandoEspacios(false); });
         return () => { activo = false; };
-    }, [revisionEspacios]);
-    const [asistentesManual, setAsistentesManual] = useState(() => String(presupuesto?.asistentes ?? ""));
+    }, []);
+    useEffect(() => {
+        if (!show) return undefined;
+        let activo = true;
+        getTiposEvento(false)
+            .then((datos) => {
+                if (activo) setTiposEvento(Array.isArray(datos) ? datos : []);
+            })
+            .catch((err) => {
+                if (activo) setError(mensajeError(err, "No fue posible cargar los tipos de evento activos."));
+            })
+            .finally(() => { if (activo) setCargandoTiposEvento(false); });
+        return () => { activo = false; };
+    }, [show]);
     const [saving, setSaving] = useState(false);
     const [validated, setValidated] = useState(false);
+    const editable = esAdmin && !modoConsulta && (!presupuesto || presupuesto.estado === "BORRADOR");
 
     const solicitudSeleccionada = useMemo(() => {
         if (presupuesto) {
@@ -88,9 +113,50 @@ export default function PresupuestoFormularioModal({
         }
         return solicitudes.find((solicitud) => String(solicitud.id) === form.solicitudId);
     }, [presupuesto, solicitudes, form.solicitudId]);
-    const minimoAsistentes = Number(presupuesto
-        ? presupuesto.cantidadPersonasBaseTipoEvento ?? presupuesto.asistentes ?? 1
-        : solicitudSeleccionada?.tipoEvento?.cantidadPersonasBase ?? 1);
+    const tipoEventoSolicitudId = String(
+        solicitudSeleccionada?.tipoEventoId ??
+        solicitudSeleccionada?.tipoEvento?.id ??
+        presupuesto?.tipoEventoId ?? ""
+    );
+    const tipoEventoCatalogo = tiposEvento.find(
+        (tipo) => String(tipo.id) === tipoEventoSolicitudId && tipo.activo
+    );
+    const tipoEventoHistorico = presupuesto?.tipoEvento &&
+        String(presupuesto.tipoEvento.id) === tipoEventoSolicitudId
+        ? presupuesto.tipoEvento
+        : null;
+    const tipoEventoSeleccionado = tipoEventoCatalogo ?? tipoEventoHistorico ?? solicitudSeleccionada?.tipoEvento;
+    const tipoEventoOpciones = tipoEventoCatalogo
+        ? [tipoEventoCatalogo]
+        : tipoEventoHistorico
+            ? [{ ...tipoEventoHistorico, activo: false }]
+            : [];
+    const frecuenciaActual = frecuenciaCliente?.solicitudId === String(solicitudSeleccionada?.id)
+        ? frecuenciaCliente
+        : null;
+    const errorFrecuenciaActual = errorFrecuencia?.solicitudId === String(solicitudSeleccionada?.id)
+        ? errorFrecuencia.mensaje
+        : "";
+    const cargandoFrecuencia = Boolean(solicitudSeleccionada?.id) && !frecuenciaActual && !errorFrecuenciaActual;
+    useEffect(() => {
+        let activo = true;
+        const solicitudId = solicitudSeleccionada?.id;
+        if (!show || !solicitudId) return undefined;
+        consultarFrecuenciaCliente(solicitudId)
+            .then((resultado) => { if (activo) setFrecuenciaCliente({ ...resultado, solicitudId: String(solicitudId) }); })
+            .catch((err) => {
+                if (activo) {
+                    setErrorFrecuencia({
+                        solicitudId: String(solicitudId),
+                        mensaje: mensajeError(err, "No se pudo verificar la frecuencia del cliente.")
+                    });
+                }
+            });
+        return () => { activo = false; };
+    }, [show, solicitudSeleccionada?.id]);
+    const tieneDescuentoHistorico = Boolean(presupuesto && Number(presupuesto.descuento ?? 0) > 0);
+    const mostrarDescuento = frecuenciaActual?.esFrecuente === true || tieneDescuentoHistorico;
+    const puedeEditarDescuento = editable && frecuenciaActual?.esFrecuente === true;
     const recargoCliente = redondearMoneda(presupuesto?.recargoCliente ?? 0);
     const recursosFormulario = useMemo(() => {
         const catalogo = new Map(recursos.map((recurso) => [recurso.id, recurso]));
@@ -114,7 +180,7 @@ export default function PresupuestoFormularioModal({
         )
     );
     const totalEstimado = useMemo(() => {
-        const tipoEvento = solicitudSeleccionada?.tipoEvento;
+        const tipoEvento = tipoEventoSeleccionado;
         const inicio = new Date(form.inicio);
         const fin = new Date(form.fin);
         let costoBase = 0;
@@ -126,7 +192,7 @@ export default function PresupuestoFormularioModal({
                 costoBase = Number(presupuesto.tarifaHoraTipoEvento) *
                     ((fin.getTime() - inicio.getTime()) / 3600000);
             } else {
-                costoBase = Number(presupuesto.precioBaseCatalogo ?? presupuesto.precioBaseTipoEvento ?? 0);
+                costoBase = Number(presupuesto.precioBaseTipoEvento ?? 0);
             }
         } else if (tipoEvento?.modalidadPrecio === "FIJO") {
             costoBase = Number(tipoEvento.precioBase ?? 0);
@@ -139,7 +205,6 @@ export default function PresupuestoFormularioModal({
             costoBase = Number(tipoEvento.tarifaHora ?? 0) *
                 ((fin.getTime() - inicio.getTime()) / 3600000);
         }
-        if (form.precioBaseAcordado !== "") costoBase = Number(form.precioBaseAcordado);
         const subtotalRecursos = form.recursos.reduce((total, item) => {
             const snapshot = presupuesto?.recursos?.find(
                 (recurso) => recurso.recursoId === Number(item.recursoId)
@@ -155,7 +220,7 @@ export default function PresupuestoFormularioModal({
         const subtotal = redondearMoneda(redondearMoneda(costoBase) + subtotalRecursos);
         const descuento = redondearMoneda(Number(form.descuento) || 0);
         return redondearMoneda(subtotal - descuento + recargoCliente);
-    }, [form.inicio, form.fin, form.recursos, form.descuento, form.precioBaseAcordado, recursos, solicitudSeleccionada, presupuesto, recargoCliente]);
+    }, [form.inicio, form.fin, form.recursos, form.descuento, recursos, tipoEventoSeleccionado, presupuesto, recargoCliente]);
     const formatoMoneda = useMemo(
         () => new Intl.NumberFormat("es-CL", {
             style: "currency",
@@ -168,18 +233,17 @@ export default function PresupuestoFormularioModal({
     function seleccionarSolicitud(event) {
         const solicitudId = event.target.value;
         const solicitud = solicitudes.find((item) => String(item.id) === solicitudId);
-        const minimo = Number(solicitud?.tipoEvento?.cantidadPersonasBase ?? 1);
-        const asistentes = Math.max(Number(solicitud?.asistentes ?? minimo), minimo);
+        const asistentes = Number(solicitud?.asistentes ?? 0);
 
         setForm({
             ...formularioInicial,
             solicitudId,
+            tipoEventoId: String(solicitud?.tipoEventoId ?? solicitud?.tipoEvento?.id ?? ""),
             inicio: fechaLocal(solicitud?.inicio),
             fin: fechaLocal(solicitud?.fin),
             lugar: solicitud?.lugar ?? "",
             asistentes
         });
-        setAsistentesManual(String(asistentes));
         setError("");
     }
 
@@ -192,46 +256,6 @@ export default function PresupuestoFormularioModal({
         const { value } = event.target;
         const descuento = value === "" ? "" : String(Math.max(0, Number(value) || 0));
         setForm((actual) => ({ ...actual, descuento }));
-    }
-
-    function cambiarAsistentesManual(event) {
-        const value = event.target.value;
-        setAsistentesManual(value);
-
-        if (value === "") {
-            setForm((actual) => ({ ...actual, asistentes: minimoAsistentes }));
-            return;
-        }
-
-        const numero = Number(value);
-        if (Number.isFinite(numero)) {
-            setForm((actual) => ({
-                ...actual,
-                asistentes: Math.min(
-                    MAX_ASISTENTES,
-                    Math.max(minimoAsistentes, Math.trunc(numero))
-                )
-            }));
-        }
-    }
-
-    function finalizarAsistentesManual() {
-        const numero = Number(asistentesManual);
-        const asistentes = Math.min(
-            MAX_ASISTENTES,
-            Math.max(minimoAsistentes, Number.isFinite(numero) ? Math.trunc(numero) : minimoAsistentes)
-        );
-        setForm((actual) => ({ ...actual, asistentes }));
-        setAsistentesManual(String(asistentes));
-    }
-
-    function cambiarAsistentesSlider(event) {
-        const asistentes = Math.min(
-            MAX_ASISTENTES,
-            Math.max(minimoAsistentes, Number(event.target.value))
-        );
-        setForm((actual) => ({ ...actual, asistentes }));
-        setAsistentesManual(String(asistentes));
     }
 
     function agregarRecurso() {
@@ -268,31 +292,55 @@ export default function PresupuestoFormularioModal({
 
     async function guardar(event) {
         event.preventDefault();
+        if (!editable) return;
         setValidated(true);
         setError("");
 
         const formularioValido = event.currentTarget.checkValidity();
-        const descuentoValido = /^\d{1,10}(?:\.\d{1,2})?$/.test(form.descuento);
-        const precioValido = form.precioBaseAcordado === "" ||
-            (/^\d{1,10}(?:\.\d{1,2})?$/.test(form.precioBaseAcordado) && Number(form.precioBaseAcordado) <= MAX_DESCUENTO);
+        const descuentoValido = form.descuento === "" ||
+            (/^\d{1,10}(?:\.\d{1,2})?$/.test(form.descuento) && Number(form.descuento) <= MAX_DESCUENTO);
+        const descuentoActual = Number(presupuesto?.descuento ?? 0);
+        const descuentoEnviado = form.descuento === "" ? 0 : Number(form.descuento);
+        const conservaDescuentoHistorico = Boolean(
+            presupuesto && descuentoEnviado === descuentoActual
+        );
+        const descuentoFrecuenciaValida = descuentoEnviado <= 0 ||
+            frecuenciaActual?.esFrecuente === true || conservaDescuentoHistorico;
+        const tipoEventoValido = Boolean(
+            solicitudSeleccionada &&
+            form.tipoEventoId === tipoEventoSolicitudId &&
+            tipoEventoOpciones.some((tipo) => String(tipo.id) === form.tipoEventoId) &&
+            (presupuesto || tipoEventoCatalogo?.activo)
+        );
         const cantidadesValidas = form.recursos.every((item) =>
-            Number.isInteger(Number(item.cantidad)) &&
-            Number(item.cantidad) >= 1 &&
-            Number(item.cantidad) <= 100000
+            (() => {
+                const cantidad = Number(item.cantidad);
+                const snapshot = presupuesto?.recursos?.find((recurso) => recurso.recursoId === Number(item.recursoId));
+                const conservaExcesoHistorico = snapshot &&
+                    cantidad === Number(snapshot.cantidad) && cantidad > Number(form.asistentes);
+                return Number.isInteger(cantidad) && cantidad >= 1 && cantidad <= 100000 &&
+                    (cantidad <= Number(form.asistentes) || conservaExcesoHistorico);
+            })()
         );
         const fechasValidas =
             new Date(form.fin) > new Date(form.inicio) &&
             new Date(form.inicio) > new Date();
+        const asistentesValidos = Number.isInteger(Number(form.asistentes)) &&
+            Number(form.asistentes) > 0 && Number(form.asistentes) <= MAX_ASISTENTES;
 
-        if (!formularioValido || !descuentoValido || !precioValido || !cantidadesValidas || !fechasValidas || saving) {
+        if (!formularioValido || !asistentesValidos || !descuentoValido || !descuentoFrecuenciaValida || !tipoEventoValido || !cantidadesValidas || !fechasValidas || saving) {
             if (!fechasValidas) {
                 setError("El inicio debe ser futuro y el término posterior al inicio.");
             } else if (!descuentoValido || Number(form.descuento) > MAX_DESCUENTO) {
                 setError("Ingresa un descuento válido, con máximo dos decimales.");
-            } else if (!precioValido) {
-                setError("Ingresa un precio base acordado válido, con máximo dos decimales, o deja el campo vacío para usar la referencia.");
+            } else if (!descuentoFrecuenciaValida) {
+                setError("El descuento solo está disponible para clientes frecuentes.");
+            } else if (!tipoEventoValido) {
+                setError("El tipo de evento debe coincidir con el tipo activo de la solicitud.");
+            } else if (!asistentesValidos) {
+                setError("La Solicitud o el presupuesto no tiene una cantidad válida de asistentes.");
             } else if (!cantidadesValidas) {
-                setError("Cada recurso debe tener una cantidad entera entre 1 y 100000.");
+                setError(`Cada recurso debe tener una cantidad entera entre 1 y ${form.asistentes} asistentes.`);
             }
             return;
         }
@@ -305,8 +353,9 @@ export default function PresupuestoFormularioModal({
                 fin: new Date(form.fin).toISOString(),
                 espacioId: Number(form.espacioId),
                 asistentes: Number(form.asistentes),
-                descuento: Number(form.descuento),
-                precioBaseAcordado: form.precioBaseAcordado === "" ? null : Number(form.precioBaseAcordado),
+                descuento: form.descuento === ""
+                    ? (presupuesto ? null : 0)
+                    : Number(form.descuento),
                 recursos: form.recursos.map((item) => ({
                     recursoId: Number(item.recursoId),
                     cantidad: Number(item.cantidad)
@@ -349,14 +398,14 @@ export default function PresupuestoFormularioModal({
             <Form noValidate validated={validated} onSubmit={guardar}
                 className="d-flex flex-column overflow-hidden" style={{ maxHeight: "calc(100dvh - 3.5rem)" }}>
                 <Modal.Header closeButton={!saving}>
-                    <Modal.Title>{presupuesto ? "Editar cotización" : "Nueva cotización"}</Modal.Title>
+                <Modal.Title>{modoConsulta ? "Detalle de cotización" : presupuesto ? "Editar cotización" : "Nueva cotización"}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="overflow-auto p-3" style={{ minHeight: 0 }}>
+                    <fieldset disabled={!editable || saving} className="border-0 p-0 m-0">
                     {error && <Alert variant="danger">{error}</Alert>}
                     {presupuesto ? (
                         <Alert variant="light" className="border mb-3">
-                            Editando cotización #{presupuesto.id}
-                            {presupuesto.solicitudId && ` · Solicitud #${presupuesto.solicitudId}`}
+                            {modoConsulta ? "Revisando una cotización ya procesada." : "Editando una cotización en borrador."}
                         </Alert>
                     ) : (
                         <Form.Group controlId="presupuesto-solicitud" className="mb-3">
@@ -370,7 +419,7 @@ export default function PresupuestoFormularioModal({
                                 <option value="">Selecciona una solicitud</option>
                                 {solicitudes.map((solicitud) => (
                                     <option key={solicitud.id} value={solicitud.id}>
-                                        #{solicitud.id} · {solicitud.tipoEvento?.nombre ?? "Evento"} · {solicitud.estado}
+                                        {solicitud.tipoEvento?.nombre ?? "Evento"} · {nombreClienteSolicitud(solicitud)} · {fechaLocal(solicitud.inicio).replace("T", " ")} · {solicitud.estado}
                                     </option>
                                 ))}
                             </Form.Select>
@@ -383,10 +432,15 @@ export default function PresupuestoFormularioModal({
                     {solicitudSeleccionada && (
                         <>
                             <Alert variant="light" className="border">
-                                <strong>{nombreCliente}</strong>
-                                <span className="d-block text-body-secondary">
-                                    {solicitudSeleccionada.tipoEvento?.nombre} · mínimo para guardar {minimoAsistentes} asistentes
-                                </span>
+                                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <div>
+                                        <strong>{nombreCliente}</strong>
+                                        <span className="d-block text-body-secondary">{solicitudSeleccionada.tipoEvento?.nombre}</span>
+                                    </div>
+                                    <Badge bg="secondary" className="fs-6 fw-normal">
+                                        {form.asistentes || "Sin cantidad informada"} asistentes
+                                    </Badge>
+                                </div>
                             </Alert>
 
                             <Row className="g-3">
@@ -438,50 +492,6 @@ export default function PresupuestoFormularioModal({
                                 </Form.Select>
                                 <Form.Text>Los espacios se crean y mantienen en Recursos → Espacios. El lugar preferido de la solicitud es solo un antecedente.</Form.Text>
                                 <a className="d-block small mt-1" href="/admin/recursos" target="_blank" rel="noreferrer">Administrar espacios</a>
-                                <Button variant="link" size="sm" className="p-0 mt-1" disabled={saving}
-                                    onClick={() => setRevisionEspacios((v) => v + 1)}>Actualizar lista de espacios</Button>
-                            </Form.Group>
-
-                            <Form.Group controlId="presupuesto-asistentes" className="mt-3">
-                                <Form.Label>
-                                    Cantidad de asistentes: <strong>{form.asistentes}</strong>
-                                </Form.Label>
-                                <Row className="g-3 align-items-center">
-                                    <Col md={9}>
-                                        <Form.Range
-                                            min={minimoAsistentes}
-                                            max={MAX_ASISTENTES}
-                                            step={1}
-                                            value={form.asistentes}
-                                            onChange={cambiarAsistentesSlider}
-                                            disabled={saving}
-                                            aria-label="Cantidad de asistentes"
-                                        />
-                                    </Col>
-                                    <Col md={3}>
-                                        <Form.Control
-                                            required
-                                            type="number"
-                                            min={minimoAsistentes}
-                                            max={MAX_ASISTENTES}
-                                            step={1}
-                                            value={asistentesManual}
-                                            onChange={cambiarAsistentesManual}
-                                            onBlur={finalizarAsistentesManual}
-                                            isInvalid={validated && Number(asistentesManual) < minimoAsistentes}
-                                            disabled={saving}
-                                            aria-label="Cantidad de asistentes manual"
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                            El mínimo para este evento es {minimoAsistentes} asistentes.
-                                        </Form.Control.Feedback>
-                                    </Col>
-                                </Row>
-                                <Form.Text className="text-body-secondary">
-                                    {presupuesto
-                                        ? `La cotización conserva este mínimo de asistentes (${minimoAsistentes}).`
-                                        : `El mínimo se ajusta al tipo de evento de la solicitud (${minimoAsistentes}).`}
-                                </Form.Text>
                             </Form.Group>
 
                             <div className="d-flex justify-content-between align-items-center mt-4 mb-2">
@@ -531,20 +541,32 @@ export default function PresupuestoFormularioModal({
                                     <Col md={3}>
                                         <Form.Group controlId={`presupuesto-cantidad-recurso-${indice}`}>
                                             <Form.Label>Cantidad</Form.Label>
-                                            <Form.Control
-                                                required
-                                                type="number"
-                                                min={0}
-                                                max={100000}
-                                                step={1}
-                                                value={item.cantidad}
-                                                onChange={(event) => cambiarCantidadRecurso(indice, event.target.value)}
-                                                isInvalid={validated && (!Number.isInteger(Number(item.cantidad)) || Number(item.cantidad) < 1 || Number(item.cantidad) > 100000)}
-                                                disabled={saving}
-                                            />
-                                            <Form.Control.Feedback type="invalid">
-                                                La cantidad debe ser un entero entre 1 y 100000.
-                                            </Form.Control.Feedback>
+                                            {presupuesto?.recursos?.some((recurso) =>
+                                                recurso.recursoId === Number(item.recursoId) &&
+                                                Number(recurso.cantidad) > Number(form.asistentes) &&
+                                                Number(item.cantidad) === Number(recurso.cantidad)
+                                            ) ? (
+                                                <Form.Control plaintext readOnly value={item.cantidad} aria-label="Cantidad histórica de recurso" />
+                                            ) : (
+                                                <Form.Control
+                                                    required
+                                                    type="number"
+                                                    min={1}
+                                                    max={Number(form.asistentes)}
+                                                    step={1}
+                                                    value={item.cantidad}
+                                                    onChange={(event) => cambiarCantidadRecurso(indice, event.target.value)}
+                                                    isInvalid={validated && (!Number.isInteger(Number(item.cantidad)) || Number(item.cantidad) < 1 || Number(item.cantidad) > Number(form.asistentes) || Number(item.cantidad) > 100000)}
+                                                    disabled={saving}
+                                                />
+                                            )}
+                                            {Number(item.cantidad) > Number(form.asistentes) ? (
+                                                <Form.Text className="text-warning">Cantidad histórica superior a los asistentes; se conserva sin cambios.</Form.Text>
+                                            ) : (
+                                                <Form.Control.Feedback type="invalid">
+                                                    Usa una cantidad entera entre 1 y {form.asistentes} asistentes.
+                                                </Form.Control.Feedback>
+                                            )}
                                         </Form.Group>
                                     </Col>
                                     <Col md={1}>
@@ -564,38 +586,73 @@ export default function PresupuestoFormularioModal({
                                 <p className="small text-body-secondary">No hay recursos activos en el catálogo.</p>
                             )}
 
-                            <Form.Group controlId="presupuesto-precio-acordado" className="mt-4">
-                                <Form.Label>Precio base acordado</Form.Label>
-                                <Form.Control type="number" name="precioBaseAcordado" min={0} max={MAX_DESCUENTO}
-                                    step="0.01" placeholder="Usar referencia del catálogo" value={form.precioBaseAcordado}
-                                    disabled={saving} onChange={cambiarCampo}
-                                    isInvalid={validated && form.precioBaseAcordado !== "" &&
-                                        (!/^\d{1,10}(?:\.\d{1,2})?$/.test(form.precioBaseAcordado) || Number(form.precioBaseAcordado) > MAX_DESCUENTO)} />
+                            <Form.Group controlId="presupuesto-tipo-evento-precio" className="mt-4">
+                                <Form.Label>Tipo de evento y precio base *</Form.Label>
+                                <Form.Select
+                                    required
+                                    value={form.tipoEventoId}
+                                    onChange={(event) => setForm((actual) => ({
+                                        ...actual,
+                                        tipoEventoId: event.target.value
+                                    }))}
+                                    disabled={saving || cargandoTiposEvento || !solicitudSeleccionada}
+                                >
+                                    <option value="">Selecciona una solicitud para cargar su tipo de evento</option>
+                                    {tipoEventoOpciones.map((tipo) => {
+                                        const modalidad = tipo.modalidadPrecio ?? presupuesto?.modalidadPrecioTipoEvento;
+                                        const tarifa = presupuesto?.precioBaseAcordado != null
+                                            ? `Precio pactado histórico ${formatoMoneda.format(Number(presupuesto.precioBaseAcordado))}`
+                                            : modalidad === "POR_HORA"
+                                                ? `Tarifa ${formatoMoneda.format(Number(presupuesto?.tarifaHoraTipoEvento ?? tipo.tarifaHora ?? 0))}/hora`
+                                                : `Precio fijo ${formatoMoneda.format(Number(presupuesto?.precioBaseCatalogo ?? tipo.precioBase ?? presupuesto?.precioBaseTipoEvento ?? 0))}`;
+                                        return (
+                                            <option key={tipo.id} value={String(tipo.id)}>
+                                                {tipo.nombre} · {modalidad} · {tarifa}{tipo.activo ? "" : " · snapshot histórico"}
+                                            </option>
+                                        );
+                                    })}
+                                </Form.Select>
                                 <Form.Text className="text-body-secondary">
-                                    Opcional. Permite acordar un precio para esta propuesta sin cambiar el catálogo.
-                                    Si queda vacío, se utiliza el precio de referencia conservado en la cotización.
+                                    El tipo debe coincidir con la Solicitud. El precio se calcula en el servidor desde el catálogo y se conserva como snapshot en la cotización.
                                 </Form.Text>
-                                <Form.Control.Feedback type="invalid">Usa un monto válido con máximo dos decimales.</Form.Control.Feedback>
                             </Form.Group>
-                            <Form.Group controlId="presupuesto-descuento" className="mt-4">
-                                <Form.Label>Descuento</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    name="descuento"
-                                    min={0}
-                                    max={MAX_DESCUENTO}
-                                    step="0.01"
-                                    value={form.descuento}
-                                    onChange={cambiarDescuento}
-                                    isInvalid={validated && (!/^\d{1,10}(?:\.\d{1,2})?$/.test(form.descuento) || Number(form.descuento) > MAX_DESCUENTO)}
-                                    disabled={saving}
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    Usa un monto válido con máximo dos decimales.
-                                </Form.Control.Feedback>
-                            </Form.Group>
+                            {cargandoFrecuencia && <p className="small text-body-secondary mt-3 mb-0">Verificando historial del cliente…</p>}
+                            {errorFrecuenciaActual && <Alert variant="warning" className="mt-3 mb-0">{errorFrecuenciaActual} El servidor volverá a validar cualquier descuento al guardar.</Alert>}
+                            {!cargandoFrecuencia && frecuenciaActual && (
+                                <Alert variant={frecuenciaActual.esFrecuente ? "success" : "secondary"} className="mt-3 mb-0">
+                                    Cliente {frecuenciaActual.esFrecuente ? "frecuente" : "no frecuente"}: {frecuenciaActual.eventosCompletados} de {frecuenciaActual.minimoEventos} eventos completados.
+                                </Alert>
+                            )}
+                            {mostrarDescuento ? (
+                                <Form.Group controlId="presupuesto-descuento" className="mt-4">
+                                    <Form.Label>Descuento</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        name="descuento"
+                                        min={0}
+                                        max={MAX_DESCUENTO}
+                                        step="0.01"
+                                        value={form.descuento}
+                                        onChange={cambiarDescuento}
+                                        readOnly={!puedeEditarDescuento}
+                                        isInvalid={validated && form.descuento !== "" && (!/^\d{1,10}(?:\.\d{1,2})?$/.test(form.descuento) || Number(form.descuento) > MAX_DESCUENTO)}
+                                        disabled={saving || (editable && cargandoFrecuencia)}
+                                    />
+                                    <Form.Control.Feedback type="invalid">
+                                        Usa un monto válido con máximo dos decimales.
+                                    </Form.Control.Feedback>
+                                    <Form.Text className="text-body-secondary">
+                                        {puedeEditarDescuento
+                                            ? "Beneficio disponible para este cliente frecuente."
+                                            : tieneDescuentoHistorico
+                                                ? "Descuento histórico de solo lectura; se conserva al guardar."
+                                                : "Descuento visible en modo consulta."}
+                                    </Form.Text>
+                                </Form.Group>
+                            ) : null}
                         </>
                     )}
+                    </fieldset>
                 </Modal.Body>
                 <Modal.Footer className="d-flex flex-column align-items-stretch gap-2">
                     <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 w-100">
@@ -610,10 +667,12 @@ export default function PresupuestoFormularioModal({
                         <Button variant="secondary" onClick={onHide} disabled={saving}>
                             Cerrar
                         </Button>
-                        <Button type="submit" disabled={saving || (!presupuesto && !solicitudes.length)}>
-                            {saving && <Spinner size="sm" className="me-2" />}
-                            {presupuesto ? "Guardar cambios" : "Crear cotización"}
-                        </Button>
+                        {!editable ? <span className="small text-body-secondary align-self-center">Solo lectura</span> : (
+                            <Button type="submit" disabled={saving || (!presupuesto && !solicitudes.length) || cargandoTiposEvento}>
+                                {saving && <Spinner size="sm" className="me-2" />}
+                                {presupuesto ? "Guardar cambios" : "Crear cotización"}
+                            </Button>
+                        )}
                     </div>
                 </Modal.Footer>
             </Form>

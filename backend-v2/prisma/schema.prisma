@@ -74,6 +74,14 @@ enum EstadoPago {
   REEMBOLSADO
 }
 
+enum EstadoEncuestaPago {
+  ENVIANDO
+  ENVIADO
+  SIMULADO
+  NO_ENVIADO_CORREO
+  FALLIDO
+}
+
 enum EstadoPresupuesto {
   BORRADOR
   ENVIADO
@@ -115,6 +123,7 @@ model Usuario {
   comentariosSeguimiento ComentarioSeguimiento[]
   propuestasEnviadas Presupuesto[] @relation("EmisorPresupuesto")
   propuestasAceptadas Presupuesto[] @relation("AceptantePresupuesto")
+  pagosConfirmados Pago[] @relation("ConfirmadorPago")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -487,13 +496,33 @@ model Pago {
 
   fechaPago  DateTime?
   referencia String?
+  confirmadoPorId Int?
+  confirmadoPor Usuario? @relation("ConfirmadorPago", fields: [confirmadoPorId], references: [id], onDelete: Restrict)
+  confirmadoAt DateTime?
 
   presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id])
+  encuesta EncuestaPago?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([presupuestoId])
+  @@index([confirmadoPorId])
+}
+
+model EncuestaPago {
+  id                Int @id @default(autoincrement())
+  pagoId            Int @unique
+  estado            EstadoEncuestaPago @default(NO_ENVIADO_CORREO)
+  encuestaUrl       String? @db.Text
+  motivo            String? @db.VarChar(300)
+  intentos          Int @default(0)
+  ultimoIntentoAt   DateTime?
+  enviadoAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  pago Pago @relation(fields: [pagoId], references: [id], onDelete: Restrict)
 }
 
 model Calificacion {

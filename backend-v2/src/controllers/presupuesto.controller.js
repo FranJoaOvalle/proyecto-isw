@@ -9,6 +9,9 @@ const responder = (accion, status = 200) => async (req, res, next) => {
 };
 
 module.exports = {
+    frecuenciaCliente: responder((req) =>
+        service.frecuenciaClientePorSolicitud(req.validated.params.solicitudId)
+    ),
     getAll: responder((req) => service.getAll(req.usuario)),
     getById: responder((req) => service.consultar(req.validated.params.id, req.usuario)),
     create: responder(
