@@ -35,11 +35,14 @@ const incluirPago = {
     },
     encuesta: true
 };
-const fechaDia = (valor) => valor ? new Date(valor) : null;
 const fechaMasDias = (valor, dias) => {
     const fecha = new Date(valor);
     fecha.setDate(fecha.getDate() + dias);
-    return fecha;
+    return Number.isFinite(fecha.getTime()) ? fecha : null;
+};
+const fechaVencimientoAnticipo = (presupuesto) => {
+    if (!presupuesto?.aceptadoAt) return null;
+    return fechaMasDias(presupuesto.aceptadoAt, DIAS_PLAZO_ANTICIPO);
 };
 const pagosNetos = (pagos) => pagos.reduce((suma, pago) => {
     if (pago.estado === "PAGADO") return suma.plus(pago.monto);
@@ -56,6 +59,88 @@ const anticipoCumplido = (presupuesto, pagos = presupuesto?.pagos ?? []) => {
     const exigible = new Prisma.Decimal(presupuesto?.montoAnticipo ?? 0);
     const recibido = pagosNetos(pagos.filter((pago) => pago.tipo === "ANTICIPO"));
     return exigible.gt(0) && recibido.gte(exigible);
+};
+const evaluarElegibilidad = (pago, presupuesto, ahora = new Date()) => {
+    const resultado = {
+        estadoEfectivo: pago.estado,
+        puedeConfirmar: false,
+        puedeRegistrar: false,
+        motivoElegibilidad: null,
+        motivoCancelacion: null
+    };
+    if (pago.estado !== "PENDIENTE") return resultado;
+    if (!presupuesto || !["ACEPTADO", "PENDIENTE_PAGO"].includes(presupuesto.estado) || !presupuesto.aceptadoAt) {
+        resultado.motivoElegibilidad = "El presupuesto ya no admite confirmaciones de pago.";
+        return resultado;
+    }
+
+    const pagos = presupuesto.pagos ?? [];
+    const anticipoPagado = anticipoCumplido(presupuesto, pagos);
+    const vencimiento = fechaVencimientoAnticipo(presupuesto);
+    const vencido = vencimiento && ahora.getTime() >= vencimiento.getTime();
+    const saldoOtrosPagos = pagosNetos(pagos.filter((item) => item.id !== pago.id));
+    const total = new Prisma.Decimal(presupuesto.total ?? 0);
+
+    if (pago.tipo === "ANTICIPO") {
+        if (anticipoPagado) {
+            resultado.motivoElegibilidad = "El anticipo ya está cubierto.";
+            return resultado;
+        }
+        if (!vencimiento) {
+            resultado.motivoElegibilidad = "No es posible determinar una fecha válida de vencimiento del anticipo.";
+            return resultado;
+        }
+        if (vencido) {
+            resultado.estadoEfectivo = "CANCELADO";
+            resultado.motivoCancelacion = "Cancelado por falta de abono (plazo de 14 días vencido)";
+            resultado.motivoElegibilidad = resultado.motivoCancelacion;
+            return resultado;
+        }
+        const anticipoRestante = new Prisma.Decimal(presupuesto.montoAnticipo ?? 0)
+            .minus(pagosNetos(pagos.filter((item) => item.tipo === "ANTICIPO" && item.id !== pago.id)))
+            .toDecimalPlaces(2);
+        if (anticipoRestante.lte(0) || !new Prisma.Decimal(pago.monto ?? anticipoRestante).equals(anticipoRestante)) {
+            resultado.motivoElegibilidad = "El importe pendiente ya no coincide con el anticipo pactado.";
+            return resultado;
+        }
+        resultado.puedeConfirmar = true;
+        resultado.puedeRegistrar = pago.esObligacion === true;
+        return resultado;
+    }
+
+    if (pago.tipo === "SALDO") {
+        if (!anticipoPagado) {
+            if (!vencimiento) {
+                resultado.motivoElegibilidad = "No es posible determinar si venció el plazo del anticipo.";
+                return resultado;
+            }
+            if (vencido) {
+                resultado.estadoEfectivo = "CANCELADO";
+                resultado.motivoCancelacion = "Cancelado por falta de abono en anticipo";
+                resultado.motivoElegibilidad = resultado.motivoCancelacion;
+                return resultado;
+            }
+            resultado.motivoElegibilidad = "Pendiente de pago de anticipo";
+            return resultado;
+        }
+        const finEvento = fechaFinAplicable(presupuesto);
+        if (!finEvento) {
+            resultado.motivoElegibilidad = "No se puede determinar la fecha de término del evento ni del presupuesto.";
+            return resultado;
+        }
+        if (ahora.getTime() < finEvento.getTime()) {
+            resultado.motivoElegibilidad = "Se habilita al finalizar el evento";
+            return resultado;
+        }
+        const saldoEsperado = total.minus(saldoOtrosPagos).toDecimalPlaces(2);
+        if (saldoEsperado.lte(0) || !new Prisma.Decimal(pago.monto ?? saldoEsperado).equals(saldoEsperado)) {
+            resultado.motivoElegibilidad = "El importe pendiente ya no coincide con el saldo exacto del presupuesto.";
+            return resultado;
+        }
+        resultado.puedeConfirmar = true;
+        resultado.puedeRegistrar = pago.esObligacion === true;
+    }
+    return resultado;
 };
 
 class PagoService {
@@ -83,15 +168,16 @@ class PagoService {
             } }, evento: { select: { id: true, inicio: true, fin: true, estado: true } } },
             orderBy: { aceptadoAt: "desc" }
         });
+        const ahora = new Date();
         const derivados = [];
         for (const presupuesto of presupuestos) {
             const recibidos = pagosNetos(presupuesto.pagos);
             const anticipoEsperado = new Prisma.Decimal(presupuesto.montoAnticipo ?? 0);
             const anticipoPagado = anticipoCumplido(presupuesto);
-            const saldoPendiente = presupuesto.pagos.some((p) => p.tipo === "SALDO" && ["PENDIENTE", "PAGADO"].includes(p.estado));
-            const fechaAceptacion = fechaDia(presupuesto.aceptadoAt);
-            if (!anticipoPagado && !presupuesto.pagos.some((p) => p.tipo === "ANTICIPO" && p.estado === "PENDIENTE")) {
-                derivados.push({ id: `obligacion-A-${presupuesto.id}`, esObligacion: true, tipo: "ANTICIPO", monto: anticipoEsperado, estado: "PENDIENTE", fechaPago: null, fechaVencimiento: fechaMasDias(fechaAceptacion, DIAS_PLAZO_ANTICIPO), presupuestoId: presupuesto.id, presupuesto, reglasAlertas: { diasCompromiso: env.PAGO_DIAS_ALERTA_COMPROMISO, diasEvento: env.PAGO_DIAS_ALERTA_EVENTO } });
+            const saldoPendiente = presupuesto.pagos.some((p) => p.tipo === "SALDO" && p.estado === "PENDIENTE");
+            const anticipoPendiente = presupuesto.pagos.some((p) => p.tipo === "ANTICIPO" && p.estado === "PENDIENTE");
+            if (!anticipoPagado && !anticipoPendiente) {
+                derivados.push({ id: `obligacion-A-${presupuesto.id}`, esObligacion: true, tipo: "ANTICIPO", monto: anticipoEsperado.minus(pagosNetos(presupuesto.pagos.filter((p) => p.tipo === "ANTICIPO"))).toDecimalPlaces(2), estado: "PENDIENTE", fechaPago: null, fechaVencimiento: vencimiento, presupuestoId: presupuesto.id, presupuesto, reglasAlertas: { diasCompromiso: env.PAGO_DIAS_ALERTA_COMPROMISO, diasEvento: env.PAGO_DIAS_ALERTA_EVENTO } });
             }
             const saldo = new Prisma.Decimal(presupuesto.total).minus(recibidos).toDecimalPlaces(2);
             if (anticipoPagado && saldo.gt(0) && !saldoPendiente) {
@@ -99,17 +185,22 @@ class PagoService {
             }
         }
         const reglasAlertas = { diasCompromiso: env.PAGO_DIAS_ALERTA_COMPROMISO, diasEvento: env.PAGO_DIAS_ALERTA_EVENTO };
-        const prepararRegistro = (pago) => ({
-            ...pago,
-            fechaVencimiento: pago.tipo === "ANTICIPO" && pago.presupuesto?.aceptadoAt
-                ? fechaMasDias(pago.presupuesto.aceptadoAt, DIAS_PLAZO_ANTICIPO)
-                : null,
-            anticipoPagado: anticipoCumplido(pago.presupuesto),
-            fechaFinEvento: fechaFinAplicable(pago.presupuesto),
-            reglasAlertas
-        });
+        const prepararRegistro = (pago) => {
+            const fechaVencimiento = pago.tipo === "ANTICIPO"
+                ? (pago.fechaVencimiento ?? fechaVencimientoAnticipo(pago.presupuesto))
+                : fechaVencimientoAnticipo(pago.presupuesto);
+            const elegibilidad = evaluarElegibilidad(pago, pago.presupuesto, ahora);
+            return {
+                ...pago,
+                ...elegibilidad,
+                fechaVencimiento,
+                anticipoPagado: anticipoCumplido(pago.presupuesto),
+                fechaFinEvento: fechaFinAplicable(pago.presupuesto),
+                reglasAlertas
+            };
+        };
         const resultado = [...pagos.map(prepararRegistro), ...derivados.map(prepararRegistro)]
-            .filter((pago) => !filtros.estado || pago.estado === filtros.estado)
+            .filter((pago) => !filtros.estado || (pago.estadoEfectivo ?? pago.estado) === filtros.estado)
             .filter((pago) => !filtros.tipo || pago.tipo === filtros.tipo)
             .filter((pago) => filtros.presupuestoId == null || pago.presupuestoId === filtros.presupuestoId)
             .sort((a, b) => new Date(b.fechaPago ?? b.fechaVencimiento ?? b.createdAt ?? 0) - new Date(a.fechaPago ?? a.fechaVencimiento ?? a.createdAt ?? 0));
@@ -133,17 +224,37 @@ class PagoService {
             const presupuesto = await this.conBloqueoPresupuesto(tx, presupuestoId);
             if (!["ACEPTADO", "PENDIENTE_PAGO"].includes(presupuesto.estado) || !presupuesto.aceptadoAt) throw new ConflictException("Solo se registran obligaciones de presupuestos aceptados.");
             const mismoTipo = presupuesto.pagos.filter((p) => p.tipo === tipo);
-            if (mismoTipo.some((p) => p.estado === "PENDIENTE")) return mismoTipo.find((p) => p.estado === "PENDIENTE");
-            if (mismoTipo.some((p) => p.estado === "PAGADO")) throw new ConflictException("Esta cuota ya está pagada.");
+            const cuotaPendiente = mismoTipo.find((p) => p.estado === "PENDIENTE");
+            if (cuotaPendiente) {
+                const elegibilidad = evaluarElegibilidad(cuotaPendiente, presupuesto, new Date());
+                if (elegibilidad.estadoEfectivo === "CANCELADO") {
+                    throw new ValidationException(elegibilidad.motivoCancelacion);
+                }
+                return cuotaPendiente;
+            }
             const pagado = pagosNetos(presupuesto.pagos);
+            if (tipo === "ANTICIPO") {
+                const evaluacion = evaluarElegibilidad({ tipo, estado: "PENDIENTE", monto: null, esObligacion: true }, presupuesto, new Date());
+                if (!evaluacion.puedeRegistrar) {
+                    throw new ValidationException(evaluacion.motivoElegibilidad ?? "El anticipo ya no se puede registrar.");
+                }
+            }
             if (tipo === "SALDO" && !anticipoCumplido(presupuesto)) {
                 throw new ConflictException("El saldo solo se puede registrar después de cubrir el anticipo requerido.");
             }
+            if (tipo === "SALDO") {
+                const evaluacion = evaluarElegibilidad({ tipo, estado: "PENDIENTE", monto: null, esObligacion: true }, presupuesto, new Date());
+                if (!evaluacion.puedeRegistrar) {
+                    throw new ValidationException(evaluacion.motivoElegibilidad ?? "El saldo todavía no se puede registrar.");
+                }
+            }
             const total = new Prisma.Decimal(presupuesto.total);
             const monto = tipo === "ANTICIPO"
-                ? new Prisma.Decimal(presupuesto.montoAnticipo ?? total.mul(PORCENTAJE_ANTICIPO_NUEVO).div(100)).toDecimalPlaces(2)
+                ? new Prisma.Decimal(presupuesto.montoAnticipo ?? total.mul(PORCENTAJE_ANTICIPO_NUEVO).div(100))
+                    .minus(pagosNetos(presupuesto.pagos.filter((p) => p.tipo === "ANTICIPO")))
+                    .toDecimalPlaces(2)
                 : total.minus(pagado).toDecimalPlaces(2);
-            if (monto.lte(0) || monto.gt(LIMITE_MONTO)) throw new ValidationException("El monto de la cuota calculada no es válido.");
+            if (monto.lte(0) || monto.gt(LIMITE_MONTO)) throw new ValidationException(tipo === "ANTICIPO" ? "El anticipo ya está cubierto o el importe pendiente no es válido." : "El monto de la cuota calculada no es válido.");
             return tx.pago.create({ data: { presupuestoId: presupuesto.id, tipo, monto, estado: "PENDIENTE" }, include: incluirPago });
         });
     }
@@ -158,32 +269,11 @@ class PagoService {
             const pago = await tx.pago.findUnique({ where: { id: Number(id) } });
             if (pago.estado === "PAGADO") return tx.pago.findUnique({ where: { id: pago.id }, include: incluirPago });
             if (pago.estado !== "PENDIENTE") throw new ConflictException("Solo se pueden confirmar pagos pendientes.");
+            const elegibilidad = evaluarElegibilidad(pago, presupuesto, new Date());
+            if (!elegibilidad.puedeConfirmar) {
+                throw new ValidationException(elegibilidad.motivoElegibilidad ?? "El pago ya no cumple las condiciones para confirmarse.");
+            }
             const otrosPagos = presupuesto.pagos.filter((item) => item.id !== pago.id);
-            if (pago.tipo === "ANTICIPO") {
-                const anticipoRestante = new Prisma.Decimal(presupuesto.montoAnticipo ?? 0)
-                    .minus(pagosNetos(otrosPagos.filter((item) => item.tipo === "ANTICIPO")))
-                    .toDecimalPlaces(2);
-                if (anticipoRestante.lte(0) || !new Prisma.Decimal(pago.monto).equals(anticipoRestante)) {
-                    throw new ValidationException("El monto del anticipo debe coincidir con el importe exacto que falta para cubrir el porcentaje pactado.");
-                }
-            }
-            if (pago.tipo === "SALDO") {
-                if (!anticipoCumplido(presupuesto)) {
-                    throw new ValidationException("No se puede confirmar el saldo: primero debe estar cubierto el anticipo requerido.");
-                }
-                const finEvento = fechaFinAplicable(presupuesto);
-                if (!finEvento) {
-                    throw new ValidationException("No se puede confirmar el saldo porque no hay una fecha de término válida para el evento ni para el presupuesto.");
-                }
-                if (new Date() < finEvento) {
-                    throw new ValidationException("El saldo solo se puede confirmar cuando haya finalizado el evento.");
-                }
-                const otrosNetos = pagosNetos(otrosPagos);
-                const saldoEsperado = new Prisma.Decimal(presupuesto.total).minus(otrosNetos).toDecimalPlaces(2);
-                if (saldoEsperado.lte(0) || !new Prisma.Decimal(pago.monto).equals(saldoEsperado)) {
-                    throw new ValidationException("El monto pendiente ya no coincide con el saldo exacto del presupuesto. Actualiza las cuotas antes de confirmar.");
-                }
-            }
             const otrosNetos = pagosNetos(otrosPagos);
             if (otrosNetos.plus(pago.monto).gt(presupuesto.total)) throw new ConflictException("La confirmación superaría el total del presupuesto.");
             return tx.pago.update({ where: { id: pago.id }, data: { estado: "PAGADO", fechaPago: new Date(), referencia: referencia ?? pago.referencia, confirmadoPorId: Number(usuarioId), confirmadoAt: new Date() }, include: incluirPago });

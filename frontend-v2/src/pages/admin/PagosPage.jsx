@@ -2,20 +2,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Container, Form, Modal, Spinner, Table } from "react-bootstrap";
 import EmptyState from "../../components/EmptyState.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
+import { useAuth } from "../../contexts/AuthContext";
 import { confirmarPago, enviarEncuestaPago, listarPagos, registrarPago } from "../../services/pago.service.js";
 
 const etiquetasEstado = {
     PENDIENTE: "Pendiente",
     PAGADO: "Pagado",
     FALLIDO: "Fallido",
-    REEMBOLSADO: "Reembolsado"
+    REEMBOLSADO: "Reembolsado",
+    CANCELADO: "Cancelado"
 };
 
 const coloresEstado = {
     PENDIENTE: "warning",
     PAGADO: "success",
     FALLIDO: "danger",
-    REEMBOLSADO: "secondary"
+    REEMBOLSADO: "secondary",
+    CANCELADO: "dark"
 };
 
 const formatearMonto = (monto) =>
@@ -67,7 +70,18 @@ const mensajeError = (error) =>
     error.message ??
     "No fue posible cargar el historial de pagos.";
 
+const estadoEfectivoVisible = (pago, ahora) => {
+    if (pago.estado !== "PENDIENTE") return pago.estadoEfectivo ?? pago.estado;
+    const vencimiento = pago.fechaVencimiento ? new Date(pago.fechaVencimiento) : null;
+    const vencimientoValido = vencimiento && Number.isFinite(vencimiento.getTime());
+    const anticipoImpagoVencido = !pago.anticipoPagado && vencimientoValido && ahora >= vencimiento.getTime();
+    if (anticipoImpagoVencido && ["ANTICIPO", "SALDO"].includes(pago.tipo)) return "CANCELADO";
+    return pago.estadoEfectivo ?? pago.estado;
+};
+
 export default function PagosPage() {
+    const { usuario } = useAuth();
+    const esAdmin = usuario?.rol === "ADMIN";
     const [pagos, setPagos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
@@ -83,7 +97,7 @@ export default function PagosPage() {
 
     const cargarPagos = useCallback(async () => {
         try {
-            const resultado = await listarPagos({ estado, tipo });
+            const resultado = await listarPagos({ tipo });
             if (!Array.isArray(resultado)) {
                 throw new Error("El servidor devolvió un formato de pagos inválido.");
             }
@@ -94,11 +108,11 @@ export default function PagosPage() {
         } finally {
             setCargando(false);
         }
-    }, [estado, tipo]);
+    }, [tipo]);
 
     useEffect(() => {
         let vigente = true;
-        listarPagos({ estado, tipo })
+        listarPagos({ tipo })
             .then((resultado) => {
                 if (!Array.isArray(resultado)) {
                     throw new Error("El servidor devolvió un formato de pagos inválido.");
@@ -117,7 +131,7 @@ export default function PagosPage() {
         return () => {
             vigente = false;
         };
-    }, [estado, tipo]);
+    }, [tipo]);
 
     useEffect(() => {
         const timer = window.setInterval(() => setAhora(Date.now()), 60000);
@@ -128,13 +142,13 @@ export default function PagosPage() {
     const alertasPago = useCallback((pago) => {
         const alertas = [];
         const reglas = pago.reglasAlertas ?? { diasCompromiso: 3, diasEvento: 7 };
-        if (pago.estado !== "PAGADO" && pago.fechaVencimiento) {
+        if (pago.estado !== "PAGADO" && estadoEfectivoVisible(pago, ahora) !== "CANCELADO" && pago.fechaVencimiento) {
             const dias = diasEntre(ahora, pago.fechaVencimiento);
             if (dias < 0) alertas.push({ tipo: "danger", texto: `Plazo vencido hace ${Math.abs(dias)} día(s)` });
             else if (dias <= reglas.diasCompromiso) alertas.push({ tipo: "warning", texto: dias === 0 ? "Plazo vence hoy" : `Plazo vence en ${dias} día(s)` });
         }
         const inicioEvento = pago.presupuesto?.evento?.inicio ?? pago.presupuesto?.inicio;
-        if (pago.estado !== "PAGADO" && inicioEvento) {
+        if (pago.estado !== "PAGADO" && estadoEfectivoVisible(pago, ahora) !== "CANCELADO" && inicioEvento) {
             const dias = diasEntre(ahora, inicioEvento);
             if (dias >= 0 && dias <= reglas.diasEvento) alertas.push({ tipo: "info", texto: dias === 0 ? "Evento hoy" : `Evento en ${dias} día(s)` });
         }
@@ -144,7 +158,7 @@ export default function PagosPage() {
     const ejecutarAccion = async (clave, accion, mensaje) => {
         setProcesando(clave); setError(""); setExito("");
         try { await accion(); await cargarPagos(); setExito(mensaje); }
-        catch (err) { setError(mensajeError(err)); }
+        catch (err) { setError(mensajeError(err)); await cargarPagos(); }
         finally { setProcesando(""); }
     };
 
@@ -157,7 +171,8 @@ export default function PagosPage() {
     const pagosVisibles = useMemo(() => {
         const termino = busqueda.trim().toLocaleLowerCase("es-CL");
         return pagos.filter((pago) => {
-            const coincideEstado = estado === "TODOS" || pago.estado === estado;
+            const estadoVisible = estadoEfectivoVisible(pago, ahora);
+            const coincideEstado = estado === "TODOS" || estadoVisible === estado;
             const coincideAlerta = !soloAlertas || alertasPago(pago).length > 0;
             const texto = [
                 pago.tipo,
@@ -166,7 +181,7 @@ export default function PagosPage() {
             ].join(" ").toLocaleLowerCase("es-CL");
             return coincideEstado && coincideAlerta && (!termino || texto.includes(termino));
         });
-    }, [pagos, busqueda, estado, soloAlertas, alertasPago]);
+    }, [pagos, busqueda, estado, soloAlertas, alertasPago, ahora]);
 
     return (
         <Container className="py-4">
@@ -245,31 +260,28 @@ export default function PagosPage() {
                                 </thead>
                                 <tbody>
                                         {pagosVisibles.map((pago) => {
-                                            const fechaFin = pago.fechaFinEvento ? new Date(pago.fechaFinEvento) : null;
-                                            const finValido = fechaFin && Number.isFinite(fechaFin.getTime());
-                                            const saldoPendiente = pago.tipo === "SALDO" && pago.estado === "PENDIENTE";
-                                            const anticipoPendiente = saldoPendiente && !pago.anticipoPagado;
-                                            const eventoNoFinalizado = saldoPendiente && pago.anticipoPagado && finValido && ahora < fechaFin.getTime();
-                                            const finNoDisponible = saldoPendiente && pago.anticipoPagado && !finValido;
-                                            const anticipoVencido = pago.tipo === "ANTICIPO" && pago.estado === "PENDIENTE" && pago.fechaVencimiento && ahora > new Date(pago.fechaVencimiento).getTime();
-                                            const bloqueaConfirmacionSaldo = anticipoPendiente || eventoNoFinalizado || finNoDisponible;
+                                            const estadoEfectivo = estadoEfectivoVisible(pago, ahora);
+                                            const cancelado = estadoEfectivo === "CANCELADO";
+                                            const motivoCancelacion = cancelado
+                                                ? pago.tipo === "ANTICIPO" ? "Cancelado por falta de abono" : "Cancelado por falta de abono en anticipo"
+                                                : null;
+                                            const puedeConfirmar = esAdmin && !pago.esObligacion && pago.estado === "PENDIENTE" && estadoEfectivo === "PENDIENTE" && pago.puedeConfirmar === true;
+                                            const puedeRegistrar = esAdmin && pago.esObligacion && estadoEfectivo === "PENDIENTE" && pago.puedeRegistrar === true;
+                                            const puedeEncuestar = esAdmin && !pago.esObligacion && pago.tipo === "SALDO" && pago.estado === "PAGADO" && pagoNetoCompleto(pago) && pago.presupuesto?.evento?.estado === "COMPLETADO" && !["ENVIADO", "SIMULADO", "ENVIANDO"].includes(pago.encuesta?.estado);
                                             return (
                                         <tr key={pago.id}>
                                             <td className="fw-semibold">{etiquetaCuota(pago)}</td>
                                             <td>
                                                 {pago.fechaPago ? formatearFecha(pago.fechaPago) : pago.fechaVencimiento ? `Vence ${formatearFecha(pago.fechaVencimiento)}` : formatearFecha(pago.createdAt)}
-                                                {anticipoVencido && <Badge bg="danger" className="d-block mt-1 text-start">Vencido</Badge>}
-                                                {anticipoVencido && <small className="d-block text-danger mt-1">Plazo de 14 días vencido · Evento sujeto a cancelación por falta de abono</small>}
+                                                {cancelado && <small className="d-block text-danger mt-1">{motivoCancelacion}</small>}
                                                 {alertasPago(pago).map((alerta, indice) => <Badge key={indice} bg={alerta.tipo} className="d-block mt-1 text-start">{alerta.texto}</Badge>)}
-                                                {anticipoPendiente && <small className="d-block text-warning mt-1">Pendiente de pago de anticipo</small>}
-                                                {eventoNoFinalizado && <small className="d-block text-muted mt-1">Se habilita al finalizar el evento</small>}
-                                                {finNoDisponible && <small className="d-block text-danger mt-1">No se puede determinar la fecha de término del evento ni del presupuesto; no es posible confirmar el saldo.</small>}
-                                                {saldoPendiente && pago.anticipoPagado && finValido && ahora >= fechaFin.getTime() && <small className="d-block text-success mt-1">Disponible para confirmar saldo</small>}
+                                                {pago.estado === "PENDIENTE" && !cancelado && pago.motivoElegibilidad && <small className={`d-block mt-1 ${pago.motivoElegibilidad.toLowerCase().includes("no se puede") || pago.motivoElegibilidad.toLowerCase().includes("no es posible") ? "text-danger" : "text-muted"}`}>{pago.motivoElegibilidad}</small>}
+                                                {puedeConfirmar && <small className="d-block text-success mt-1">Disponible para confirmar {pago.tipo === "SALDO" ? "saldo" : "anticipo"}</small>}
                                             </td>
                                             <td className="text-nowrap">{formatearMonto(pago.monto)}</td>
                                             <td>
-                                                <Badge bg={coloresEstado[pago.estado] ?? "secondary"}>
-                                                    {etiquetasEstado[pago.estado] ?? pago.estado}
+                                                <Badge bg={coloresEstado[estadoEfectivo] ?? "secondary"}>
+                                                    {etiquetasEstado[estadoEfectivo] ?? estadoEfectivo}
                                                 </Badge>
                                             </td>
                                             <td>{contextoPago(pago)}</td>
@@ -278,9 +290,10 @@ export default function PagosPage() {
                                                 {pago.encuesta ? <><Badge bg={pago.encuesta.estado === "ENVIADO" ? "success" : pago.encuesta.estado === "FALLIDO" ? "danger" : "secondary"}>{pago.encuesta.estado.replaceAll("_", " ")}</Badge>{pago.encuesta.motivo && <small className="d-block text-muted">{pago.encuesta.motivo}</small>}</> : "—"}
                                             </td>
                                             <td><div className="d-flex flex-column gap-1">
-                                                {pago.esObligacion && <Button size="sm" variant="outline-primary" disabled={Boolean(procesando)} onClick={() => ejecutarAccion(`crear-${pago.id}`, () => registrarPago(pago.presupuestoId, pago.tipo), "Cuota registrada como pendiente.")}>{procesando === `crear-${pago.id}` ? <Spinner size="sm" /> : "Registrar cuota"}</Button>}
-                                                {!pago.esObligacion && pago.estado === "PENDIENTE" && <Button size="sm" variant="success" disabled={Boolean(procesando) || bloqueaConfirmacionSaldo} onClick={() => { setConfirmacion(pago); setReferencia(""); }}>Confirmar pago</Button>}
-                                                {!pago.esObligacion && pago.tipo === "SALDO" && pago.estado === "PAGADO" && pagoNetoCompleto(pago) && pago.presupuesto?.evento?.estado === "COMPLETADO" && !["ENVIADO", "SIMULADO", "ENVIANDO"].includes(pago.encuesta?.estado) && <Button size="sm" variant="outline-secondary" disabled={Boolean(procesando)} onClick={() => ejecutarAccion(`encuesta-${pago.id}`, () => enviarEncuestaPago(pago.id), "Estado del envío de encuesta actualizado.")}>{procesando === `encuesta-${pago.id}` ? <Spinner size="sm" /> : pago.encuesta?.estado === "FALLIDO" ? "Reintentar encuesta" : "Enviar encuesta"}</Button>}
+                                                {puedeRegistrar && <Button size="sm" variant="outline-primary" disabled={Boolean(procesando)} onClick={() => ejecutarAccion(`crear-${pago.id}`, () => registrarPago(pago.presupuestoId, pago.tipo), "Cuota registrada como pendiente.")}>{procesando === `crear-${pago.id}` ? <Spinner size="sm" /> : "Registrar cuota"}</Button>}
+                                                {puedeConfirmar && <Button size="sm" variant="success" disabled={Boolean(procesando)} onClick={() => { setConfirmacion(pago); setReferencia(""); }}>Confirmar pago</Button>}
+                                                {puedeEncuestar && <Button size="sm" variant="outline-secondary" disabled={Boolean(procesando)} onClick={() => ejecutarAccion(`encuesta-${pago.id}`, () => enviarEncuestaPago(pago.id), "Estado del envío de encuesta actualizado.")}>{procesando === `encuesta-${pago.id}` ? <Spinner size="sm" /> : pago.encuesta?.estado === "FALLIDO" ? "Reintentar encuesta" : "Enviar encuesta"}</Button>}
+                                                {esAdmin && !puedeRegistrar && !puedeConfirmar && !puedeEncuestar && <span className="text-muted">—</span>}
                                             </div></td>
                                         </tr>
                                             );

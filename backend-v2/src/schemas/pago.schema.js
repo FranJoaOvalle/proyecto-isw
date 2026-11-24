@@ -8,7 +8,8 @@ const sinFiltro = (valor) => {
 
 const listarSchema = z.object({
     query: z.object({
-        estado: z.preprocess(sinFiltro, z.enum(["PENDIENTE", "PAGADO", "FALLIDO", "REEMBOLSADO"]).optional()),
+        // CANCELADO es un estado de presentación derivado; el servicio lo filtra en memoria.
+        estado: z.preprocess(sinFiltro, z.enum(["PENDIENTE", "PAGADO", "FALLIDO", "REEMBOLSADO", "CANCELADO"]).optional()),
         tipo: z.preprocess(sinFiltro, z.enum(["ANTICIPO", "SALDO"]).optional()),
         presupuestoId: z.preprocess(sinFiltro, id.optional())
     }).strict()
