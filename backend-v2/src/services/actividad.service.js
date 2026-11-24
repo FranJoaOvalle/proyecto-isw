@@ -284,7 +284,7 @@ class ActividadService {
     }
 
     async validarConflictos(
-        { inicio, fin, lugar, productores, eventoId },
+        { inicio, fin, productores, eventoId },
         actividadIdExcluir = null
     ) {
         const fechaInicio = new Date(inicio);
@@ -382,80 +382,6 @@ class ActividadService {
             if (eventoConflicto) {
                 throw new ConflictException(
                     "Uno o más productores ya tienen un evento contratado en ese horario."
-                );
-            }
-        }
-
-        const lugarNormalizado =
-            typeof lugar === "string" ? lugar.trim() : "";
-
-        if (lugarNormalizado) {
-            const actividadEnLugar = await prisma.actividad.findFirst({
-                where: {
-                    estado: {
-                        not: "CANCELADA"
-                    },
-                    inicio: {
-                        lt: fechaFin
-                    },
-                    fin: {
-                        gt: fechaInicio
-                    },
-                    lugar: {
-                        equals: lugarNormalizado,
-                        mode: "insensitive"
-                    },
-                    ...(actividadIdExcluir !== null
-                        ? {
-                            id: {
-                                not: Number(actividadIdExcluir)
-                            }
-                        }
-                        : {})
-                },
-                select: {
-                    id: true
-                }
-            });
-
-            if (actividadEnLugar) {
-                throw new ConflictException(
-                    "Ya existe otra actividad en ese lugar y horario."
-                );
-            }
-
-            const condicionesEventoLugar = {
-                estado: {
-                    not: "CANCELADO"
-                },
-                inicio: {
-                    lt: fechaFin
-                },
-                fin: {
-                    gt: fechaInicio
-                },
-                lugar: {
-                    equals: lugarNormalizado,
-                    mode: "insensitive"
-                }
-            };
-
-            if (eventoId !== undefined && eventoId !== null) {
-                condicionesEventoLugar.id = {
-                    not: Number(eventoId)
-                };
-            }
-
-            const eventoEnLugar = await prisma.evento.findFirst({
-                where: condicionesEventoLugar,
-                select: {
-                    id: true
-                }
-            });
-
-            if (eventoEnLugar) {
-                throw new ConflictException(
-                    "Ya existe un evento contratado en ese lugar y horario."
                 );
             }
         }

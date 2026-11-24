@@ -116,36 +116,31 @@ class DisponibilidadService {
             );
         }
         // Se conserva la validación operativa de Agenda; no representa reserva física.
-        const actividad = await cliente.actividad.findFirst({
-            where: {
-                estado: { not: "CANCELADA" },
-                inicio: { lt: fin },
-                fin: { gt: inicio },
-                ...(excluirId
-                    ? {
-                          AND: [
-                              {
-                                  OR: [
-                                      { eventoId: null },
-                                      { eventoId: { not: Number(excluirId) } }
-                                  ]
-                              }
-                          ]
-                      }
-                    : {}),
-                OR: [
-                    ...(productorId != null
-                        ? [{ productores: { some: { productorId } } }]
-                        : []),
-                    ...[lugar, direccion].filter(Boolean).map((valor) => ({
-                        lugar: { equals: valor.trim(), mode: "insensitive" }
-                    }))
-                ]
-            }
-        });
+        const actividad = productorId == null
+            ? null
+            : await cliente.actividad.findFirst({
+                  where: {
+                      estado: { not: "CANCELADA" },
+                      inicio: { lt: fin },
+                      fin: { gt: inicio },
+                      ...(excluirId
+                          ? {
+                                AND: [
+                                    {
+                                        OR: [
+                                            { eventoId: null },
+                                            { eventoId: { not: Number(excluirId) } }
+                                        ]
+                                    }
+                                ]
+                            }
+                          : {}),
+                      productores: { some: { productorId } }
+                  }
+              });
         if (actividad) {
             throw new ConflictException(
-                "Existe una actividad de Agenda incompatible con el productor o lugar en ese horario. Requiere revisión administrativa."
+                "El productor ya tiene una actividad de Agenda en ese horario. Requiere revisión administrativa."
             );
         }
     }
