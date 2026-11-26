@@ -654,3 +654,45 @@ model SolicitudEventoCambio {
   @@index([solicitudId, createdAt])
   @@index([actorId])
 }
+
+enum TipoEncuesta {
+  CLIENTE_EVENTO
+  ADMIN_PRODUCTOR
+}
+
+enum TipoPreguntaEncuesta {
+  ESCALA
+  TEXTO
+  SI_NO
+  SELECCION_UNICA
+  SELECCION_MULTIPLE
+}
+
+model Encuesta {
+  id          Int          @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  tipo        TipoEncuesta
+  activo      Boolean      @default(true)
+
+  preguntas PreguntaEncuesta[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tipo, activo])
+}
+
+model PreguntaEncuesta {
+  id          Int                  @id @default(autoincrement())
+  encuestaId  Int
+  enunciado   String
+  tipo        TipoPreguntaEncuesta
+  obligatoria Boolean              @default(true)
+  orden       Int
+  opciones    String[]             @default([])
+
+  encuesta Encuesta @relation(fields: [encuestaId], references: [id], onDelete: Cascade)
+
+  @@unique([encuestaId, orden])
+}

@@ -13,6 +13,7 @@ const pagoRoutes = require("./pago.routes");
 const recursoRoutes = require("./recurso.routes");
 const espacioRoutes = require("./espacio.routes");
 const vehiculoRoutes = require("./vehiculo.routes");
+const encuestaRoutes = require("./encuesta.routes");
 
 const router = express.Router();
 
@@ -29,5 +30,6 @@ router.use("/pagos", pagoRoutes);
 router.use("/recursos", recursoRoutes);
 router.use("/espacios", espacioRoutes);
 router.use("/vehiculos", vehiculoRoutes);
+router.use("/encuestas", encuestaRoutes);
 
 module.exports = router;
