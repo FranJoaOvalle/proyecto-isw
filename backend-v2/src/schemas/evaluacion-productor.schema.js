@@ -16,6 +16,17 @@ const crearEvaluacionProductorSchema = z.object({
     })
 });
 
+const reenviarEncuestaSchema = z.object({
+    body: z.object({
+        confirmacion: z.object({
+            intentos: z.number().int().nonnegative(),
+            estado: z.enum(["PENDIENTE", "FALLIDA", "ENVIADA"]),
+            destinatarioEfectivo: z.email()
+        }).optional()
+    }).optional()
+});
+
 module.exports = {
+    reenviarEncuestaSchema,
     crearEvaluacionProductorSchema
 };

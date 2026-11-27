@@ -14,13 +14,18 @@ import {
 } from "react-bootstrap";
 
 import PageHeader from "../../components/PageHeader";
+import ConfirmModal from "../../components/ConfirmModal";
+import NotificacionToast from "../../components/NotificacionToast";
 import EvaluacionProductorModal from "../../components/encuestas/EvaluacionProductorModal";
 import HistorialProductorModal from "../../components/encuestas/HistorialProductorModal";
 import RespuestaClienteModal from "../../components/encuestas/RespuestaClienteModal";
 
 import {
-    getEventosEvaluables
+    getEventosEvaluables,
+    reenviarEncuesta
 } from "../../services/evaluacion-productor.service";
+
+const etiquetaEnvio = evento => evento.envioEncuesta.enviadaAntes ? "Reenviar encuesta" : "Enviar encuesta";
 
 export default function EvaluacionesPage() {
     const [eventos, setEventos] = useState([]);
@@ -34,6 +39,9 @@ export default function EvaluacionesPage() {
     const [productorHistorial, setProductorHistorial] = useState(null);
 
     const [respuestaClienteId, setRespuestaClienteId] = useState(null);
+    const [eventoParaEnvio, setEventoParaEnvio] = useState(null);
+    const [enviando, setEnviando] = useState(false);
+    const [notificacion, setNotificacion] = useState(null);
 
     const loadEventos = async () => {
         try {
@@ -52,6 +60,28 @@ export default function EvaluacionesPage() {
     useEffect(() => {
         loadEventos();
     }, []);
+
+    const confirmarEnvio = async () => {
+        setEnviando(true);
+        const { id, envioEncuesta } = eventoParaEnvio;
+        try {
+            const { message } = await reenviarEncuesta(id, {
+                intentos: envioEncuesta.intentos,
+                estado: envioEncuesta.estado,
+                destinatarioEfectivo: envioEncuesta.destinatarioEfectivo
+            });
+            setNotificacion({ mensaje: message, tipo: "success" });
+        } catch (error) {
+            setNotificacion({
+                mensaje: error.response?.data?.error?.message ?? "No fue posible confirmar el envío de la encuesta.",
+                tipo: "danger"
+            });
+        } finally {
+            await loadEventos();
+            setEventoParaEnvio(null);
+            setEnviando(false);
+        }
+    };
 
     const total = eventos.length;
 
@@ -94,6 +124,11 @@ export default function EvaluacionesPage() {
 
     return (
         <Container className="py-5">
+            <NotificacionToast
+                mensaje={notificacion?.mensaje}
+                tipo={notificacion?.tipo}
+                onClose={() => setNotificacion(null)}
+            />
             <PageHeader
                 title="Evaluaciones de productores"
                 description="Revisa las calificaciones de clientes y registra la evaluación de gerencia de cada evento completado."
@@ -232,6 +267,14 @@ export default function EvaluacionesPage() {
 
                             <td className="text-end">
                                 <div className="table-actions">
+                                    {evento.envioEncuesta && (
+                                        <ActionButton
+                                            icon="bi-envelope-arrow-up"
+                                            label={etiquetaEnvio(evento)}
+                                            variant="outline-primary"
+                                            onClick={() => setEventoParaEnvio(evento)}
+                                        />
+                                    )}
                                     <ActionButton
                                         icon="bi-clock-history"
                                         label="Consultar historial de desempeño"
@@ -268,6 +311,27 @@ export default function EvaluacionesPage() {
                     </tbody>
                 </Table>
             </div>
+
+            {eventoParaEnvio && (
+                <ConfirmModal
+                    show
+                    title={etiquetaEnvio(eventoParaEnvio)}
+                    confirmText={etiquetaEnvio(eventoParaEnvio)}
+                    variant="primary"
+                    loading={enviando}
+                    onConfirm={confirmarEnvio}
+                    onHide={() => setEventoParaEnvio(null)}
+                >
+                    <p>
+                        Se enviará la encuesta de satisfacción del evento #{eventoParaEnvio.id} a{" "}
+                        <strong>{eventoParaEnvio.envioEncuesta.destinatarioEfectivo}</strong>.
+                    </p>
+                    {eventoParaEnvio.envioEncuesta.correoDePrueba && (
+                        <Alert variant="info">El correo de prueba recibirá este envío.</Alert>
+                    )}
+                    <p className="mb-0">El enlace tendrá una vigencia de siete días.</p>
+                </ConfirmModal>
+            )}
 
             {eventoSeleccionado !== null && (
                 <EvaluacionProductorModal

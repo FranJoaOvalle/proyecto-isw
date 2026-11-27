@@ -1,94 +1,13 @@
-const crypto = require("node:crypto");
-
 const prisma = require("../config/prisma");
 const env = require("../config/env");
 const { excluirCorreosDemo } = require("../utils/correo-demo");
-
-const {
-    sendEncuestaEmail
-} = require("../services/email.service");
+const ConflictException = require("../exceptions/ConflictException");
+const { hashToken } = require("../utils/token-encuesta");
+const { enviar, REINTENTO_MS, MAX_INTENTOS } = require("../services/envio-encuesta.service");
 
 const INTERVALO_MS = 30_000;
-const REINTENTO_MS = 60_000;
-const MAX_INTENTOS = 3;
-const VIGENCIA_MS = 7 * 24 * 60 * 60 * 1000;
-
 let ejecutando = false;
 let timer = null;
-
-function generarToken(invitacion) {
-    return crypto
-        .createHmac("sha256", env.JWT_SECRET)
-        .update(
-            `encuesta:v1:${invitacion.id}:${invitacion.createdAt.toISOString()}`
-        )
-        .digest("base64url");
-}
-
-function hashToken(token) {
-    return crypto
-        .createHash("sha256")
-        .update(token)
-        .digest("hex");
-}
-
-async function enviarInvitacion(invitacion) {
-    const token = generarToken(invitacion);
-    const tokenHash = hashToken(token);
-
-    const expiraAt = new Date(
-        Date.now() + VIGENCIA_MS
-    );
-
-    await prisma.invitacionEncuesta.update({
-        where: { id: invitacion.id },
-        data: {
-            tokenHash,
-            expiraAt,
-            estado: "PENDIENTE",
-            intentos: {
-                increment: 1
-            }
-        }
-    });
-
-    try {
-        const destinatario =
-            env.ENCUESTAS_EMAIL_PRUEBA ??
-            invitacion.destinatario;
-
-        await sendEncuestaEmail(destinatario, token);
-    } catch (error) {
-        await prisma.invitacionEncuesta.update({
-            where: { id: invitacion.id },
-            data: {
-                estado: "FALLIDA",
-                ultimoError: String(
-                    error.code ?? "ERROR_SMTP"
-                )
-            }
-        });
-
-        console.error(
-            `[Encuestas] Falló el envío #${invitacion.id}`
-        );
-
-        return;
-    }
-
-    await prisma.invitacionEncuesta.update({
-        where: { id: invitacion.id },
-        data: {
-            estado: "ENVIADA",
-            enviadoAt: new Date(),
-            ultimoError: null
-        }
-    });
-
-    console.log(
-        `[Encuestas] Invitación #${invitacion.id} enviada.`
-    );
-}
 
 async function procesarPendientes() {
     if (ejecutando) return;
@@ -119,6 +38,7 @@ async function procesarPendientes() {
             await prisma.invitacionEncuesta.findMany({
                 where: {
                     ...excluirCorreosDemo,
+                    evento: { estado: "COMPLETADO", calificacion: null },
                     estado: {
                         in: ["PENDIENTE", "FALLIDA"]
                     },
@@ -138,11 +58,19 @@ async function procesarPendientes() {
                 orderBy: {
                     createdAt: "asc"
                 },
-                take: 10
+                take: 10,
+                select: { eventoId: true, intentos: true, estado: true }
             });
 
         for (const invitacion of invitaciones) {
-            await enviarInvitacion(invitacion);
+            try {
+                await enviar(invitacion.eventoId, { manual: false, confirmacion: invitacion });
+                console.log(`[Encuestas] Invitación del evento #${invitacion.eventoId} enviada.`);
+            } catch (error) {
+                if (!(error instanceof ConflictException)) {
+                    console.error(`[Encuestas] Error de envío para el evento #${invitacion.eventoId}:`, error.code ?? error.name);
+                }
+            }
         }
     } catch (error) {
         console.error(

@@ -6,7 +6,7 @@ const validator = require("../middlewares/validator.middleware");
 const rankingController = require("../controllers/ranking-productores.controller");
 
 const { idParamSchema } = require("../schemas/_common.schema");
-const { crearEvaluacionProductorSchema } = require("../schemas/evaluacion-productor.schema");
+const { crearEvaluacionProductorSchema, reenviarEncuestaSchema } = require("../schemas/evaluacion-productor.schema");
 const { rankingProductoresSchema } = require("../schemas/ranking-productores.schema");
 
 const router = express.Router();
@@ -14,6 +14,11 @@ const router = express.Router();
 router.use(authMiddleware, authorize("ADMIN"));
 
 router.get("/eventos", controller.listarEventos);
+
+router.post("/eventos/:id/reenviar-encuesta",
+    validator(idParamSchema, reenviarEncuestaSchema),
+    controller.reenviarEncuesta
+);
 
 router.get("/eventos/:id",
     validator(idParamSchema),

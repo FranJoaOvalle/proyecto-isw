@@ -3,6 +3,7 @@ const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const ConflictException = require("../exceptions/ConflictException");
 const validarRespuestasEncuesta = require("../utils/validarRespuestasEncuesta");
+const { destinoEncuesta } = require("./envio-encuesta.service");
 
 const productorSelect = {
     id: true,
@@ -76,18 +77,33 @@ const evaluacionInclude = {
 class EvaluacionProductorService {
 
     async listarEventos() {
-        return prisma.evento.findMany({
+        const eventos = await prisma.evento.findMany({
             where: {
                 estado: "COMPLETADO",
                 productorId: {
                     not: null
                 }
             },
-            select: eventoSelect,
+            select: {
+                ...eventoSelect,
+                cliente: { select: { usuario: { select: { email: true } } } },
+                invitacionEncuesta: {
+                    select: { destinatario: true, respondidoAt: true, enviadoAt: true, estado: true, intentos: true }
+                }
+            },
             orderBy: {
                 fin: "desc"
             }
         });
+        return eventos.map(({ cliente, invitacionEncuesta, ...evento }) => ({
+            ...evento,
+            envioEncuesta: evento.calificacion || invitacionEncuesta?.respondidoAt ? null : {
+                ...destinoEncuesta(invitacionEncuesta?.destinatario ?? cliente.usuario.email),
+                enviadaAntes: Boolean(invitacionEncuesta?.enviadoAt) || invitacionEncuesta?.estado === "ENVIADA",
+                estado: invitacionEncuesta?.estado ?? "PENDIENTE",
+                intentos: invitacionEncuesta?.intentos ?? 0
+            }
+        }));
     }
 
     async obtenerEvento(db, id) {

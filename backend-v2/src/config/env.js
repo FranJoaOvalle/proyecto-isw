@@ -19,7 +19,10 @@ const envSchema = z.object({
         .enum(["true", "false"])
         .default("false")
         .transform(value => value === "true"),
-    ENCUESTAS_EMAIL_PRUEBA: z.email().optional(),
+    ENCUESTAS_EMAIL_PRUEBA: z.preprocess(
+        value => typeof value === "string" ? value.trim() || undefined : value,
+        z.email().optional()
+    ),
 });
 
 const result = envSchema.safeParse(process.env);

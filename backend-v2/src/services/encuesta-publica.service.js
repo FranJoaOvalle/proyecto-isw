@@ -1,4 +1,4 @@
-const crypto = require("node:crypto");
+const { hashToken } = require("../utils/token-encuesta");
 const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
 const BadRequestException = require("../exceptions/BadRequestException");
@@ -7,10 +7,7 @@ const validarRespuestasEncuesta = require("../utils/validarRespuestasEncuesta");
 
 class EncuestaPublicaService {
     async obtenerInvitacion(db, token) {
-        const tokenHash = crypto
-            .createHash("sha256")
-            .update(token)
-            .digest("hex");
+        const tokenHash = hashToken(token);
 
         const invitacion =
             await db.invitacionEncuesta.findUnique({

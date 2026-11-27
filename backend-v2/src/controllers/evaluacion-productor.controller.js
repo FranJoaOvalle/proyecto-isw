@@ -1,5 +1,17 @@
 const service =
     require("../services/evaluacion-productor.service");
+const envioEncuesta = require("../services/envio-encuesta.service");
+
+const reenviarEncuesta = async (req, res, next) => {
+    try {
+        const resultado = await envioEncuesta.enviar(req.validated.params.id, {
+            manual: true, confirmacion: req.validated.body.confirmacion
+        });
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
 
 const listarEventos = async (req, res, next) => {
     try {
@@ -50,6 +62,7 @@ const historialProductor = async (req, res, next) => {
 };
 
 module.exports = {
+    reenviarEncuesta,
     listarEventos,
     consultarEvento,
     crear,
