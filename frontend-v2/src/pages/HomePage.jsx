@@ -317,43 +317,6 @@ export default function HomePage() {
                     </div>
                 </Container>
             </section>
-
-            <footer className="border-top py-4 bg-body-tertiary">
-                <Container>
-                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                        <img
-                            src="/assets/img/nes_logo.png"
-                            alt="NES Eventos"
-                            className="home-footer-logo"
-                        />
-
-                        <small className="text-secondary">
-                            © {new Date().getFullYear()} NES Eventos.
-                            Todos los derechos reservados.
-                        </small>
-
-                        <div className="d-flex gap-3">
-                            <Link
-                                to="/catalogo"
-                                className="text-secondary text-decoration-none small"
-                            >
-                                Catálogo
-                            </Link>
-
-                            <Link
-                                to={usuario
-                                    ? "/perfil"
-                                    : "/login"}
-                                className="text-secondary text-decoration-none small"
-                            >
-                                {usuario
-                                    ? "Mi perfil"
-                                    : "Iniciar sesión"}
-                            </Link>
-                        </div>
-                    </div>
-                </Container>
-            </footer>
         </main>
     );
 }

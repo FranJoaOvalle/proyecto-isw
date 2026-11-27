@@ -2,8 +2,9 @@ import SolicitudesPanel from "./components/solicitudes/SolicitudesPanel";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
-import AdminLayout from "./layouts/AdminLayout.jsx";
-import ClienteLayout from "./layouts/ClienteLayout.jsx";
+import PublicLayout from "./layouts/PublicLayout";
+import AdminLayout from "./layouts/AdminLayout";
+import ClienteLayout from "./layouts/ClienteLayout";
 import ProductorLayout from "./layouts/ProductorLayout";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -48,8 +49,10 @@ export default function App() {
     return (
         <Routes>
             <Route element={<MainLayout />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/catalogo" element={<CatalogoPage />} />
+                <Route element={<PublicLayout />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/catalogo" element={<CatalogoPage />} />
+                </Route>
 
                 <Route element={<ProtectedRoute />}>
                     <Route path="/perfil" element={<ProfilePage />} />

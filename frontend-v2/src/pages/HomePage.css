@@ -143,12 +143,7 @@
     background-color: var(--bs-tertiary-bg);
 }
 
-.home-footer-logo {
-    max-height: 32px;
-    width: auto;
-}
-
-@media (max-width: 767.98px) {
+@media (max-width: 768px) {
     .nes-home .home-hero {
         min-height: 460px;
         padding: 64px 0;

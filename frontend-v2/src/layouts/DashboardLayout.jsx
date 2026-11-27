@@ -1,0 +1,101 @@
+import { useState } from "react";
+import { Button, Nav, Offcanvas } from "react-bootstrap";
+import { NavLink, Outlet } from "react-router-dom";
+
+import "./DashboardLayout.css";
+
+function DashboardNavigation({ grupos, titulo, onNavigate }) {
+    return (
+        <Nav
+            className="admin-navigation flex-column"
+            aria-label={`Secciones de ${titulo.toLowerCase()}`}
+        >
+            {grupos.map(grupo => (
+                <div
+                    key={grupo.nombre}
+                    className="admin-nav-group"
+                >
+                    <div className="admin-nav-heading">
+                        {grupo.nombre}
+                    </div>
+
+                    {grupo.items.map(item => (
+                        <Nav.Link
+                            key={item.ruta}
+                            as={NavLink}
+                            to={item.ruta}
+                            end={item.end ?? false}
+                            onClick={onNavigate}
+                            className="admin-nav-link"
+                        >
+                            <i
+                                className={`bi bi-${item.icono}`}
+                                aria-hidden="true"
+                            />
+
+                            <span>{item.nombre}</span>
+                        </Nav.Link>
+                    ))}
+                </div>
+            ))}
+        </Nav>
+    );
+}
+
+export default function DashboardLayout({
+                                            titulo,
+                                            grupos,
+                                            menuLabel = "Menú"
+                                        }) {
+    const [mostrarMenu, setMostrarMenu] = useState(false);
+
+    return (
+        <div className="admin-layout">
+            <aside className="admin-sidebar d-none d-lg-block">
+                <div className="admin-sidebar-title">
+                    {titulo}
+                </div>
+
+                <DashboardNavigation
+                    titulo={titulo}
+                    grupos={grupos}
+                />
+            </aside>
+
+            <Offcanvas
+                show={mostrarMenu}
+                onHide={() => setMostrarMenu(false)}
+                placement="start"
+                className="admin-mobile-sidebar"
+            >
+                <Offcanvas.Header closeButton>
+                    <Offcanvas.Title>
+                        {titulo}
+                    </Offcanvas.Title>
+                </Offcanvas.Header>
+
+                <Offcanvas.Body>
+                    <DashboardNavigation
+                        titulo={titulo}
+                        grupos={grupos}
+                        onNavigate={() => setMostrarMenu(false)}
+                    />
+                </Offcanvas.Body>
+            </Offcanvas>
+
+            <main className="admin-content">
+                <div className="d-lg-none border-bottom p-3 bg-body">
+                    <Button
+                        variant="outline-primary"
+                        onClick={() => setMostrarMenu(true)}
+                    >
+                        <i className="bi bi-list me-2" />
+                        {menuLabel}
+                    </Button>
+                </div>
+
+                <Outlet />
+            </main>
+        </div>
+    );
+}
