@@ -1,70 +1,124 @@
-import { Container, Nav } from "react-bootstrap";
+import { useState } from "react";
+import { Button, Nav, Offcanvas } from "react-bootstrap";
 import { NavLink, Outlet } from "react-router-dom";
 
-export default function AdminLayout() {
+import "./AdminLayout.css";
+
+const grupos = [
+    {
+        nombre: "General",
+        items: [
+            { nombre: "Panel", ruta: "/admin", icono: "window", end: true },
+            { nombre: "Agenda", ruta: "/admin/agenda", icono: "calendar-week" }
+        ]
+    },
+    {
+        nombre: "Gestión",
+        items: [
+            { nombre: "Clientes", ruta: "/admin/clientes", icono: "person" },
+            { nombre: "Productores", ruta: "/admin/productores", icono: "person-gear" },
+            { nombre: "Catálogo", ruta: "/admin/catalogo", icono: "shop-window" },
+            { nombre: "Solicitudes", ruta: "/admin/solicitudes", icono: "inbox" },
+            { nombre: "Eventos", ruta: "/admin/eventos", icono: "calendar-event" },
+            { nombre: "Recursos", ruta: "/admin/recursos", icono: "box2" }
+        ]
+    },
+    {
+        nombre: "Finanzas",
+        items: [
+            { nombre: "Presupuestos", ruta: "/admin/presupuestos", icono: "receipt" },
+            { nombre: "Pagos", ruta: "/admin/pagos", icono: "cash-coin" }
+        ]
+    },
+    {
+        nombre: "Desempeño",
+        items: [
+            { nombre: "Encuestas", ruta: "/admin/encuestas", icono: "ui-checks" },
+            { nombre: "Evaluaciones", ruta: "/admin/evaluaciones", icono: "clipboard-check" }
+        ]
+    }
+];
+
+function AdminNavigation({ onNavigate }) {
     return (
-        <>
-            <div className="border-bottom bg-body-tertiary">
-                <Container className="py-2">
-                    <Nav variant="underline" className="gap-4">
-                        <Nav.Link as={NavLink} to="/admin" end>
-                            <i className="bi bi-window me-2" />
-                            Panel
-                        </Nav.Link>
+        <Nav className="admin-navigation flex-column">
+            {grupos.map(grupo => (
+                <div
+                    key={grupo.nombre}
+                    className="admin-nav-group"
+                >
+                    <div className="admin-nav-heading">
+                        {grupo.nombre}
+                    </div>
 
-                        <Nav.Link as={NavLink} to="/admin/agenda">
-                            <i className="bi bi-calendar-week me-2" />
-                            Agenda
-                        </Nav.Link>
+                    {grupo.items.map(item => (
+                        <Nav.Link
+                            key={item.ruta}
+                            as={NavLink}
+                            to={item.ruta}
+                            end={item.end ?? false}
+                            onClick={onNavigate}
+                            className="admin-nav-link"
+                        >
+                            <i
+                                className={`bi bi-${item.icono}`}
+                                aria-hidden="true"
+                            />
 
-                        <Nav.Link as={NavLink} to="/admin/clientes">
-                            <i className="bi bi-person me-2" />
-                            Clientes
+                            <span>{item.nombre}</span>
                         </Nav.Link>
+                    ))}
+                </div>
+            ))}
+        </Nav>
+    );
+}
 
-                        <Nav.Link as={NavLink} to="/admin/productores">
-                            <i className="bi bi-person-gear me-2" />
-                            Productores
-                        </Nav.Link>
+export default function AdminLayout() {
+    const [mostrarMenu, setMostrarMenu] = useState(false);
 
-                        <Nav.Link as={NavLink} to="/admin/catalogo">
-                            <i className="bi bi-shop-window me-2" />
-                            Catálogo
-                        </Nav.Link>
+    return (
+        <div className="admin-layout">
+            <aside className="admin-sidebar d-none d-lg-block">
+                <div className="admin-sidebar-title">
+                    Administración
+                </div>
 
-                        <Nav.Link as={NavLink} to="/admin/solicitudes">
-                            <i className="bi bi-inbox me-2" aria-hidden="true" />
-                            Solicitudes
-                        </Nav.Link>
-                        <Nav.Link as={NavLink} to="/admin/eventos">
-                            <i className="bi bi-calendar-event me-2" />
-                            Eventos
-                        </Nav.Link>
+                <AdminNavigation />
+            </aside>
 
-                        <Nav.Link as={NavLink} to="/admin/recursos">
-                            <i className="bi bi-box2 me-2" />
-                            Recursos
-                        </Nav.Link>
+            <Offcanvas
+                show={mostrarMenu}
+                onHide={() => setMostrarMenu(false)}
+                placement="start"
+                className="admin-mobile-sidebar"
+            >
+                <Offcanvas.Header closeButton>
+                    <Offcanvas.Title>
+                        Administración
+                    </Offcanvas.Title>
+                </Offcanvas.Header>
 
-                        <Nav.Link as={NavLink} to="/admin/presupuestos">
-                            <i className="bi bi-receipt me-2" />
-                            Presupuestos
-                        </Nav.Link>
+                <Offcanvas.Body>
+                    <AdminNavigation
+                        onNavigate={() => setMostrarMenu(false)}
+                    />
+                </Offcanvas.Body>
+            </Offcanvas>
 
-                        <Nav.Link as={NavLink} to="/admin/pagos">
-                            <i className="bi bi-cash-coin me-2" />
-                            Pagos
-                        </Nav.Link>
+            <main className="admin-content">
+                <div className="d-lg-none border-bottom p-3 bg-body">
+                    <Button
+                        variant="outline-primary"
+                        onClick={() => setMostrarMenu(true)}
+                    >
+                        <i className="bi bi-list me-2" />
+                        Menú administrativo
+                    </Button>
+                </div>
 
-                        <Nav.Link as={NavLink} to="/admin/encuestas">
-                            <i className="bi bi-ui-checks me-2" />
-                            Encuestas
-                        </Nav.Link>
-                    </Nav>
-                </Container>
-            </div>
-
-            <Outlet />
-        </>
+                <Outlet />
+            </main>
+        </div>
     );
 }
