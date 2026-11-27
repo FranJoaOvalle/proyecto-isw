@@ -4,7 +4,6 @@ export const getEncuestas = async (tipo) => {
     const response = await api.get("/encuestas", {
         params: tipo ? { tipo } : {}
     });
-
     return response.data;
 };
 
@@ -27,14 +26,15 @@ export const cambiarEstadoEncuesta = async (id, activo) => {
     const response = await api.patch(`/encuestas/${id}/estado`, {
         activo
     });
-
     return response.data;
 };
 
 export const establecerEncuestaPredeterminada = async (id) => {
-    const response = await api.put(
-        `/encuestas/${id}/predeterminada`
-    );
+    const response = await api.put(`/encuestas/${id}/predeterminada`);
+    return response.data;
+};
 
+export const getRespuestaEncuestaEvento = async (id) => {
+    const response = await api.get(`/encuestas/eventos/${id}/respuesta`);
     return response.data;
 };

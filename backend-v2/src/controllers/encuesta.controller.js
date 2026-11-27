@@ -75,11 +75,23 @@ const establecerPredeterminada = async (req, res, next) => {
     }
 };
 
+const obtenerRespuestaEvento = async (req, res, next) => {
+    try {
+        const resultado =
+            await EncuestaService.obtenerRespuestaEvento(req.validated.params.id);
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
     create,
     update,
     cambiarEstado,
-    establecerPredeterminada
+    establecerPredeterminada,
+    obtenerRespuestaEvento
 };

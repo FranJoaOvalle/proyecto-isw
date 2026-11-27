@@ -156,6 +156,52 @@ class EncuestaService {
             isolationLevel: "Serializable"
         });
     }
+
+    async obtenerRespuestaEvento(id) {
+        const evento = await prisma.evento.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                inicio: true,
+                fin: true,
+                lugar: true,
+                estado: true,
+
+                tipoEvento: {
+                    select: {
+                        nombre: true
+                    }
+                },
+
+                calificacion: {
+                    select: {
+                        puntuacion: true,
+                        comentario: true
+                    }
+                }
+            }
+        });
+
+        if (!evento) {
+            throw new NotFoundException("Evento no encontrado.");
+        }
+
+        const invitacion = await prisma.invitacionEncuesta.findUnique({
+            where: { eventoId: id },
+            select: {
+                estado: true,
+                formulario: true,
+                respuestas: true,
+                enviadoAt: true,
+                respondidoAt: true
+            }
+        });
+
+        return {
+            evento,
+            invitacion
+        };
+    }
 }
 
 module.exports = new EncuestaService();

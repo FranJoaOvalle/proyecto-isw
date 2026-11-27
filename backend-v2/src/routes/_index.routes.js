@@ -15,6 +15,7 @@ const espacioRoutes = require("./espacio.routes");
 const vehiculoRoutes = require("./vehiculo.routes");
 const encuestaRoutes = require("./encuesta.routes");
 const encuestaPublicaRoutes = require("./encuesta-publica.routes");
+const evaluacionProductorRoutes = require("./evaluacion-productor.routes");
 
 const router = express.Router();
 
@@ -33,5 +34,6 @@ router.use("/espacios", espacioRoutes);
 router.use("/vehiculos", vehiculoRoutes);
 router.use("/encuestas", encuestaRoutes);
 router.use("/encuestas-publicas", encuestaPublicaRoutes);
+router.use("/evaluaciones-productores", evaluacionProductorRoutes);
 
 module.exports = router;

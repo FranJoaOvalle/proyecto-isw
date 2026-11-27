@@ -28,6 +28,7 @@ import PresupuestosPage from "./pages/admin/PresupuestosPage.jsx";
 import PagosPage from "./pages/admin/PagosPage.jsx";
 import AgendaPage from "./pages/admin/AgendaPage.jsx";
 import EncuestasPage from "./pages/admin/EncuestasPage";
+import EvaluacionesPage from "./pages/admin/EvaluacionesPage";
 
 import ProductorPage from "./pages/productor/ProductorPage";
 import EventosProductorPage from "./pages/productor/EventosProductorPage.jsx";
@@ -54,51 +55,28 @@ export default function App() {
 
                 <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
                     <Route element={<AdminLayout />}>
-                        <Route
-                            path="/admin/encuestas"
-                            element={<EncuestasPage />}
-                        />
-                        <Route
-                            path="/admin/eventos/:id"
-                            element={<EventoDetallePage />}
-                        />
+                        <Route path="/admin/encuestas" element={<EncuestasPage />}/>
+                        <Route path="/admin/eventos/:id" element={<EventoDetallePage />}/>
                         <Route path="/admin/solicitudes" element={<SolicitudesPanel />} />
                         <Route path="/admin/solicitudes/:id" element={<SolicitudesPanel />} />
                         <Route path="/admin" element={<AdminPage />} />
                         <Route path="/admin/agenda" element={<AgendaPage />} />
                         <Route path="/admin/clientes" element={<ClientesPage />} />
-                        <Route
-                            path="/admin/productores"
-                            element={<ProductoresPage />}
-                        />
-                        <Route
-                            path="/admin/catalogo"
-                            element={<CatalogoAdminPage />}
-                        />
+                        <Route path="/admin/productores" element={<ProductoresPage />}/>
+                        <Route path="/admin/catalogo" element={<CatalogoAdminPage />}/>
                         <Route path="/admin/eventos" element={<EventosPage />} />
                         <Route path="/admin/recursos" element={<RecursosPage />} />
-                        <Route
-                            path="/admin/presupuestos"
-                            element={<PresupuestosPage />}
-                        />
+                        <Route path="/admin/presupuestos" element={<PresupuestosPage />}/>
                         <Route path="/admin/pagos" element={<PagosPage />} />
+                        <Route path="/admin/evaluaciones" element={<EvaluacionesPage />}/>
                     </Route>
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["PRODUCTOR"]} />}>
-                    <Route
-                        path="/productor/eventos/:id"
-                        element={<EventoProductorDetallePage />}
-                    />
+                    <Route path="/productor/eventos/:id" element={<EventoProductorDetallePage />}/>
                     <Route path="/productor" element={<ProductorPage />} />
-                    <Route
-                        path="/productor/agenda"
-                        element={<AgendaProductorPage />}
-                    />
-                    <Route
-                        path="/productor/eventos"
-                        element={<EventosProductorPage />}
-                    />
+                    <Route path="/productor/agenda" element={<AgendaProductorPage />}/>
+                    <Route path="/productor/eventos" element={<EventosProductorPage />}/>
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["CLIENTE"]} />}>
@@ -116,21 +94,11 @@ export default function App() {
             <Route element={<PublicOnlyRoute />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route
-                    path="/forgot-password"
-                    element={<ForgotPasswordPage />}
-                />
-                <Route
-                    path="/reset-password"
-                    element={<ResetPasswordPage />}
-                />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />}/>
+                <Route path="/reset-password" element={<ResetPasswordPage />}/>
             </Route>
 
-            <Route
-                path="/encuesta"
-                element={<EncuestaPublicaPage />}
-            />
-
+            <Route path="/encuesta" element={<EncuestaPublicaPage />}/>
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );

@@ -47,4 +47,9 @@ router.put("/:id/predeterminada",
     encuestaController.establecerPredeterminada
 );
 
+router.get("/eventos/:id/respuesta",
+    validator(idParamSchema),
+    encuestaController.obtenerRespuestaEvento
+);
+
 module.exports = router;

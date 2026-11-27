@@ -115,6 +115,7 @@ model Usuario {
   comentariosSeguimiento ComentarioSeguimiento[]
   propuestasEnviadas     Presupuesto[]           @relation("EmisorPresupuesto")
   propuestasAceptadas    Presupuesto[]           @relation("AceptantePresupuesto")
+  evaluacionesRealizadas EvaluacionProductor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -169,8 +170,9 @@ model Productor {
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
-  eventos     Evento[]
-  actividades ActividadProductor[]
+  eventos      Evento[]
+  actividades  ActividadProductor[]
+  evaluaciones EvaluacionProductor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -352,7 +354,8 @@ model Evento {
   observaciones       String?
   imagen_url          String?      @db.Text
 
-  calificacion Calificacion?
+  calificacion        Calificacion?
+  evaluacionProductor EvaluacionProductor?
 
   cliente    Cliente    @relation(fields: [clienteId], references: [id])
   productor  Productor? @relation(fields: [productorId], references: [id], onDelete: Restrict)
@@ -678,7 +681,8 @@ model Encuesta {
   tipo        TipoEncuesta
   activo      Boolean      @default(true)
 
-  preguntas PreguntaEncuesta[]
+  preguntas             PreguntaEncuesta[]
+  evaluacionesProductor EvaluacionProductor[]
 
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
@@ -744,5 +748,31 @@ model InvitacionEncuesta {
   updatedAt DateTime @updatedAt
 
   @@index([estado])
+  @@index([encuestaId])
+}
+
+model EvaluacionProductor {
+  id          Int @id @default(autoincrement())
+  productorId Int
+  eventoId    Int @unique
+  evaluadorId Int
+  encuestaId  Int
+
+  puntuacion Int
+  comentario String?
+
+  formulario Json
+  respuestas Json
+
+  productor Productor @relation(fields: [productorId], references: [id], onDelete: Restrict)
+  evento    Evento    @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  evaluador Usuario   @relation(fields: [evaluadorId], references: [id], onDelete: Restrict)
+  encuesta  Encuesta  @relation(fields: [encuestaId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productorId])
+  @@index([evaluadorId])
   @@index([encuestaId])
 }
