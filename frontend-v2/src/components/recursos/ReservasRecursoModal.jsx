@@ -193,11 +193,13 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
                                                 {reserva.observacionesDevolucion && <small className="d-block text-secondary">{reserva.observacionesDevolucion}</small>}
                                             </td>
                                             <td className="text-end text-nowrap">
-                                                {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                                    {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>}
-                                                    {new Date(reserva.inicio) > new Date() && (eventoInicial ? reserva.referencia !== `Contrato evento #${eventoInicial.id}` : reserva.eventoId == null) &&
-                                                        <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>}
-                                                </>}
+                                                <div className="table-actions">
+                                                    {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
+                                                        {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>}
+                                                        {new Date(reserva.inicio) > new Date() && (eventoInicial ? reserva.referencia !== `Contrato evento #${eventoInicial.id}` : reserva.eventoId == null) &&
+                                                            <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>}
+                                                    </>}
+                                                </div>
                                             </td>
                                         </tr>
                                     );

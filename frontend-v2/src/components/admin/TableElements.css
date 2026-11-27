@@ -35,3 +35,27 @@
     background-color: #432818;
     color: #fdba74;
 }
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+.table-actions > .btn {
+    flex-shrink: 0;
+}
+
+.table-actions > .btn-icon {
+    width: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table-actions > .btn-status {
+    min-width: 110px;
+}

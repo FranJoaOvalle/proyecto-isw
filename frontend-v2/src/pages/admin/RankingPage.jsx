@@ -470,18 +470,20 @@ export default function RankingPage() {
                                         </td>
 
                                         <td className="text-end">
-                                            <Button
-                                                size="sm"
-                                                variant="outline-secondary"
-                                                title="Consultar historial"
-                                                onClick={() =>
-                                                    setProductorHistorial(
-                                                        productor.productorId
-                                                    )
-                                                }
-                                            >
-                                                <i className="bi bi-clock-history" />
-                                            </Button>
+                                            <div className="table-actions">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline-secondary"
+                                                    title="Consultar historial"
+                                                    onClick={() =>
+                                                        setProductorHistorial(
+                                                            productor.productorId
+                                                        )
+                                                    }
+                                                >
+                                                    <i className="bi bi-clock-history" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );

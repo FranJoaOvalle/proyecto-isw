@@ -113,11 +113,13 @@ export default function EventoReservas({ evento, administrar, onCambio }) {
                                             <td>{fechaSeguimiento(reserva.fin)}</td>
                                             <td><Badge bg={estado.variante}>{estado.texto}</Badge></td>
                                             {puedeGestionar && <td className="text-end">
-                                                {!reserva.cancelada && new Date(reserva.inicio) > new Date() && reserva.tipo === "Equipo" &&
-                                                    reserva.referencia !== `Contrato evento #${evento.id}` && recursos.some(item => item.id === reserva.recursoId) &&
-                                                    <Button size="sm" variant="outline-primary" onClick={() => setRecursoAbierto(recursos.find(item => item.id === reserva.recursoId))}>Gestionar</Button>}
-                                                {!reserva.cancelada && new Date(reserva.inicio) > new Date() && reserva.tipo === "Vehículo" && vehiculos.some(item => item.id === reserva.vehiculoId) &&
-                                                    <Button size="sm" variant="outline-primary" onClick={() => setVehiculoAbierto(vehiculos.find(item => item.id === reserva.vehiculoId))}>Gestionar</Button>}
+                                                <div className="table-actions">
+                                                    {!reserva.cancelada && new Date(reserva.inicio) > new Date() && reserva.tipo === "Equipo" &&
+                                                        reserva.referencia !== `Contrato evento #${evento.id}` && recursos.some(item => item.id === reserva.recursoId) &&
+                                                        <Button size="sm" variant="outline-primary" onClick={() => setRecursoAbierto(recursos.find(item => item.id === reserva.recursoId))}>Gestionar</Button>}
+                                                    {!reserva.cancelada && new Date(reserva.inicio) > new Date() && reserva.tipo === "Vehículo" && vehiculos.some(item => item.id === reserva.vehiculoId) &&
+                                                        <Button size="sm" variant="outline-primary" onClick={() => setVehiculoAbierto(vehiculos.find(item => item.id === reserva.vehiculoId))}>Gestionar</Button>}
+                                                </div>
                                             </td>}
                                         </tr>
                                     );

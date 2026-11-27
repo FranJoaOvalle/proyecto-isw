@@ -218,30 +218,32 @@ export default function ClientesPage() {
                                 </td>
 
                                 <td className="text-end">
-                                    <Button
-                                        size="sm"
-                                        variant={
-                                            cliente.usuario.activo
-                                                ? "outline-danger"
-                                                : "outline-success"
-                                        }
-                                        disabled={changingId === cliente.id}
-                                        onClick={() => handleEstado(cliente)}
-                                    >
-                                        {changingId === cliente.id ? (
-                                            "Guardando..."
-                                        ) : cliente.usuario.activo ? (
-                                            <>
-                                                <i className="bi bi-person-x me-1" />
-                                                Desactivar
-                                            </>
-                                        ) : (
-                                            <>
-                                                <i className="bi bi-person-check me-1" />
-                                                Activar
-                                            </>
-                                        )}
-                                    </Button>
+                                    <div className="table-actions">
+                                        <Button
+                                            size="sm"
+                                            variant={
+                                                cliente.usuario.activo
+                                                    ? "outline-danger"
+                                                    : "outline-success"
+                                            }
+                                            disabled={changingId === cliente.id}
+                                            onClick={() => handleEstado(cliente)}
+                                        >
+                                            {changingId === cliente.id ? (
+                                                "Guardando..."
+                                            ) : cliente.usuario.activo ? (
+                                                <>
+                                                    <i className="bi bi-person-x me-1" />
+                                                    Desactivar
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="bi bi-person-check me-1" />
+                                                    Activar
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </td>
                             </tr>
                         );

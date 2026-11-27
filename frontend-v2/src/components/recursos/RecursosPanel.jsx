@@ -432,29 +432,31 @@ export default function RecursosPanel() {
                                     <td>{moneda.format(Number(recurso.precioUnitario))}</td>
                                     <td><Badge bg={recurso.activo ? "success" : "secondary"}>{recurso.activo ? "Activo" : "Inactivo"}</Badge></td>
                                     <td className="text-end text-nowrap">
-                                        <div className="d-inline-flex flex-wrap justify-content-end gap-2">
-                                        <Button size="sm" variant="outline-secondary" onClick={() => setRecursoReservado(recurso)}>
-                                            <i className="bi bi-calendar2-week me-1" />Agenda
-                                        </Button>
-                                        <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(recurso)}>
-                                            <i className="bi bi-pencil me-1" />Editar
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant={recurso.activo ? "outline-warning" : "outline-success"}
-                                            disabled={changingId === recurso.id}
-                                            onClick={() => setRecursoEstado(recurso)}
-                                        >
-                                            {recurso.activo ? "Deshabilitar" : "Habilitar"}
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline-danger"
-                                            disabled={changingId === recurso.id}
-                                            onClick={() => setRecursoEliminar(recurso)}
-                                        >
-                                            <i className="bi bi-trash me-1" />Eliminar
-                                        </Button>
+                                        <div className="table-actions">
+                                            <div className="d-inline-flex flex-wrap justify-content-end gap-2">
+                                            <Button size="sm" variant="outline-secondary" onClick={() => setRecursoReservado(recurso)}>
+                                                <i className="bi bi-calendar2-week me-1" />Agenda
+                                            </Button>
+                                            <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(recurso)}>
+                                                <i className="bi bi-pencil me-1" />Editar
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant={recurso.activo ? "outline-warning" : "outline-success"}
+                                                disabled={changingId === recurso.id}
+                                                onClick={() => setRecursoEstado(recurso)}
+                                            >
+                                                {recurso.activo ? "Deshabilitar" : "Habilitar"}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline-danger"
+                                                disabled={changingId === recurso.id}
+                                                onClick={() => setRecursoEliminar(recurso)}
+                                            >
+                                                <i className="bi bi-trash me-1" />Eliminar
+                                            </Button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

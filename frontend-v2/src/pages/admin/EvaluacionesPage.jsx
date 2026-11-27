@@ -256,27 +256,29 @@ export default function EvaluacionesPage() {
                             </td>
 
                             <td className="text-end">
-                                <Button
-                                    size="sm"
-                                    variant={
-                                        evento.evaluacionProductor
-                                            ? "outline-secondary"
-                                            : "primary"
-                                    }
-                                    onClick={() =>
-                                        setEventoSeleccionado(evento.id)
-                                    }
-                                >
-                                    <i className={
-                                        evento.evaluacionProductor
-                                            ? "bi bi-eye me-2"
-                                            : "bi bi-clipboard-check me-2"
-                                    }/>
+                                <div className="table-actions">
+                                    <Button
+                                        size="sm"
+                                        variant={
+                                            evento.evaluacionProductor
+                                                ? "outline-secondary"
+                                                : "primary"
+                                        }
+                                        onClick={() =>
+                                            setEventoSeleccionado(evento.id)
+                                        }
+                                    >
+                                        <i className={
+                                            evento.evaluacionProductor
+                                                ? "bi bi-eye me-2"
+                                                : "bi bi-clipboard-check me-2"
+                                        }/>
 
-                                    {evento.evaluacionProductor
-                                        ? "Ver evaluación"
-                                        : "Evaluar"}
-                                </Button>
+                                        {evento.evaluacionProductor
+                                            ? "Ver evaluación"
+                                            : "Evaluar"}
+                                    </Button>
+                                </div>
                             </td>
                         </tr>
                     ))}

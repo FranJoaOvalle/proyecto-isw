@@ -381,39 +381,41 @@ export default function PresupuestosPage() {
                                                 </Badge>
                                             </td>
                                             <td className="text-end">
-                                                {presupuesto.estado === "BORRADOR" && (
-                                                    <div className="d-flex justify-content-end gap-2">
-                                                        <Button
-                                                            variant="outline-primary"
-                                                            size="sm"
-                                                            onClick={() => abrirEdicion(presupuesto)}
-                                                        >
-                                                            Editar
-                                                        </Button>
-                                                        {presupuesto.solicitudId && presupuesto.solicitud?.estado === "EN_REVISION" && (
-                                                            <Button size="sm" onClick={() => setPresupuestoEnviar(presupuesto)}>
-                                                                Enviar propuesta
+                                                <div className="table-actions">
+                                                    {presupuesto.estado === "BORRADOR" && (
+                                                        <div className="d-flex justify-content-end gap-2">
+                                                            <Button
+                                                                variant="outline-primary"
+                                                                size="sm"
+                                                                onClick={() => abrirEdicion(presupuesto)}
+                                                            >
+                                                                Editar
                                                             </Button>
-                                                        )}
-                                                        <Button
-                                                            variant="outline-danger"
-                                                            size="sm"
-                                                            onClick={() => setPresupuestoCancelar(presupuesto)}
-                                                        >
-                                                            Cancelar
+                                                            {presupuesto.solicitudId && presupuesto.solicitud?.estado === "EN_REVISION" && (
+                                                                <Button size="sm" onClick={() => setPresupuestoEnviar(presupuesto)}>
+                                                                    Enviar propuesta
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                variant="outline-danger"
+                                                                size="sm"
+                                                                onClick={() => setPresupuestoCancelar(presupuesto)}
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {presupuesto.estado === "ENVIADO" && (
+                                                        <Button variant="outline-danger" size="sm" onClick={() => setPresupuestoCancelar(presupuesto)}>
+                                                            Cancelar propuesta
                                                         </Button>
-                                                    </div>
-                                                )}
-                                                {presupuesto.estado === "ENVIADO" && (
-                                                    <Button variant="outline-danger" size="sm" onClick={() => setPresupuestoCancelar(presupuesto)}>
-                                                        Cancelar propuesta
-                                                    </Button>
-                                                )}
-                                                {presupuesto.evento && (
-                                                    <Button as={Link} to={`/admin/eventos/${presupuesto.evento.id}`} variant="outline-primary" size="sm">
-                                                        Ver evento
-                                                    </Button>
-                                                )}
+                                                    )}
+                                                    {presupuesto.evento && (
+                                                        <Button as={Link} to={`/admin/eventos/${presupuesto.evento.id}`} variant="outline-primary" size="sm">
+                                                            Ver evento
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

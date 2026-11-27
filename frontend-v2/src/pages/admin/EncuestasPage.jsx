@@ -258,68 +258,70 @@ export default function EncuestasPage() {
                                 </Badge>
                             </td>
                             <td className="text-end">
-                                {!esPredeterminada(encuesta) && encuesta.activo && (
+                                <div className="table-actions">
+                                    {!esPredeterminada(encuesta) && encuesta.activo && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline-warning"
+                                            className="me-2"
+                                            title="Establecer como predeterminada"
+                                            aria-label="Establecer como predeterminada"
+                                            disabled={
+                                                predeterminandoId !== null ||
+                                                changingId !== null
+                                            }
+                                            onClick={() => handlePredeterminada(encuesta)}
+                                        >
+                                            {predeterminandoId === encuesta.id ? (
+                                                <Spinner animation="border" size="sm" />
+                                            ) : (
+                                                <i className="bi bi-star" />
+                                            )}
+                                        </Button>
+                                    )}
+
                                     <Button
                                         size="sm"
-                                        variant="outline-warning"
+                                        variant="outline-secondary"
                                         className="me-2"
-                                        title="Establecer como predeterminada"
-                                        aria-label="Establecer como predeterminada"
-                                        disabled={
-                                            predeterminandoId !== null ||
-                                            changingId !== null
-                                        }
-                                        onClick={() => handlePredeterminada(encuesta)}
+                                        onClick={() => setEncuestaPreview(encuesta)}
+                                        title="Previsualizar encuesta"
                                     >
-                                        {predeterminandoId === encuesta.id ? (
-                                            <Spinner animation="border" size="sm" />
-                                        ) : (
-                                            <i className="bi bi-star" />
-                                        )}
+                                        <i className="bi bi-eye me-1" />
+                                        Previsualizar
                                     </Button>
-                                )}
 
-                                <Button
-                                    size="sm"
-                                    variant="outline-secondary"
-                                    className="me-2"
-                                    onClick={() => setEncuestaPreview(encuesta)}
-                                    title="Previsualizar encuesta"
-                                >
-                                    <i className="bi bi-eye me-1" />
-                                    Previsualizar
-                                </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline-primary"
+                                        className="me-2"
+                                        onClick={() => abrirEdicion(encuesta)}
+                                    >
+                                        <i className="bi bi-pencil me-1" />
+                                        Editar
+                                    </Button>
 
-                                <Button
-                                    size="sm"
-                                    variant="outline-primary"
-                                    className="me-2"
-                                    onClick={() => abrirEdicion(encuesta)}
-                                >
-                                    <i className="bi bi-pencil me-1" />
-                                    Editar
-                                </Button>
-
-                                <Button
-                                    size="sm"
-                                    variant={
-                                        encuesta.activo
-                                            ? "outline-danger"
-                                            : "outline-success"
-                                    }
-                                    disabled={
-                                        changingId !== null ||
-                                        predeterminandoId !== null ||
-                                        esPredeterminada(encuesta)
-                                    }
-                                    onClick={() => handleEstado(encuesta)}
-                                >
-                                    {changingId === encuesta.id
-                                        ? "Guardando..."
-                                        : encuesta.activo
-                                            ? "Desactivar"
-                                            : "Activar"}
-                                </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={
+                                            encuesta.activo
+                                                ? "outline-danger"
+                                                : "outline-success"
+                                        }
+                                        disabled={
+                                            changingId !== null ||
+                                            predeterminandoId !== null ||
+                                            esPredeterminada(encuesta)
+                                        }
+                                        onClick={() => handleEstado(encuesta)}
+                                    >
+                                        {changingId === encuesta.id
+                                            ? "Guardando..."
+                                            : encuesta.activo
+                                                ? "Desactivar"
+                                                : "Activar"}
+                                    </Button>
+                                </div>
                             </td>
                         </tr>
                     ))}

@@ -164,10 +164,14 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                                         <td>{fechaTexto(reserva.fin)}</td>
                                         <td><Badge bg={reserva.cancelada ? "secondary" : reserva.estadoDevolucion === "PENDIENTE" ? "warning" : reserva.estadoDevolucion === "CONFORME" ? "success" : "danger"} text={!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" ? "dark" : undefined}>{reserva.cancelada ? "Cancelada" : reserva.estadoDevolucion === "PENDIENTE" ? "Pendiente de devolución" : reserva.estadoDevolucion === "CONFORME" ? "Devuelto conforme" : "Devuelto con observaciones"}</Badge></td>
                                         <td>{reserva.observacionesDevolucion || "—"}</td>
-                                        <td className="text-end text-nowrap">{!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                            {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>}
-                                            {new Date(reserva.inicio) > new Date() && (eventoInicial || reserva.eventoId == null) && <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>}
-                                        </>}</td>
+                                        <td className="text-end text-nowrap">
+                                            <div className="table-actions">
+                                                {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
+                                                {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>}
+                                                {new Date(reserva.inicio) > new Date() && (eventoInicial || reserva.eventoId == null) && <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>}
+                                            </>}
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}</tbody>
                             </Table>

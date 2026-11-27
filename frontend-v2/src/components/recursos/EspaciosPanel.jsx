@@ -449,24 +449,26 @@ export default function EspaciosPanel() {
                                         )}
                                     </td>
                                     <td className="text-end text-nowrap">
-                                        <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirReservas(espacio)}>
-                                            <i className="bi bi-calendar2-week me-1" />Reservas
-                                        </Button>
-                                        <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirEditar(espacio)}>
-                                            <i className="bi bi-pencil me-1" />Editar
-                                        </Button>
-                                        <Button size="sm" variant={espacio.habilitado ? "outline-warning" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
-                                            {espacio.habilitado ? "Deshabilitar" : "Habilitar"}
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline-danger"
-                                            className="ms-2"
-                                            disabled={changingId === espacio.id}
-                                            onClick={() => setSpaceEliminar(espacio)}
-                                        >
-                                            <i className="bi bi-trash me-1" />Eliminar
-                                        </Button>
+                                        <div className="table-actions">
+                                            <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirReservas(espacio)}>
+                                                <i className="bi bi-calendar2-week me-1" />Reservas
+                                            </Button>
+                                            <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirEditar(espacio)}>
+                                                <i className="bi bi-pencil me-1" />Editar
+                                            </Button>
+                                            <Button size="sm" variant={espacio.habilitado ? "outline-warning" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
+                                                {espacio.habilitado ? "Deshabilitar" : "Habilitar"}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline-danger"
+                                                className="ms-2"
+                                                disabled={changingId === espacio.id}
+                                                onClick={() => setSpaceEliminar(espacio)}
+                                            >
+                                                <i className="bi bi-trash me-1" />Eliminar
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -576,7 +578,11 @@ export default function EspaciosPanel() {
                                             <td>{fechaLocal(reserva.inicio)}</td>
                                             <td>{fechaLocal(reserva.fin)}</td>
                                             <td><Badge bg={reserva.cancelada ? "secondary" : "success"}>{reserva.cancelada ? "Cancelada" : "Vigente"}</Badge></td>
-                                            <td className="text-end">{!reserva.cancelada && reserva.eventoId == null && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}</td>
+                                            <td className="text-end">
+                                                <div className="table-actions">
+                                                    {!reserva.cancelada && reserva.eventoId == null && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

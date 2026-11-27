@@ -342,25 +342,27 @@ export default function VehiculosPanel() {
                                     <td><Badge bg={vehiculo.habilitado ? "success" : "secondary"}>{vehiculo.habilitado ? "Habilitado" : "Deshabilitado"}</Badge></td>
                                     <td>{!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE" ? <span className="text-secondary">No asignable</span> : rangoAplicado ? <Badge bg={vehiculo.disponible ? "success" : "warning"} text={vehiculo.disponible ? undefined : "dark"}>{vehiculo.disponible ? "Disponible" : "Ocupado"}</Badge> : <span className="text-secondary">Consulta un horario</span>}</td>
                                     <td className="text-end text-nowrap">
-                                        <div className="d-inline-flex flex-wrap justify-content-end gap-2">
-                                        <Button size="sm" variant="outline-secondary" onClick={() => setReservasVehiculo(vehiculo)}><i className="bi bi-calendar2-week me-1" />Agenda</Button>
-                                        <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(vehiculo)}><i className="bi bi-pencil me-1" />Editar</Button>
-                                        <Button
-                                            size="sm"
-                                            variant={vehiculo.habilitado ? "outline-warning" : "outline-success"}
-                                            disabled={changingId === vehiculo.id}
-                                            onClick={() => setVehiculoAccion({ vehiculo, tipo: vehiculo.habilitado ? "deshabilitar" : "habilitar" })}
-                                        >
-                                            {vehiculo.habilitado ? "Deshabilitar" : "Habilitar"}
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline-danger"
-                                            disabled={changingId === vehiculo.id}
-                                            onClick={() => setVehiculoAccion({ vehiculo, tipo: "eliminar" })}
-                                        >
-                                            <i className="bi bi-trash me-1" />Eliminar
-                                        </Button>
+                                        <div className="table-actions">
+                                            <div className="d-inline-flex flex-wrap justify-content-end gap-2">
+                                            <Button size="sm" variant="outline-secondary" onClick={() => setReservasVehiculo(vehiculo)}><i className="bi bi-calendar2-week me-1" />Agenda</Button>
+                                            <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(vehiculo)}><i className="bi bi-pencil me-1" />Editar</Button>
+                                            <Button
+                                                size="sm"
+                                                variant={vehiculo.habilitado ? "outline-warning" : "outline-success"}
+                                                disabled={changingId === vehiculo.id}
+                                                onClick={() => setVehiculoAccion({ vehiculo, tipo: vehiculo.habilitado ? "deshabilitar" : "habilitar" })}
+                                            >
+                                                {vehiculo.habilitado ? "Deshabilitar" : "Habilitar"}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline-danger"
+                                                disabled={changingId === vehiculo.id}
+                                                onClick={() => setVehiculoAccion({ vehiculo, tipo: "eliminar" })}
+                                            >
+                                                <i className="bi bi-trash me-1" />Eliminar
+                                            </Button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

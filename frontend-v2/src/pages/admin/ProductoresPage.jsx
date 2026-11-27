@@ -258,40 +258,42 @@ export default function ProductoresPage() {
                                 </td>
 
                                 <td className="text-end">
-                                    <Button
-                                        size="sm"
-                                        variant="outline-primary"
-                                        className="me-2"
-                                        onClick={() => openEdit(productor)}
-                                    >
-                                        <i className="bi bi-pencil me-1" />
-                                        Editar
-                                    </Button>
+                                    <div className="table-actions">
+                                        <Button
+                                            size="sm"
+                                            variant="outline-primary"
+                                            className="me-2"
+                                            onClick={() => openEdit(productor)}
+                                        >
+                                            <i className="bi bi-pencil me-1" />
+                                            Editar
+                                        </Button>
 
-                                    <Button
-                                        size="sm"
-                                        variant={
-                                            productor.usuario.activo
-                                                ? "outline-danger"
-                                                : "outline-success"
-                                        }
-                                        disabled={changingId === productor.id}
-                                        onClick={() => handleEstado(productor)}
-                                    >
-                                        {changingId === productor.id ? (
-                                            "Guardando..."
-                                        ) : productor.usuario.activo ? (
-                                            <>
-                                                <i className="bi bi-person-x me-1" />
-                                                Desactivar
-                                            </>
-                                        ) : (
-                                            <>
-                                                <i className="bi bi-person-check me-1" />
-                                                Activar
-                                            </>
-                                        )}
-                                    </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={
+                                                productor.usuario.activo
+                                                    ? "outline-danger"
+                                                    : "outline-success"
+                                            }
+                                            disabled={changingId === productor.id}
+                                            onClick={() => handleEstado(productor)}
+                                        >
+                                            {changingId === productor.id ? (
+                                                "Guardando..."
+                                            ) : productor.usuario.activo ? (
+                                                <>
+                                                    <i className="bi bi-person-x me-1" />
+                                                    Desactivar
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="bi bi-person-check me-1" />
+                                                    Activar
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </td>
                             </tr>
                         );
