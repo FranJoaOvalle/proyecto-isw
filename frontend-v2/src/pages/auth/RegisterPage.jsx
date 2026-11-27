@@ -115,7 +115,7 @@ export default function RegisterPage() {
                         </h1>
 
                         <p className="text-secondary mb-0">
-                            Regístrate para comenzar a organizar tu evento.
+                            Puedes registrarte a título personal o a nombre de una empresa.
                         </p>
                     </div>
 
@@ -180,7 +180,7 @@ export default function RegisterPage() {
                                     id="email"
                                     name="email"
                                     type="email"
-                                    placeholder="correo@ejemplo.cl"
+                                    placeholder="nombre@example.com"
                                     value={form.email}
                                     onChange={handleChange}
                                     autoComplete="email"
@@ -289,7 +289,7 @@ export default function RegisterPage() {
 
                                     <Form.Control.Feedback type="invalid" tooltip>
                                         {confirmPassword.length < 8
-                                            ? "Repite una contraseña de al menos 8 caracteres."
+                                            ? "Vuelve a escribir la contraseña que elegiste."
                                             : "Las contraseñas no coinciden."}
                                     </Form.Control.Feedback>
                                 </InputGroup>
@@ -370,7 +370,7 @@ export default function RegisterPage() {
                                             name="rutEmpresa"
                                             value={form.rutEmpresa}
                                             onChange={handleChange}
-                                            placeholder="76543210-K"
+                                            placeholder="76543210-3"
                                             pattern="[0-9]{7,8}-[0-9Kk]"
                                             required
                                             disabled={loading}
@@ -490,7 +490,7 @@ export default function RegisterPage() {
             <div className="register-image">
                 <img
                     src="/assets/img/login.webp"
-                    alt="Evento"
+                    alt=""
                 />
                 <div className="register-overlay"/>
             </div>

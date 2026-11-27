@@ -68,8 +68,8 @@ export default function ForgotPasswordPage() {
                         </h1>
 
                         <p className="text-secondary mb-0">
-                            Ingresa el correo asociado a tu cuenta y te enviaremos
-                            un enlace para restablecer tu contraseña.
+                            Ingresa el correo con el que inicias sesión para
+                            solicitar un enlace de recuperación.
                         </p>
                     </div>
 
@@ -104,7 +104,7 @@ export default function ForgotPasswordPage() {
                                 type="email"
                                 value={email}
                                 onChange={handleChange}
-                                placeholder="correo@ejemplo.cl"
+                                placeholder="nombre@example.com"
                                 autoComplete="email"
                                 required
                                 disabled={loading}

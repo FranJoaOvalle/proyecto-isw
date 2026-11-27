@@ -258,7 +258,7 @@ export default function VehiculosPanel() {
                     <Form.Group className="col-md-4">
                         <Form.Label>Hora (opcional)</Form.Label>
                         <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
-                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
+                        <Form.Text className="text-secondary">Elige una hora para consultar ese bloque. Si la dejas en blanco, verás el día completo.</Form.Text>
                     </Form.Group>
                     <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
@@ -298,7 +298,7 @@ export default function VehiculosPanel() {
                                     <span>{segmento.etiqueta}: <strong>{segmento.valor}</strong></span>
                                 </div>
                             ))}
-                            {!rangoAplicado && <small className="text-secondary">Vista general de la flota; las reservas aparecen al consultar una fecha.</small>}
+                            {!rangoAplicado && <small className="text-secondary">Elige una fecha para ver las reservas de los vehículos.</small>}
                             {rangoAplicado && <small className="text-secondary d-block mt-1">Disponibilidad para {new Date(rangoAplicado.inicio).toLocaleString("es-CL")} – {new Date(rangoAplicado.fin).toLocaleString("es-CL")}.</small>}
                             {rangoAplicado && !resumenVehiculos.reservadas && <small className="text-secondary">No hay vehículos reservados en el período consultado.</small>}
                         </div>

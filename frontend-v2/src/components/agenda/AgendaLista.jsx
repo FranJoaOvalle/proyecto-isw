@@ -33,7 +33,7 @@ export default function AgendaLista({ agenda }) {
                                         })}
                                     </h2>
                                     <div className="small text-body-secondary">
-                                        Organiza y consulta tus eventos y actividades
+                                        Eventos y actividades en orden de fecha
                                     </div>
                                 </div>
                             </div>

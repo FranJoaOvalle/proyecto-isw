@@ -134,7 +134,7 @@ export default function EventoReservas({ evento, administrar, onCambio }) {
                     <h3 className="h6">Asignaciones adicionales</h3>
                     <p className="small text-body-secondary">
                         {evento.solicitudId
-                            ? "El recinto y los equipos cotizados se reservan al contratar. Añade aquí asignaciones operativas adicionales; estas no modifican la propuesta económica."
+                            ? "El recinto y los equipos cotizados ya están reservados. Los equipos o vehículos que agregues aquí no cambian el precio contratado."
                             : "El recinto se reserva al guardar la ubicación. Añade aquí equipos o vehículos para este evento."}
                     </p>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}

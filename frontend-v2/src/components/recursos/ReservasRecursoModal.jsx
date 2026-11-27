@@ -143,8 +143,8 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
                     <p className="text-secondary">{eventoInicial
                         ? `Asignación para el evento #${eventoInicial.id}. La contratación ya reserva los equipos cotizados.`
-                        : "Consulta las reservas y registra aquí las devoluciones o una reserva independiente."}</p>
-                    {recurso?.activo === false ? <Alert variant="secondary">Este equipo está deshabilitado para nuevas reservas.</Alert> : incluidoEnContrato ? <Alert variant="info">Este equipo ya está reservado por la propuesta contratada. Su cantidad se modifica mediante una revisión comercial.</Alert> :
+                        : "Registra una devolución o reserva el equipo por separado."}</p>
+                    {recurso?.activo === false ? <Alert variant="secondary">Este equipo está deshabilitado para nuevas reservas.</Alert> : incluidoEnContrato ? <Alert variant="info">La propuesta contratada ya reserva este equipo. Para cambiar la cantidad, solicita una revisión del presupuesto.</Alert> :
                     <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
                         <h3 className="h6 fw-bold">{eventoInicial ? "Nueva asignación para este evento" : "Reserva independiente"}</h3>
                         <div className="row g-3 align-items-end">

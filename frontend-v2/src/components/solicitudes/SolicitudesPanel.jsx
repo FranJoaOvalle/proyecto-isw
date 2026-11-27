@@ -339,10 +339,9 @@ function Panel({ id, tipoEventoId }) {
                                                 variant="info"
                                                 className="mt-3 mb-0"
                                             >
-                                                Hay propuestas vinculadas. Los
-                                                cambios sensibles y el cierre
-                                                requieren verificación de
-                                                Presupuestos.
+                                                Las propuestas asociadas pueden impedir que se
+                                                modifique o cierre esta solicitud. Revisa sus
+                                                estados antes de continuar.
                                             </Alert>
                                         )}
                                 </Card.Body>
@@ -532,8 +531,8 @@ function Panel({ id, tipoEventoId }) {
             >
                 {confirmacion === "revision" ? (
                     <p>
-                        La solicitud pasará a En revisión y el cliente dejará de
-                        poder editarla.
+                        La solicitud quedará en revisión. A partir de ese
+                        momento, el cliente ya no podrá editarla.
                     </p>
                 ) : (
                     <Form.Group controlId="solicitud-motivo">

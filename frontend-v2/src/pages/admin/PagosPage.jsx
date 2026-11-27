@@ -62,7 +62,7 @@ export default function PagosPage() {
         try {
             const resultado = await listarPagos();
             if (!Array.isArray(resultado)) {
-                throw new Error("El servidor devolvió un formato de pagos inválido.");
+                throw new Error("No se pudo leer el historial de pagos. Vuelve a intentarlo.");
             }
             setPagos(resultado);
         } catch (err) {
@@ -78,7 +78,7 @@ export default function PagosPage() {
         listarPagos()
             .then((resultado) => {
                 if (!Array.isArray(resultado)) {
-                    throw new Error("El servidor devolvió un formato de pagos inválido.");
+                    throw new Error("No se pudo leer el historial de pagos. Vuelve a intentarlo.");
                 }
                 if (vigente) setPagos(resultado);
             })
@@ -127,7 +127,7 @@ export default function PagosPage() {
             <Alert variant="info" className="d-flex gap-2 align-items-start">
                 <i className="bi bi-info-circle-fill mt-1" aria-hidden="true" />
                 <span>
-                    Módulo de historial financiero en modo visualización. La integración transaccional con pasarelas de pago estará disponible próximamente.
+                    Este historial es de consulta. Puedes buscar un anticipo o saldo por el número de presupuesto.
                 </span>
             </Alert>
 
@@ -215,7 +215,7 @@ export default function PagosPage() {
                         <EmptyState
                             icon="bi-cash-stack"
                             title="Aún no hay pagos registrados"
-                            description="Los pagos existentes aparecerán aquí cuando estén asociados a un presupuesto."
+                            description="Aquí aparecerán los anticipos y saldos de los presupuestos contratados."
                         />
                     )}
                 </Card.Body>

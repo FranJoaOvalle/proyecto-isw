@@ -100,7 +100,7 @@ export default function PresupuestoEnvioModal({ presupuesto, onHide, onEnviado }
                 <Modal.Body ref={bodyRef} style={{ maxHeight: "calc(100dvh - 230px)", overflowY: "auto" }}>
                     {error && <Alert variant="danger">{error}</Alert>}
                     {resumen ? <>
-                        <Alert variant="info">Revisa las condiciones y el total. Pulsa «Enviar propuesta al cliente» para confirmar el envío.</Alert>
+                        <Alert variant="info">Revisa las condiciones y el total antes de enviar la propuesta.</Alert>
                         <PresupuestoResumen presupuesto={resumen} />
                     </> : <>
                     <p className="text-secondary">Paso 1 de 2 · Completa la ubicación y la vigencia. Después podrás revisar el total antes de enviar.</p>
@@ -120,7 +120,7 @@ export default function PresupuestoEnvioModal({ presupuesto, onHide, onEnviado }
                                 </option>
                             ))}
                         </Form.Select>
-                        <Form.Text>Se utiliza el espacio elegido en el presupuesto. Para cambiarlo, edita el borrador. Sus datos se mantienen en Recursos → Espacios.</Form.Text>
+                        <Form.Text>Para elegir otro recinto, edita el borrador. Puedes actualizar la dirección o la capacidad en Recursos → Espacios.</Form.Text>
                         <div className="d-flex gap-3 align-items-center mt-2">
                             <a href="/admin/recursos" target="_blank" rel="noreferrer">Administrar espacios</a>
                             <Button variant="link" className="p-0" disabled={saving} onClick={() => {
@@ -133,8 +133,8 @@ export default function PresupuestoEnvioModal({ presupuesto, onHide, onEnviado }
                         onChange={(e) => cambiar("arriendoIncluido", e.target.checked)}
                         label="El precio base acordado ya incluye el arriendo del recinto." />}
                     <p className="text-secondary small">
-                        Si corresponde un arriendo adicional, se calcula según la tarifa del recinto.
-                        Por hora se cobra la duración proporcional; por día, bloques de 24 horas iniciados; por evento, una unidad.
+                        Si el arriendo se cobra aparte, se aplica la tarifa del recinto. Por hora se cobra la duración exacta. Por
+                        día se cobra cada bloque de 24 horas iniciado. La tarifa por evento se cobra una sola vez.
                     </p>
                     {[
                         ["lugar", "Nombre del lugar", 3, 255, registrado],
@@ -161,10 +161,10 @@ export default function PresupuestoEnvioModal({ presupuesto, onHide, onEnviado }
                     </Form.Group>
                     <Form.Check id="envio-factibilidad" required checked={form.confirmarFactibilidad} disabled={saving}
                         onChange={(e) => cambiar("confirmarFactibilidad", e.target.checked)}
-                        label="He revisado las condiciones y la factibilidad del lugar, fecha y horario de esta propuesta." />
+                        label="Revisé las condiciones y confirmé que el evento puede realizarse en el lugar, la fecha y el horario indicados." />
                     <p className="text-secondary small mt-3 mb-0">
-                        La propuesta quedará disponible en Compra / Contrato del cliente.
-                        La disponibilidad se comprobará nuevamente al aceptar. No se exige anticipo para contratar.
+                        El cliente la verá en «Propuestas y contratos». Al aceptar, se volverá a comprobar la
+                        disponibilidad. Puede contratar sin pagar el anticipo en ese momento.
                     </p>
                     </>}
                 </Modal.Body>
@@ -174,7 +174,7 @@ export default function PresupuestoEnvioModal({ presupuesto, onHide, onEnviado }
                     }}>Editar datos</Button>}
                     <Button variant="secondary" onClick={onHide} disabled={saving}>Cerrar</Button>
                     <Button type="submit" disabled={saving || cargando}>
-                        {(saving || cargando) && <Spinner size="sm" className="me-2" />}{resumen ? "Enviar propuesta al cliente" : "Continuar: revisar importe"}
+                        {(saving || cargando) && <Spinner size="sm" className="me-2" />}{resumen ? "Enviar propuesta al cliente" : "Revisar total"}
                     </Button>
                 </Modal.Footer>
             </Form>

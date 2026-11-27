@@ -271,9 +271,9 @@ export default function ActividadFormularioModal({ agenda }) {
                                 )}
 
                                 <Form.Text className="text-body-secondary">
-                                    Selecciona al menos un productor y marca
-                                    exactamente uno como responsable. El primero
-                                    seleccionado queda como responsable inicialmente.
+                                    Selecciona al menos un productor. El primero
+                                    quedará a cargo de la actividad, pero puedes
+                                    elegir a otro como responsable.
                                 </Form.Text>
                             </Form.Group>
                         ) : (

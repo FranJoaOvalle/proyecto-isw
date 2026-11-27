@@ -6,7 +6,7 @@ const grupos = [
         items: [
             { nombre: "Panel", ruta: "/cliente", icono: "window", end: true },
             { nombre: "Solicitudes", ruta: "/cliente/solicitudes", icono: "file-earmark-text" },
-            { nombre: "Compra / Contrato", ruta: "/cliente/compra", icono: "receipt" },
+            { nombre: "Propuestas y contratos", ruta: "/cliente/compra", icono: "receipt" },
             { nombre: "Mis eventos", ruta: "/cliente/eventos", icono: "calendar-event" }
         ]
     },

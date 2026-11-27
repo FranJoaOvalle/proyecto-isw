@@ -221,7 +221,7 @@ export default function AdminPage() {
         <Container fluid className="dashboard-admin py-4 px-3 px-xl-4">
             <PageHeader
                 title="Panel de control"
-                description="Resumen operativo de NES Eventos."
+                description="Eventos, pagos y evaluaciones que requieren atención."
             >
                 <Button
                     variant="outline-secondary"
@@ -290,7 +290,7 @@ export default function AdminPage() {
                     <Indicador
                         titulo="Pagos registrados"
                         valor={data.pagos ? moneda(montoPagado) : null}
-                        detalle="Total histórico pagado"
+                        detalle="Total recibido a la fecha"
                         icono="wallet2"
                         color="success"
                         ruta="/admin/pagos"
@@ -395,7 +395,7 @@ export default function AdminPage() {
                             </ProgressBar>
 
                             <small className="text-secondary d-block mt-2">
-                                Distribución entre pagos pagados y pendientes.
+                                Proporción del monto cobrado y del saldo pendiente.
                             </small>
                         </Card.Body>
                     </Card>
@@ -469,7 +469,7 @@ export default function AdminPage() {
                                         </div>
 
                                         <small className="text-secondary">
-                                            de 5.00
+                                            de 5
                                         </small>
                                     </div>
                                 </div>
@@ -478,7 +478,7 @@ export default function AdminPage() {
                             {!mejoresProductores.length && (
                                 <p className="text-secondary py-3">
                                     {data.ranking
-                                        ? "Todavía no hay productores con puntuación calculada."
+                                        ? "Aún no hay productores con puntaje."
                                         : "Ranking no disponible."}
                                 </p>
                             )}

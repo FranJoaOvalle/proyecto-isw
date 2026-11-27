@@ -124,7 +124,7 @@ export default function MapaEspacios({ espacios, onReservas, onUbicacionGuardada
                     <div>
                         <h3 className="h5 fw-bold mb-1">Mapa de espacios</h3>
                         <p className="text-secondary mb-0">
-                            Explora los recintos y revisa su estado de disponibilidad.
+                            Selecciona un recinto en el mapa para ver su dirección y capacidad.
                         </p>
                     </div>
                     <Button

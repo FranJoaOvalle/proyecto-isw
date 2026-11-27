@@ -236,7 +236,7 @@ export default function CatalogoAdminPage() {
         } catch (error) {
             setError(
                 error.response?.data?.error?.message ??
-                "No fue posible guardar el evento."
+                "No fue posible guardar el tipo de evento."
             );
         } finally {
             setSaving(false);
@@ -273,7 +273,7 @@ export default function CatalogoAdminPage() {
         } catch (error) {
             setError(
                 error.response?.data?.error?.message ??
-                "No fue posible cambiar el estado del evento."
+                "No fue posible cambiar el estado del tipo de evento."
             );
         } finally {
             setCambiandoEstado(false);
@@ -333,15 +333,15 @@ export default function CatalogoAdminPage() {
                     </h1>
 
                     <p className="text-secondary mb-0">
-                        Administra los tipos de eventos
-                        disponibles para los clientes.
+                        Los clientes ven los tipos de evento activos en
+                        el catálogo público.
                     </p>
                 </div>
 
                 <div className="align-self-md-end">
                     <Button onClick={abrirCrear}>
                         <i className="bi bi-plus-lg me-2" />
-                        Nuevo evento
+                        Nuevo tipo de evento
                     </Button>
                 </div>
             </div>
@@ -349,7 +349,7 @@ export default function CatalogoAdminPage() {
             <TableToolbar
                 search={busqueda}
                 onSearchChange={setBusqueda}
-                searchPlaceholder="Buscar evento..."
+                searchPlaceholder="Buscar tipo de evento"
                 estado={estado}
                 onEstadoChange={setEstado}
             />
@@ -367,12 +367,11 @@ export default function CatalogoAdminPage() {
                     <i className="bi bi-calendar-x fs-1 text-secondary" />
 
                     <h2 className="fs-5 fw-bold mt-3">
-                        No se encontraron eventos
+                        No se encontraron tipos de evento
                     </h2>
 
                     <p className="text-secondary mb-0">
-                        No hay eventos que coincidan
-                        con los filtros seleccionados.
+                        Prueba con otro nombre o cambia los filtros.
                     </p>
                 </div>
             ) : (
@@ -416,8 +415,8 @@ export default function CatalogoAdminPage() {
                     <Modal.Header closeButton={!saving}>
                         <Modal.Title>
                             {selectedTipoEvento
-                                ? "Editar evento"
-                                : "Nuevo evento"}
+                                ? "Editar tipo de evento"
+                                : "Nuevo tipo de evento"}
                         </Modal.Title>
                     </Modal.Header>
 
@@ -504,7 +503,7 @@ export default function CatalogoAdminPage() {
                             />
 
                             <Form.Text className="text-muted">
-                                Información referencial; los elementos finales se confirman en el presupuesto.
+                                El presupuesto indica cuáles de estos servicios se incluyen en la propuesta.
                             </Form.Text>
                         </Form.Group>
 
@@ -553,14 +552,14 @@ export default function CatalogoAdminPage() {
                                 />
 
                                 <Form.Text className="text-muted">
-                                    El precio de este tipo se cotiza según la duración del evento.
+                                    El precio se calcula según las horas contratadas.
                                 </Form.Text>
                             </Form.Group>
                         )}
 
                         <Form.Group className="mb-3">
                             <Form.Label htmlFor="cantidadPersonasBase">
-                                Cantidad de personas base
+                                Mínimo de asistentes
                             </Form.Label>
 
                             <Form.Control
@@ -593,7 +592,7 @@ export default function CatalogoAdminPage() {
                                 value={formData.imagen_url}
                                 onChange={handleChange}
                                 disabled={saving}
-                                placeholder="https://ejemplo.com/imagen.jpg"
+                                placeholder="https://example.com/imagen.jpg"
                             />
 
                         <Form.Text className="text-muted">
@@ -657,7 +656,7 @@ export default function CatalogoAdminPage() {
 
                                     {selectedTipoEvento
                                         ? "Guardar cambios"
-                                        : "Crear evento"}
+                                        : "Crear tipo de evento"}
                                 </>
                             )}
                         </Button>
@@ -675,8 +674,8 @@ export default function CatalogoAdminPage() {
                 >
                     <Modal.Title>
                         {tipoEventoEstado?.activo
-                            ? "Desactivar evento"
-                            : "Activar evento"}
+                            ? "Desactivar tipo de evento"
+                            : "Activar tipo de evento"}
                     </Modal.Title>
                 </Modal.Header>
 

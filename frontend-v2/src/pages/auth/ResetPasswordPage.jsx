@@ -247,7 +247,7 @@ export default function ResetPasswordPage() {
                                     tooltip
                                 >
                                     {confirmPassword.length < 8
-                                        ? "Repite una contraseña de al menos 8 caracteres."
+                                        ? "Vuelve a escribir la nueva contraseña."
                                         : "Las contraseñas no coinciden."}
                                 </Form.Control.Feedback>
                             </InputGroup>

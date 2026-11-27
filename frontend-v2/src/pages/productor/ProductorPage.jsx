@@ -116,8 +116,8 @@ export default function ProductorPage() {
                     </h4>
 
                     <p className="text-secondary mb-0">
-                        Consulta la programación de tus eventos
-                        y actividades.
+                        Revisa tus horarios y quién está a cargo de cada
+                        actividad.
                     </p>
                 </div>
 

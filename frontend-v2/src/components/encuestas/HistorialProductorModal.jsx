@@ -128,8 +128,7 @@ export default function HistorialProductorModal({
 
                         {evaluaciones.length === 0 ? (
                             <Alert variant="secondary">
-                                Este productor todavía no tiene
-                                evaluaciones registradas.
+                                Este productor aún no tiene evaluaciones.
                             </Alert>
                         ) : (
                             <Accordion>

@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 
 const prisma = require("../config/prisma");
 const env = require("../config/env");
+const { excluirCorreosDemo } = require("../utils/correo-demo");
 
 const {
     sendEncuestaEmail
@@ -102,6 +103,7 @@ async function procesarPendientes() {
         // Recuperar intentos finales interrumpidos.
         await prisma.invitacionEncuesta.updateMany({
             where: {
+                ...excluirCorreosDemo,
                 estado: "PENDIENTE",
                 intentos: { gte: MAX_INTENTOS },
                 respondidoAt: null,
@@ -116,6 +118,7 @@ async function procesarPendientes() {
         const invitaciones =
             await prisma.invitacionEncuesta.findMany({
                 where: {
+                    ...excluirCorreosDemo,
                     estado: {
                         in: ["PENDIENTE", "FALLIDA"]
                     },

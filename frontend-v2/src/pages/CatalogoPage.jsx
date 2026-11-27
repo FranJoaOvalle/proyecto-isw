@@ -84,8 +84,8 @@ export default function CatalogoPage() {
                 </h1>
 
                 <p className="text-secondary mb-0">
-                    Conoce los tipos de eventos disponibles
-                    en NES Eventos.
+                    Consulta los precios de referencia y elige el
+                    servicio que quieres cotizar.
                 </p>
             </div>
 
@@ -100,8 +100,8 @@ export default function CatalogoPage() {
                     onChange={(e) =>
                         setBusqueda(e.target.value)
                     }
-                    placeholder="Buscar eventos..."
-                    aria-label="Buscar eventos"
+                    placeholder="Buscar por tipo de evento"
+                    aria-label="Buscar por tipo de evento"
                 />
             </InputGroup>
 
@@ -127,13 +127,13 @@ export default function CatalogoPage() {
                     <i className="bi bi-calendar-x fs-1 text-secondary" />
 
                     <h2 className="fs-5 fw-bold mt-3">
-                        No se encontraron eventos
+                        No se encontraron servicios
                     </h2>
 
                     <p className="text-secondary mb-0">
                         {busqueda
-                            ? "No hay eventos que coincidan con tu búsqueda."
-                            : "No hay eventos disponibles actualmente."}
+                            ? "Prueba con el nombre de un servicio, como matrimonio o graduación."
+                            : "Aún no hay servicios publicados en el catálogo."}
                     </p>
                 </div>
             ) : (

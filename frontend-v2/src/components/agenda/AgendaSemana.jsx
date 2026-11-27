@@ -51,7 +51,7 @@ export default function AgendaSemana({ agenda }) {
                             <div className="small fw-bold text-primary mb-1">MI AGENDA</div>
                             <h2 className="h4 fw-bold text-capitalize mb-1">{tituloSemana}</h2>
                             <div className="small text-body-secondary">
-                                Organiza y consulta tus eventos y actividades
+                                Eventos y actividades de la semana
                             </div>
                         </div>
                     </div>
@@ -156,7 +156,7 @@ export default function AgendaSemana({ agenda }) {
                     />
                 ) : (
                     <div className="small text-body-secondary mt-3">
-                        Selecciona un registro para consultar su información detallada.
+                        Selecciona un evento o una actividad para ver el detalle.
                     </div>
                 )}
             </Card.Body>

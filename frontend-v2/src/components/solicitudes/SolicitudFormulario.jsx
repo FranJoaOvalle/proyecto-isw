@@ -122,7 +122,7 @@ export default function SolicitudFormulario({
                     {error && <Alert variant="danger">{error}</Alert>}
                     {tieneBorradores && (
                         <Alert variant="warning">
-                            Cambiar esta solicitud dejará sus borradores anteriores cancelados. Después podrás preparar una cotización con las nuevas condiciones.
+                            Al guardar los cambios, se cancelarán los presupuestos en borrador de esta solicitud. Podrás cotizar de nuevo con los datos actualizados.
                             <Form.Check id="solicitud-invalidar-borradores" className="mt-2" required
                                 checked={invalidarBorradores} disabled={saving}
                                 onChange={(e) => setInvalidarBorradores(e.target.checked)}
@@ -212,8 +212,8 @@ export default function SolicitudFormulario({
                                 type="invalid"
                                 tooltip
                             >
-                                Ingresa un valor válido; el término debe ser
-                                posterior al inicio.
+                                Ingresa una fecha y hora de término posteriores
+                                al inicio.
                             </Form.Control.Feedback>
                         </Form.Group>
                     ))}

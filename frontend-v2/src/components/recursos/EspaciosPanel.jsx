@@ -352,7 +352,7 @@ export default function EspaciosPanel() {
                 <div>
                     <h2 className="h4 fw-bold mb-1">Espacios y reservas</h2>
                     <p className="text-secondary mb-0">
-                        Mantén el registro de recintos, revisa disponibilidad y evita reservas superpuestas.
+                        Consulta qué recintos están libres en la fecha del evento o bloquea un horario.
                     </p>
                 </div>
                 <Button onClick={abrirCrear}><i className="bi bi-plus-lg me-2" />Nuevo espacio</Button>
@@ -374,7 +374,7 @@ export default function EspaciosPanel() {
                     <Form.Group className="col-md-4">
                         <Form.Label>Hora (opcional)</Form.Label>
                         <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
-                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
+                        <Form.Text className="text-secondary">Elige una hora para consultar ese bloque. Si la dejas en blanco, verás el día completo.</Form.Text>
                     </Form.Group>
                     <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
@@ -541,7 +541,7 @@ export default function EspaciosPanel() {
                 </Modal.Header>
                 <Modal.Body>
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-                    <p className="text-secondary">Aquí puedes consultar todas las reservas y registrar bloqueos independientes. Los eventos reservan su recinto al guardar la ubicación.</p>
+                    <p className="text-secondary">Consulta las reservas del recinto o bloquea un horario. Cuando guardas la ubicación de un evento, se registra su reserva.</p>
                     {selectedSpace?.habilitado ? <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">
                         <h3 className="h6 fw-bold">Reserva independiente</h3>
                         <div className="row g-3">

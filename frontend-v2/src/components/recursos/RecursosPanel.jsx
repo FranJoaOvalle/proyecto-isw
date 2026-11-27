@@ -327,7 +327,7 @@ export default function RecursosPanel() {
                     <Form.Group className="col-md-4">
                         <Form.Label>Hora (opcional)</Form.Label>
                         <Form.Control type="time" value={rango.fin} onChange={event => setRango(current => ({ ...current, fin: event.target.value }))} disabled={!rango.inicio} />
-                        <Form.Text className="text-secondary">Una hora consulta ese bloque; sin hora se revisa el día completo.</Form.Text>
+                        <Form.Text className="text-secondary">Elige una hora para consultar ese bloque. Si la dejas en blanco, verás el día completo.</Form.Text>
                     </Form.Group>
                     <div className="col-md-4 d-flex flex-wrap gap-2 pt-md-4">
                         <Button type="submit" disabled={loading}><i className="bi bi-search me-2" />Consultar</Button>
@@ -363,7 +363,7 @@ export default function RecursosPanel() {
                         <small className="text-secondary d-block mb-2">
                             {rangoAplicado
                                 ? `Disponibilidad para ${new Date(rangoAplicado.inicio).toLocaleString("es-CL")} – ${new Date(rangoAplicado.fin).toLocaleString("es-CL")}.`
-                                : "Inventario general; las reservas no se descuentan hasta consultar un período."}
+                                : "Estas cantidades corresponden al inventario. Consulta un período para descontar las unidades reservadas."}
                         </small>
                         <div className="d-flex flex-wrap gap-3">
                             {segmentosStock.map(segmento => (

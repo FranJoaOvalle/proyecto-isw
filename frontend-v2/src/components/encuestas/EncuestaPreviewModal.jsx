@@ -25,8 +25,8 @@ export default function EncuestaPreviewModal({
 
             <Modal.Body>
                 <Alert variant="info">
-                    Esta es una previsualización. Las respuestas
-                    ingresadas no serán almacenadas.
+                    Las respuestas que ingreses en esta vista previa
+                    no se guardarán.
                 </Alert>
 
                 <h4 className="fw-semibold">

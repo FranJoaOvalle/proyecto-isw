@@ -40,7 +40,7 @@ export default function AgendaMes({ agenda }) {
                                         })}
                                     </h2>
                                     <div className="small text-body-secondary">
-                                        Organiza y consulta tus eventos y actividades
+                                        Eventos y actividades del mes
                                     </div>
                                 </div>
                             </div>

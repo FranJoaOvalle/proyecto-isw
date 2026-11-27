@@ -4,7 +4,7 @@ export const listarEventosCliente = async () => {
     const response = await api.get("/eventos/cliente");
     const eventos = response.data?.eventos ?? response.data?.items ?? response.data;
     if (!Array.isArray(eventos)) {
-        throw new Error("El servidor no devolvió una lista de eventos válida.");
+        throw new Error("No se pudo leer la lista de tus eventos. Vuelve a intentarlo.");
     }
     return eventos;
 };

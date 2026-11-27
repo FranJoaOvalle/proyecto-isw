@@ -96,7 +96,7 @@ export default function EvaluacionesPage() {
         <Container className="py-5">
             <PageHeader
                 title="Evaluaciones de productores"
-                description="Supervisa el desempeño de los productores en eventos completados."
+                description="Revisa las calificaciones de clientes y registra la evaluación de gerencia de cada evento completado."
             />
 
             {error && (

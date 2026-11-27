@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const env = require("../config/env");
+const { esCorreoDemo } = require("../utils/correo-demo");
 
 const transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
@@ -12,6 +13,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendPasswordResetEmail = async (email, token) => {
+    if (esCorreoDemo(email)) return;
     const resetUrl =
         `${env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`;
 

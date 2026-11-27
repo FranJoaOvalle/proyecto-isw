@@ -11,7 +11,7 @@ export const login = async (email, password) => {
     });
     const token = response.data?.token;
     if (typeof token !== "string" || !token) {
-        throw new Error("El servidor no devolvió un token de sesión válido.");
+        throw new Error("No se pudo abrir tu sesión. Vuelve a iniciar sesión.");
     }
     revisionSesion += 1;
     localStorage.setItem("token", token);

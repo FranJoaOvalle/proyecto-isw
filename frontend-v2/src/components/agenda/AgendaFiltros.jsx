@@ -47,7 +47,7 @@ export default function AgendaFiltros({ agenda }) {
 
                 {rangoInvalido && (
                     <Alert variant="warning" className="py-2 small">
-                        La fecha inicial debe ser anterior o igual a la fecha final.
+                        La fecha de término no puede ser anterior a la de inicio.
                     </Alert>
                 )}
 

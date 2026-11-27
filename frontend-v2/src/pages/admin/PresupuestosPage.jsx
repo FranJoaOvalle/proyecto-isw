@@ -74,7 +74,7 @@ const comoListaTipos = (resultado) => {
         ? resultado
         : resultado?.tiposEvento ?? resultado?.items ?? resultado?.data;
     if (!Array.isArray(lista)) {
-        throw new Error("La respuesta de tipos de evento no tiene un formato de lista válido.");
+        throw new Error("No se pudo leer el catálogo de tipos de evento.");
     }
     return lista;
 };
@@ -323,7 +323,7 @@ export default function PresupuestosPage() {
                         <EmptyState
                             icon="bi-exclamation-triangle"
                             title="No fue posible cargar los presupuestos"
-                            description="Revisa la conexión e inténtalo nuevamente con el botón Reintentar."
+                            description="Revisa tu conexión y vuelve a intentarlo."
                         />
                     ) : presupuestosVisibles.length === 0 ? (
                         <EmptyState

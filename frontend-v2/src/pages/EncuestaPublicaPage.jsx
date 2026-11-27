@@ -183,10 +183,7 @@ export default function EncuestaPublicaPage() {
                                 </h2>
 
                                 <p className="text-secondary">
-                                    Hemos recibido tus respuestas
-                                    correctamente. Tu experiencia
-                                    nos ayuda a mejorar nuestros
-                                    servicios.
+                                    Recibimos tus respuestas.
                                 </p>
 
                                 <Button as={Link} to="/">

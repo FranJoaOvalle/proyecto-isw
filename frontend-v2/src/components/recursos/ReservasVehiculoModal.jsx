@@ -129,7 +129,7 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                     {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
                     <p className="text-secondary">{eventoInicial
                         ? `Asigna el vehículo al evento #${eventoInicial.id}. La devolución se registra en Vehículos.`
-                        : "Consulta las asignaciones y registra aquí las devoluciones o una reserva independiente."}</p>
+                        : "Registra la devolución del vehículo o reserva una salida por separado."}</p>
                     {!vehiculo?.habilitado || vehiculo?.estado !== "DISPONIBLE" ?
                     <Alert variant="secondary">Este vehículo no admite nuevas asignaciones.</Alert> :
                     <Form onSubmit={guardarReserva} className="border rounded-3 p-3 mb-4">

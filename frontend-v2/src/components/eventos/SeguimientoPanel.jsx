@@ -101,7 +101,7 @@ export default function SeguimientoPanel({ eventoId }) {
         try {
             await crearSeguimiento(eventoId, form);
             setMostrar(false);
-            setMensaje("Acontecimiento registrado correctamente.");
+            setMensaje("Registro de seguimiento guardado.");
             setRevision((value) => value + 1);
         } catch (err) {
             setErrorFormulario(
@@ -475,7 +475,7 @@ export default function SeguimientoPanel({ eventoId }) {
                     onHide={() => setSeleccionado(null)}
                     onGuardado={() => {
                         setRevision((v) => v + 1);
-                        setMensaje("Comentario agregado correctamente.");
+                        setMensaje("Comentario publicado.");
                     }}
                 />
             )}

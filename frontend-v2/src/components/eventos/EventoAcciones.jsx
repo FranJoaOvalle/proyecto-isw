@@ -335,9 +335,8 @@ export default function EventoAcciones({ evento, onCambio }) {
                                         variant="warning"
                                         className="mt-3"
                                     >
-                                        No fue posible cargar la vista previa.
-                                        Se mostrará una alternativa si la imagen
-                                        no está disponible.
+                                        No se pudo cargar la imagen. Revisa el enlace si
+                                        quieres usar esta foto.
                                     </Alert>
                                 ) : (
                                     <img
@@ -379,9 +378,8 @@ export default function EventoAcciones({ evento, onCambio }) {
                 confirmText="Sí, cancelar evento"
             >
                 <p>
-                    El evento pasará a CANCELADO. Se conservarán su presupuesto,
-                    pagos, recursos y todo su historial. Cancelar no elimina el
-                    evento.
+                    El evento quedará cancelado. Su presupuesto, los pagos, los
+                    recursos y el historial seguirán disponibles.
                 </p>
                 {error && <Alert variant="danger">{error}</Alert>}
             </ConfirmModal>

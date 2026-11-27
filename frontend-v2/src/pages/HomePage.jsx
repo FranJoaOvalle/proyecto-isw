@@ -24,17 +24,17 @@ const beneficios = [
     {
         icono: "calendar2-check",
         titulo: "Organización de eventos",
-        descripcion: "Planificamos tu evento de acuerdo con la fecha, el presupuesto y los servicios que necesites contratar."
+        descripcion: "Cotizamos el recinto, el personal y los equipos según la fecha y la cantidad de asistentes."
     },
     {
         icono: "people",
         titulo: "Producción de eventos",
-        descripcion: "Asignamos un productor responsable de coordinar los recursos y las actividades del evento."
+        descripcion: "Un productor coordina al personal, los equipos y los horarios de montaje."
     },
     {
         icono: "clipboard-data",
         titulo: "Portal de clientes",
-        descripcion: "Desde tu cuenta puedes consultar tus presupuestos, revisar los pagos y hacer seguimiento de tus eventos."
+        descripcion: "En tu cuenta puedes revisar propuestas y consultar la fecha y el lugar de tus eventos contratados."
     }
 ];
 
@@ -45,15 +45,15 @@ const pasos = [
     },
     {
         titulo: "Presupuesto",
-        descripcion: "Revisaremos tu solicitud y te enviaremos un presupuesto para que puedas evaluarlo."
+        descripcion: "Recibirás una propuesta con el detalle de los servicios y sus precios."
     },
     {
         titulo: "Planificación",
-        descripcion: "Una vez aprobado el presupuesto, coordinaremos los recursos y las actividades necesarias."
+        descripcion: "Cuando aceptes la propuesta, coordinaremos las reservas y el montaje."
     },
     {
         titulo: "Realización",
-        descripcion: "El productor asignado estará a cargo de la ejecución del evento."
+        descripcion: "El día del evento, el productor coordina al equipo en terreno."
     }
 ];
 
@@ -101,10 +101,10 @@ export default function HomePage() {
                         </h1>
 
                         <p className="home-hero-description">
-                            Organizamos eventos para particulares y
-                            empresas. Trabajamos contigo en la planificación
-                            y producción de tu evento, con servicios
-                            que se ajustan a tu presupuesto.
+                            Organizamos matrimonios, graduaciones y
+                            encuentros de empresa en el Biobío. En el
+                            catálogo puedes consultar los servicios y sus
+                            precios de referencia.
                         </p>
 
                         <div className="d-flex flex-wrap gap-3 mt-4">
@@ -172,8 +172,8 @@ export default function HomePage() {
                             </h2>
 
                             <p className="text-secondary mb-0">
-                                Consulta los tipos de eventos disponibles
-                                y los servicios incluidos en cada uno.
+                                Cada ficha indica el mínimo de asistentes y los
+                                servicios habituales.
                             </p>
                         </div>
 
@@ -259,8 +259,8 @@ export default function HomePage() {
                         </h2>
 
                         <p className="text-secondary">
-                            El proceso comienza con una solicitud
-                            de presupuesto a través de nuestra plataforma.
+                            Puedes revisar la propuesta en tu cuenta antes
+                            de confirmar la contratación.
                         </p>
                     </div>
 
@@ -299,9 +299,8 @@ export default function HomePage() {
                             </h2>
 
                             <p className="text-secondary mb-0">
-                                El costo de cada evento depende de los
-                                servicios contratados, la cantidad de
-                                asistentes y los recursos requeridos.
+                                Indica cuántas personas asistirán y qué
+                                servicios necesitas para que podamos cotizar.
                             </p>
                         </div>
 

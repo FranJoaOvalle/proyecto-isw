@@ -198,7 +198,7 @@ export default function RankingPage() {
         <Container className="py-5">
             <PageHeader
                 title="Ranking de productores"
-                description="Consulta y compara el desempeño de los productores según las evaluaciones de gerencia y clientes."
+                description="El período se aplica a la fecha de término de los eventos evaluados."
             />
 
             {error && (

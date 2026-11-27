@@ -95,18 +95,18 @@ export default function CatalogoCard({
                         {tipoEvento.modalidadPrecio === "POR_HORA" && "/hora"}
                     </span>
 
-                    <small className="text-secondary d-block mt-2">El importe final se acuerda en el presupuesto.</small>
+                    <small className="text-secondary d-block mt-2">El monto final se acuerda en el presupuesto.</small>
                     <hr />
 
                     <small className="text-secondary d-block mb-1">
-                        Cantidad de personas base
+                        Mínimo de asistentes
                     </small>
 
                     <span className="fw-semibold">
                         {Number.isFinite(cantidadPersonasBase) &&
                         cantidadPersonasBase > 0
                             ? `${cantidadPersonasBase} personas`
-                            : "No especificada"}
+                            : "Sin especificar"}
                     </span>
                 </div>
 

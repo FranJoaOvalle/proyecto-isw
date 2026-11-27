@@ -69,7 +69,7 @@ function CompraContrato() {
     const visibles = presupuestos.filter((item) => !solicitudId || String(item.solicitudId) === solicitudId);
     return (
         <Container className="py-5">
-            <PageHeader title="Compra / Contrato" description="Revisa las propuestas de tus solicitudes y confirma la que deseas contratar." />
+            <PageHeader title="Propuestas y contratos" description="Revisa el desglose y las condiciones antes de aceptar una propuesta." />
             <div className="d-flex flex-wrap gap-2 mb-4">
                 <Button variant="outline-primary" disabled={cargando || saving} onClick={cargar}>Actualizar</Button>
             </div>
@@ -138,10 +138,10 @@ function CompraContrato() {
                     }}>Actualizar propuestas</Button>
                 </Alert>}
                 {propuesta && <PresupuestoResumen presupuesto={propuesta} />}
-                <p>Al aceptar se confirmará la contratación y se creará tu evento. No necesitas realizar un anticipo para este paso.</p>
+                <p>Al aceptar, el evento quedará contratado. Puedes pagar el anticipo después.</p>
                 <Form.Check id="aceptacion-propuesta" checked={aceptacionExpresa} disabled={saving}
                     onChange={(e) => setAceptacionExpresa(e.target.checked)}
-                    label="Acepto las condiciones, el lugar, las fechas y el importe de esta propuesta." />
+                    label="Acepto las condiciones, el lugar, las fechas y el monto de esta propuesta." />
             </ConfirmModal>
         </Container>
     );

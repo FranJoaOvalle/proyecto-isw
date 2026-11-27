@@ -375,7 +375,7 @@ export default function PresupuestoFormularioModal({
                                 ))}
                             </Form.Select>
                             <Form.Text className="text-body-secondary">
-                                Solo se pueden emitir cotizaciones desde solicitudes en estado EN_REVISION.
+                                Solo puedes cotizar solicitudes en revisión.
                             </Form.Text>
                         </Form.Group>
                     )}
@@ -436,7 +436,7 @@ export default function PresupuestoFormularioModal({
                                         {e.nombre} · {e.capacidad} personas · {e.comuna ?? "Comuna pendiente"}
                                     </option>)}
                                 </Form.Select>
-                                <Form.Text>Los espacios se crean y mantienen en Recursos → Espacios. El lugar preferido de la solicitud es solo un antecedente.</Form.Text>
+                                <Form.Text>Puedes registrar recintos en Recursos → Espacios. El lugar que figura en la solicitud es una preferencia del cliente.</Form.Text>
                                 <a className="d-block small mt-1" href="/admin/recursos" target="_blank" rel="noreferrer">Administrar espacios</a>
                                 <Button variant="link" size="sm" className="p-0 mt-1" disabled={saving}
                                     onClick={() => setRevisionEspacios((v) => v + 1)}>Actualizar lista de espacios</Button>
@@ -572,8 +572,8 @@ export default function PresupuestoFormularioModal({
                                     isInvalid={validated && form.precioBaseAcordado !== "" &&
                                         (!/^\d{1,10}(?:\.\d{1,2})?$/.test(form.precioBaseAcordado) || Number(form.precioBaseAcordado) > MAX_DESCUENTO)} />
                                 <Form.Text className="text-body-secondary">
-                                    Opcional. Permite acordar un precio para esta propuesta sin cambiar el catálogo.
-                                    Si queda vacío, se utiliza el precio de referencia conservado en la cotización.
+                                    Deja el campo vacío para usar el precio de referencia de la cotización. El
+                                    precio acordado se aplica solo a esta propuesta.
                                 </Form.Text>
                                 <Form.Control.Feedback type="invalid">Usa un monto válido con máximo dos decimales.</Form.Control.Feedback>
                             </Form.Group>

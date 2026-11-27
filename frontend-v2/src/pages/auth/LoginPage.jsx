@@ -40,9 +40,9 @@ export default function LoginPage() {
     const [validated, setValidated] = useState(false);
     const [aviso, setAviso] = useState(() =>
         location.state?.registroExitoso
-            ? "Cuenta creada correctamente. Ya puedes iniciar sesión."
+            ? "Tu cuenta está lista. Ya puedes iniciar sesión."
             : location.state?.passwordReset
-              ? "Tu contraseña fue restablecida correctamente. Ya puedes iniciar sesión."
+              ? "Ya puedes iniciar sesión con tu nueva contraseña."
               : ""
     );
 
@@ -92,11 +92,11 @@ export default function LoginPage() {
                         </div>
 
                         <h1 className="fw-bold mb-2">
-                            Bienvenido de nuevo
+                            Iniciar sesión
                         </h1>
 
                         <p className="text-secondary mb-0">
-                            Inicia sesión para continuar a tu cuenta.
+                            Ingresa el correo asociado a tu cuenta.
                         </p>
                     </div>
 
@@ -137,7 +137,7 @@ export default function LoginPage() {
                                     setEmail(e.target.value);
                                     setError("");
                                 }}
-                                placeholder="correo@ejemplo.com"
+                                placeholder="nombre@example.com"
                                 autoComplete="email"
                                 required
                                 disabled={loading}
@@ -257,7 +257,7 @@ export default function LoginPage() {
             <div className="login-image">
                 <img
                     src="/assets/img/login.webp"
-                    alt="Evento"
+                    alt=""
                 />
                 <div className="login-overlay" />
             </div>

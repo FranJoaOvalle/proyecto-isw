@@ -141,8 +141,8 @@ export default function RespuestaClienteModal({
                                     </>
                                 ) : (
                                     <Alert variant="secondary">
-                                        Esta calificación no tiene
-                                        respuestas dinámicas asociadas.
+                                        No hay respuestas al formulario para esta
+                                        calificación.
                                     </Alert>
                                 )}
 
@@ -184,9 +184,8 @@ export default function RespuestaClienteModal({
 
                                 {invitacion?.estado === "ENVIADA" && (
                                     <Alert variant="info">
-                                        La invitación fue enviada,
-                                        pero el cliente todavía
-                                        no ha respondido.
+                                        Invitación enviada. Aún no hay respuesta del
+                                        cliente.
                                     </Alert>
                                 )}
                             </>

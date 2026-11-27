@@ -9,9 +9,7 @@
     "start": "tsx src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio",
-    "seed:espacios-demo": "tsx prisma/seed-mapa-demo.js",
-    "seed:inventario-demo": "tsx prisma/seed-inventario-demo.js"
+    "prisma:studio": "prisma studio"
   },
   "type": "commonjs",
   "dependencies": {
@@ -19,16 +17,16 @@
     "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.14",
     "pg": "^8.23.0",
+    "prisma": "6.19.3",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
-    "dotenv": "^17.4.2",
-    "prisma": "6.19.3",
-    "tsx": "^4.23.15"
+    "@types/node": "^26.6.4"
   }
 }

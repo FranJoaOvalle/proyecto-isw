@@ -33,7 +33,7 @@ const secciones = [
         accion: "Ver solicitudes"
     },
     {
-        titulo: "Compra / Contrato",
+        titulo: "Propuestas y contratos",
         descripcion: "Revisa los presupuestos recibidos y confirma la contratación de tus eventos.",
         icono: "receipt",
         ruta: "/cliente/compra",
@@ -41,7 +41,7 @@ const secciones = [
     },
     {
         titulo: "Mis eventos",
-        descripcion: "Consulta la planificación y el estado de tus eventos contratados.",
+        descripcion: "Revisa el lugar, el horario y el estado de tus eventos contratados.",
         icono: "calendar-event",
         ruta: "/cliente/eventos",
         accion: "Ver eventos"
@@ -108,12 +108,12 @@ export default function ClientePage() {
                     </div>
 
                     <h4 className="fw-bold mb-2">
-                        ¿Necesitas organizar un evento?
+                        Cotizar un evento
                     </h4>
 
                     <p className="text-secondary mb-0">
-                        Consulta los servicios disponibles y
-                        solicita un presupuesto desde el catálogo.
+                        Elige un tipo de evento para solicitar una
+                        cotización.
                     </p>
                 </div>
 

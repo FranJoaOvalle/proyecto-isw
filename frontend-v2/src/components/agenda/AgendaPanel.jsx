@@ -454,7 +454,7 @@ export default function AgendaPage() {
             setError(
                 err.response?.data?.error?.message ||
                 err.response?.data?.message ||
-                "No fue posible eliminar físicamente la actividad."
+                "No fue posible eliminar la actividad de forma definitiva."
             );
         } finally {
             setEliminandoActividad(false);
@@ -745,7 +745,7 @@ export default function AgendaPage() {
             <PageHeader
                 title="Agenda"
                 description={esAdmin
-                    ? "Toda la planificación de actividades y eventos de la organización."
+                    ? "Eventos y actividades de todos los productores."
                     : "Consulta tus eventos asignados y actividades programadas."}
             />
 

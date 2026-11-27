@@ -146,7 +146,7 @@ function Detalle({ id }) {
                                 </Row>
                                 <div className="border-top mt-4 pt-3">
                                     {evento.direccion && <p className="mb-1"><small className="text-body-secondary me-2">Dirección</small>{direccionConComuna(evento.direccion, evento.comuna)}</p>}
-                                    {!(evento.direccion && evento.comuna) && <p className="text-warning mb-1">Ubicación por completar. Se conserva el lugar histórico.</p>}
+                                    {!(evento.direccion && evento.comuna) && <p className="text-warning mb-1">Faltan datos de la ubicación. Se muestra el lugar registrado para el evento.</p>}
                                     {evento.referenciaDireccion && <p className="mb-1 text-break"><small className="text-body-secondary me-2">Acceso</small>{evento.referenciaDireccion}</p>}
                                 </div>
                                 {evento.observaciones && (
