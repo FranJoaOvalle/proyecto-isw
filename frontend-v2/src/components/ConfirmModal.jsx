@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
     Button,
     Modal,
@@ -15,8 +16,26 @@ export default function ConfirmModal({
                                          loading = false,
                                          confirmDisabled = false
                                      }) {
+    const confirmando = useRef(false);
+
+    async function confirmar(event) {
+        if (!show || loading || confirmDisabled || confirmando.current) return;
+        confirmando.current = true;
+        try {
+            await onConfirm(event);
+        } finally {
+            confirmando.current = false;
+        }
+    }
+
     return (
-        <Modal show={show} onHide={onHide} centered>
+        <Modal
+            show={show}
+            onHide={loading ? undefined : onHide}
+            centered
+            backdrop={loading ? "static" : true}
+            keyboard={!loading}
+        >
             <Modal.Header closeButton={!loading}>
                 <Modal.Title>{title}</Modal.Title>
             </Modal.Header>
@@ -36,8 +55,8 @@ export default function ConfirmModal({
 
                 <Button
                     variant={variant}
-                    onClick={onConfirm}
-                    disabled={loading || confirmDisabled}
+                    onClick={confirmar}
+                    disabled={!show || loading || confirmDisabled}
                 >
                     {loading && (
                         <Spinner

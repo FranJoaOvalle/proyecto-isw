@@ -69,8 +69,7 @@
 }
 
 @media (max-width: 575.98px) {
-    .profile-form-actions > .btn,
-    .profile-deactivate > .btn {
+    .profile-form-actions > .btn {
         width: 100%;
     }
 }

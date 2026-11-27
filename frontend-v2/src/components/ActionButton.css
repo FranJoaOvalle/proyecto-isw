@@ -1,0 +1,7 @@
+.action-button {
+    border-width: 1.5px;
+}
+
+.action-button .bi::before {
+    -webkit-text-stroke: 0.25px currentColor;
+}

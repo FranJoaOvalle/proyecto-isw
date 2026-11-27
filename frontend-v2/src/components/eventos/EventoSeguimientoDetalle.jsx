@@ -157,21 +157,6 @@ function Detalle({ id }) {
                                         </p>
                                     </div>
                                 )}
-                                {usuario?.rol === "ADMIN" && !["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
-                                    <div className="d-flex flex-wrap gap-2 mt-3">
-                                        <EventoUbicacion evento={evento} onCambio={async () => setEvento(await getEventoSeguimiento(id))} />
-                                        <AsignarProductor
-                                            evento={evento}
-                                            onCambio={() =>
-                                                getEventoSeguimiento(id)
-                                                    .then(setEvento)
-                                                    .catch((err) =>
-                                                        setError(mensajeError(err, "No fue posible actualizar el evento."))
-                                                    )
-                                            }
-                                        />
-                                    </div>
-                                )}
                                 {usuario?.rol === "ADMIN" && (
                                     <EventoAcciones
                                         evento={evento}
@@ -187,7 +172,23 @@ function Detalle({ id }) {
                                                     )
                                                 )
                                         }
-                                    />
+                                    >
+                                        {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
+                                            <>
+                                                <EventoUbicacion evento={evento} onCambio={async () => setEvento(await getEventoSeguimiento(id))} />
+                                                <AsignarProductor
+                                                    evento={evento}
+                                                    onCambio={() =>
+                                                        getEventoSeguimiento(id)
+                                                            .then(setEvento)
+                                                            .catch((err) =>
+                                                                setError(mensajeError(err, "No fue posible actualizar el evento."))
+                                                            )
+                                                    }
+                                                />
+                                            </>
+                                        )}
+                                    </EventoAcciones>
                                 )}
                             </Card.Body>
                         </Card>

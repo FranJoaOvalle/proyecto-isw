@@ -45,17 +45,18 @@
     white-space: nowrap;
 }
 
-.table-actions > .btn {
-    flex-shrink: 0;
-}
-
-.table-actions > .btn-icon {
+.btn.action-button,
+.action-button-disabled {
     width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
 }
 
-.table-actions > .btn-status {
-    min-width: 110px;
+.action-button .bi::before {
+    display: block;
 }

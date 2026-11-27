@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import {
     Badge,
     Button,
@@ -111,39 +112,32 @@ export default function CatalogoCard({
                 </div>
 
                 {admin && (
-                    <div className="d-flex gap-2 mt-3">
-                        <Button
+                    <div className="table-actions mt-3">
+                        <ActionButton
+                            icon="bi-pencil"
+                            label="Editar tipo de evento"
                             variant="outline-primary"
-                            className="flex-grow-1"
                             onClick={onEditar}
                             disabled={disabled}
-                        >
-                            <i className="bi bi-pencil me-2" />
-                            Editar
-                        </Button>
+                        />
 
-                        <Button
-                            variant={
-                                tipoEvento.activo
-                                    ? "outline-danger"
-                                    : "outline-success"
-                            }
-                            className="flex-grow-1"
+                        <ActionButton
+                            icon={tipoEvento.activo ? "bi-slash-circle" : "bi-check-circle"}
+                            label={tipoEvento.activo ? "Desactivar tipo de evento" : "Activar tipo de evento"}
+                            variant={tipoEvento.activo ? "outline-danger" : "outline-success"}
                             onClick={onCambiarEstado}
                             disabled={disabled}
-                        >
-                            <i
-                                className={
-                                    tipoEvento.activo
-                                        ? "bi bi-x-circle me-2"
-                                        : "bi bi-check-circle me-2"
-                                }
-                            />
+                        />
 
-                            {tipoEvento.activo
-                                ? "Desactivar"
-                                : "Activar"}
-                        </Button>
+                        {!tipoEvento.activo && onEliminarFisico && (
+                            <ActionButton
+                                icon="bi-trash"
+                                label="Eliminar tipo de evento"
+                                variant="danger"
+                                onClick={onEliminarFisico}
+                                disabled={disabled}
+                            />
+                        )}
                     </div>
                 )}
 
@@ -155,18 +149,6 @@ export default function CatalogoCard({
                     >
                         <i className="bi bi-calendar-plus me-2" aria-hidden="true" />
                         Solicitar evento
-                    </Button>
-                )}
-
-                {admin && !tipoEvento.activo && onEliminarFisico && (
-                    <Button
-                        variant="danger"
-                        className="w-100 mt-2"
-                        onClick={onEliminarFisico}
-                        disabled={disabled}
-                    >
-                        <i className="bi bi-trash me-2" />
-                        Eliminar
                     </Button>
                 )}
             </Card.Body>

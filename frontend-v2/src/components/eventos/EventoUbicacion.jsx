@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useState } from "react";
 import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { getEspacios } from "../../services/espacio.service";
@@ -100,12 +101,12 @@ export default function EventoUbicacion({ evento, onCambio }) {
     return (
         <>
             {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
-                <Button
+                <ActionButton
+                    icon={completo ? "bi-pencil" : "bi-geo-alt"}
+                    label={textoBoton}
                     variant="outline-primary"
                     onClick={abrir}
-                >
-                    {textoBoton}
-                </Button>
+                />
             )}
             <Modal
                 show={show}

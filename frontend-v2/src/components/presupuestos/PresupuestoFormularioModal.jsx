@@ -1,3 +1,5 @@
+import ConfirmModal from "../ConfirmModal";
+import ActionButton from "../ActionButton";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { mensajeError } from "../eventos/seguimiento.utils";
@@ -57,6 +59,7 @@ export default function PresupuestoFormularioModal({
     cargandoRecursos,
     errorRecursos
 }) {
+    const [confirmarRetiro, setConfirmarRetiro] = useState(false);
     const [form, setForm] = useState(() => formularioDePresupuesto(presupuesto));
     const [espacios, setEspacios] = useState([]);
     const [cargandoEspacios, setCargandoEspacios] = useState(true);
@@ -266,7 +269,11 @@ export default function PresupuestoFormularioModal({
         }));
     }
 
-    async function guardar(event) {
+    const recursosRetirados = presupuesto?.recursos?.filter(recurso =>
+        !form.recursos.some(item => Number(item.recursoId) === recurso.recursoId)
+    ) ?? [];
+
+    function guardar(event) {
         event.preventDefault();
         setValidated(true);
         setError("");
@@ -297,6 +304,14 @@ export default function PresupuestoFormularioModal({
             return;
         }
 
+        if (recursosRetirados.length) {
+            setConfirmarRetiro(true);
+            return;
+        }
+        guardarPresupuesto();
+    }
+
+    async function guardarPresupuesto() {
         setSaving(true);
         try {
             // El total no se envía: el backend lo recalcula con Decimal y conserva el recargo del snapshot al editar.
@@ -327,6 +342,7 @@ export default function PresupuestoFormularioModal({
                     : "No fue posible crear el presupuesto."
             ));
         } finally {
+            setConfirmarRetiro(false);
             setSaving(false);
         }
     }
@@ -336,6 +352,25 @@ export default function PresupuestoFormularioModal({
             solicitudSeleccionada?.cliente?.persona?.apellidos]
             .filter(Boolean)
             .join(" ") || "Cliente";
+
+    if (confirmarRetiro) {
+        return (
+            <ConfirmModal
+                show={show}
+                onHide={() => setConfirmarRetiro(false)}
+                onConfirm={guardarPresupuesto}
+                title="Quitar recursos del presupuesto"
+                confirmText="Quitar y guardar cambios"
+                loading={saving}
+            >
+                Al guardar el presupuesto <strong>#{presupuesto.id}</strong>, se quitarán estas partidas del cálculo del total.
+                Los recursos se conservarán en el inventario.
+                <ul className="mb-0">{recursosRetirados.map(recurso => (
+                    <li key={recurso.recursoId}>{recurso.nombreRecurso}</li>
+                ))}</ul>
+            </ConfirmModal>
+        );
+    }
 
     return (
         <Modal
@@ -548,15 +583,14 @@ export default function PresupuestoFormularioModal({
                                         </Form.Group>
                                     </Col>
                                     <Col md={1}>
-                                        <Button
+                                        <ActionButton
+                                            icon="bi-trash"
+                                            label="Quitar recurso del presupuesto"
                                             type="button"
                                             variant="outline-danger"
-                                            aria-label="Quitar recurso"
                                             onClick={() => quitarRecurso(indice)}
                                             disabled={saving}
-                                        >
-                                            <i className="bi bi-trash" />
-                                        </Button>
+                                        />
                                     </Col>
                                 </Row>
                             ))}

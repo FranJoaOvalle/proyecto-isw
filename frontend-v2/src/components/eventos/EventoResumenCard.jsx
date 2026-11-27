@@ -1,5 +1,6 @@
+import ActionButton from "../ActionButton";
 import EventoImagen from "./EventoImagen";
-import { Badge, Button, Card } from "react-bootstrap";
+import { Badge, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
 export default function EventoResumenCard({ evento, detalleUrl }) {
@@ -43,15 +44,14 @@ export default function EventoResumenCard({ evento, detalleUrl }) {
                     )}
                 </div>
 
-                <div className="mt-auto">
-                    <Button
+                <div className="table-actions mt-auto">
+                    <ActionButton
+                        icon="bi-eye"
+                        label={`Ver detalles de ${evento.nombre}`}
                         as={Link}
                         to={detalleUrl}
                         variant="outline-primary"
-                        className="w-100"
-                    >
-                        Ver detalle
-                    </Button>
+                    />
                 </div>
             </Card.Body>
         </Card>

@@ -371,7 +371,12 @@ export default function ProfilePage() {
                                             No podrás iniciar sesión hasta que un administrador reactive tu cuenta.
                                         </p>
                                     </div>
-                                    <Button variant="outline-danger" className="flex-shrink-0" onClick={() => setShowDeactivateModal(true)}>
+                                    <Button
+                                        variant="danger"
+                                        className="text-nowrap"
+                                        onClick={() => setShowDeactivateModal(true)}
+                                    >
+                                        <i className="bi bi-person-x me-2" aria-hidden="true" />
                                         Desactivar mi cuenta
                                     </Button>
                                 </div>
@@ -394,7 +399,7 @@ export default function ProfilePage() {
 
                 <Modal.Body>
                     <p>
-                        ¿Seguro que deseas desactivar tu cuenta?
+                        ¿Seguro que deseas desactivar tu cuenta <strong>{usuario.email}</strong>?
                     </p>
 
                     <p className="text-secondary mb-0">

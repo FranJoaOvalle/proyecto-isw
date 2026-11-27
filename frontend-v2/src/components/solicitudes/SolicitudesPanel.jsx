@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -289,29 +290,23 @@ function Panel({ id, tipoEventoId }) {
                                             {solicitud.motivoCierre}
                                         </Alert>
                                     )}
-                                    <div className="d-flex flex-wrap gap-2 mt-3">
+                                    <div className="table-actions justify-content-start mt-3">
                                         {editable && (
-                                            <Button
+                                            <ActionButton
+                                                icon="bi-pencil"
+                                                label="Editar solicitud"
                                                 variant="outline-primary"
-                                                onClick={() =>
-                                                    setFormulario(true)
-                                                }
-                                            >
-                                                Editar solicitud
-                                            </Button>
+                                                onClick={() => setFormulario(true)}
+                                            />
                                         )}
                                         {esAdmin &&
                                             solicitud.estado ===
                                                 "PENDIENTE" && (
-                                                <Button
-                                                    onClick={() =>
-                                                        setConfirmacion(
-                                                            "revision"
-                                                        )
-                                                    }
-                                                >
-                                                    Iniciar revisión
-                                                </Button>
+                                                <ActionButton
+                                                    icon="bi-clipboard-check"
+                                                    label="Iniciar revisión"
+                                                    onClick={() => setConfirmacion("revision")}
+                                                />
                                             )}
                                         {(esAdmin
                                             ? [
@@ -320,17 +315,15 @@ function Panel({ id, tipoEventoId }) {
                                               ].includes(solicitud.estado)
                                             : solicitud.estado ===
                                               "PENDIENTE") && (
-                                            <Button
+                                            <ActionButton
+                                                icon="bi-x-circle"
+                                                label={esAdmin ? "Rechazar solicitud" : "Retirar solicitud"}
                                                 variant="outline-danger"
                                                 onClick={() => {
                                                     setMotivo("");
                                                     setConfirmacion("cierre");
                                                 }}
-                                            >
-                                                {esAdmin
-                                                    ? "Rechazar"
-                                                    : "Retirar solicitud"}
-                                            </Button>
+                                            />
                                         )}
                                     </div>
                                     {solicitud.presupuestos.length > 0 &&
@@ -373,11 +366,15 @@ function Panel({ id, tipoEventoId }) {
                                                 <span>{fechaSeguimiento(solicitud.evento.fin)}</span>
                                             </Col>
                                         </Row>
-                                        <Button as={Link}
-                                            to={`/${esAdmin ? "admin" : "cliente"}/eventos/${solicitud.evento.id}`}
-                                            variant="outline-primary" className="mt-3">
-                                            Ver evento
-                                        </Button>
+                                        <div className="table-actions justify-content-start mt-3">
+                                            <ActionButton
+                                                icon="bi-eye"
+                                                label="Ver evento"
+                                                as={Link}
+                                                to={`/${esAdmin ? "admin" : "cliente"}/eventos/${solicitud.evento.id}`}
+                                                variant="outline-primary"
+                                            />
+                                        </div>
                                     </Card.Body>
                                 </Card>
                             )}
@@ -397,10 +394,15 @@ function Panel({ id, tipoEventoId }) {
                                             Aún no hay propuestas vinculadas a esta solicitud.
                                         </p>
                                     )}
-                                    <Button as={Link} to={esAdmin ? "/admin/presupuestos" : `/cliente/compra?solicitudId=${solicitud.id}`}
-                                        variant="outline-primary">
-                                        {esAdmin ? "Gestionar presupuestos" : "Revisar propuestas"}
-                                    </Button>
+                                    <div className="table-actions justify-content-start">
+                                        <ActionButton
+                                            icon="bi-file-earmark-text"
+                                            label={esAdmin ? "Gestionar presupuestos" : "Revisar propuestas"}
+                                            as={Link}
+                                            to={esAdmin ? "/admin/presupuestos" : `/cliente/compra?solicitudId=${solicitud.id}`}
+                                            variant="outline-primary"
+                                        />
+                                    </div>
                                 </Card.Body>
                             </Card>
                             <Card className="shadow-sm">
@@ -452,13 +454,15 @@ function Panel({ id, tipoEventoId }) {
                                                     {s.lugar ||
                                                         "Lugar por definir"}
                                                 </p>
-                                                <Button
-                                                    as={Link}
-                                                    to={`${base}/${s.id}`}
-                                                    variant="outline-primary"
-                                                >
-                                                    Ver solicitud #{s.id}
-                                                </Button>
+                                                <div className="table-actions justify-content-start">
+                                                    <ActionButton
+                                                        icon="bi-eye"
+                                                        label={`Ver solicitud #${s.id}`}
+                                                        as={Link}
+                                                        to={`${base}/${s.id}`}
+                                                        variant="outline-primary"
+                                                    />
+                                                </div>
                                             </Card.Body>
                                         </Card>
                                     </Col>
@@ -536,6 +540,7 @@ function Panel({ id, tipoEventoId }) {
                     </p>
                 ) : (
                     <Form.Group controlId="solicitud-motivo">
+                        <p>La solicitud <strong>#{solicitud?.id}</strong> quedará {esAdmin ? "rechazada" : "retirada"}. Se conservarán el registro y el motivo del cierre.</p>
                         <Form.Label>
                             Motivo obligatorio (mínimo 3 caracteres)
                         </Form.Label>

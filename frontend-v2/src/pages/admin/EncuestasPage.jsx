@@ -1,3 +1,5 @@
+import ConfirmModal from "../../components/ConfirmModal";
+import ActionButton from "../../components/ActionButton";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -27,6 +29,7 @@ import {
 export default function EncuestasPage() {
     const [encuestas, setEncuestas] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [pendiente, setPendiente] = useState(null);
     const [changingId, setChangingId] = useState(null);
     const [error, setError] = useState("");
 
@@ -79,6 +82,7 @@ export default function EncuestasPage() {
     }, []);
 
     const handleEstado = async (encuesta) => {
+        if (!encuesta || changingId !== null || predeterminandoId !== null || esPredeterminada(encuesta)) return;
         setError("");
         setChangingId(encuesta.id);
 
@@ -95,6 +99,7 @@ export default function EncuestasPage() {
                 "No fue posible cambiar el estado."
             );
         } finally {
+            setPendiente(null);
             setChangingId(null);
         }
     };
@@ -260,67 +265,38 @@ export default function EncuestasPage() {
                             <td className="text-end">
                                 <div className="table-actions">
                                     {!esPredeterminada(encuesta) && encuesta.activo && (
-                                        <Button
-                                            size="sm"
+                                        <ActionButton
+                                            icon="bi-star"
+                                            label="Establecer como predeterminada"
                                             variant="outline-warning"
-                                            className="me-2"
-                                            title="Establecer como predeterminada"
-                                            aria-label="Establecer como predeterminada"
-                                            disabled={
-                                                predeterminandoId !== null ||
-                                                changingId !== null
-                                            }
+                                            disabled={predeterminandoId !== null || changingId !== null}
                                             onClick={() => handlePredeterminada(encuesta)}
-                                        >
-                                            {predeterminandoId === encuesta.id ? (
-                                                <Spinner animation="border" size="sm" />
-                                            ) : (
-                                                <i className="bi bi-star" />
-                                            )}
-                                        </Button>
+                                            loading={predeterminandoId === encuesta.id}
+                                        />
                                     )}
 
-                                    <Button
-                                        size="sm"
+                                    <ActionButton
+                                        icon="bi-eye"
+                                        label="Previsualizar encuesta"
                                         variant="outline-secondary"
-                                        className="me-2"
                                         onClick={() => setEncuestaPreview(encuesta)}
-                                        title="Previsualizar encuesta"
-                                    >
-                                        <i className="bi bi-eye me-1" />
-                                        Previsualizar
-                                    </Button>
+                                    />
 
-                                    <Button
-                                        size="sm"
+                                    <ActionButton
+                                        icon="bi-pencil"
+                                        label="Editar encuesta"
                                         variant="outline-primary"
-                                        className="me-2"
                                         onClick={() => abrirEdicion(encuesta)}
-                                    >
-                                        <i className="bi bi-pencil me-1" />
-                                        Editar
-                                    </Button>
+                                    />
 
-                                    <Button
-                                        size="sm"
-                                        variant={
-                                            encuesta.activo
-                                                ? "outline-danger"
-                                                : "outline-success"
-                                        }
-                                        disabled={
-                                            changingId !== null ||
-                                            predeterminandoId !== null ||
-                                            esPredeterminada(encuesta)
-                                        }
-                                        onClick={() => handleEstado(encuesta)}
-                                    >
-                                        {changingId === encuesta.id
-                                            ? "Guardando..."
-                                            : encuesta.activo
-                                                ? "Desactivar"
-                                                : "Activar"}
-                                    </Button>
+                                    <ActionButton
+                                        icon={encuesta.activo ? "bi-slash-circle" : "bi-check-circle"}
+                                        label={encuesta.activo ? "Desactivar encuesta" : "Activar encuesta"}
+                                        variant={encuesta.activo ? "outline-danger" : "outline-success"}
+                                        disabled={changingId !== null || predeterminandoId !== null || esPredeterminada(encuesta)}
+                                        onClick={() => encuesta.activo ? setPendiente(encuesta) : handleEstado(encuesta)}
+                                        loading={changingId === encuesta.id}
+                                    />
                                 </div>
                             </td>
                         </tr>
@@ -354,6 +330,16 @@ export default function EncuestasPage() {
                     onSaved={loadEncuestas}
                 />
             )}
+            <ConfirmModal
+                show={Boolean(pendiente)}
+                onHide={() => setPendiente(null)}
+                onConfirm={() => handleEstado(pendiente)}
+                loading={changingId !== null}
+                title="Desactivar encuesta"
+                confirmText="Desactivar encuesta"
+            >
+                La encuesta <strong>{pendiente?.nombre}</strong> dejará de estar disponible para nuevas evaluaciones. Podrás volver a activarla.
+            </ConfirmModal>
         </Container>
     );
 }

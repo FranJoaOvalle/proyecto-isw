@@ -1,3 +1,4 @@
+import ActionButton from "../../components/ActionButton";
 import { useEffect, useState } from "react";
 
 import {
@@ -471,18 +472,12 @@ export default function RankingPage() {
 
                                         <td className="text-end">
                                             <div className="table-actions">
-                                                <Button
-                                                    size="sm"
+                                                <ActionButton
+                                                    icon="bi-clock-history"
+                                                    label="Consultar historial del productor"
                                                     variant="outline-secondary"
-                                                    title="Consultar historial"
-                                                    onClick={() =>
-                                                        setProductorHistorial(
-                                                            productor.productorId
-                                                        )
-                                                    }
-                                                >
-                                                    <i className="bi bi-clock-history" />
-                                                </Button>
+                                                    onClick={() => setProductorHistorial(productor.productorId)}
+                                                />
                                             </div>
                                         </td>
                                     </tr>

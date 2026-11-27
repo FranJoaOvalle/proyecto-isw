@@ -11,7 +11,7 @@ export default function TableToolbar({
                                      }) {
     return (
         <div className="d-flex flex-column flex-lg-row gap-3 mb-4">
-            <InputGroup className="flex-grow-1">
+            <InputGroup className="grow">
                 <InputGroup.Text>
                     <i className="bi bi-search" />
                 </InputGroup.Text>
@@ -26,7 +26,7 @@ export default function TableToolbar({
             <Form.Select
                 value={estado}
                 onChange={(e) => onEstadoChange(e.target.value)}
-                style={{ maxWidth: 180 }}
+                style={{ maxWidth: 220, flexShrink: 0 }}
             >
                 {Object.entries(opcionesEstado).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </Form.Select>

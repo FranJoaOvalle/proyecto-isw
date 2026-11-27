@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import { Badge, Button, Card, ListGroup, Spinner } from "react-bootstrap";
@@ -169,9 +170,14 @@ export default function MapaEspacios({ espacios, onReservas, onUbicacionGuardada
                                                     <strong>{espacio.nombre}</strong>
                                                     <div>{espacio.direccion}</div>
                                                     <div>{espacio.capacidad.toLocaleString("es-CL")} personas · {estado.texto}</div>
-                                                    <Button size="sm" variant="link" className="px-0 pb-0" onClick={() => onReservas(espacio)}>
-                                                        Ver reservas
-                                                    </Button>
+                                                    <div className="table-actions justify-content-start">
+                                                        <ActionButton
+                                                            icon="bi-calendar-event"
+                                                            label="Ver reservas del espacio"
+                                                            variant="link"
+                                                            onClick={() => onReservas(espacio)}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </Popup>
                                         </CircleMarker>

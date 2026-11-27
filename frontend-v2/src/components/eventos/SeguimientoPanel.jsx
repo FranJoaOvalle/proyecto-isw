@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -346,13 +347,14 @@ export default function SeguimientoPanel({ eventoId }) {
                                 {nombreAutor(registro.usuario)} ·{" "}
                                 {fechaSeguimiento(registro.createdAt)}
                             </div>
-                            <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => setSeleccionado(registro)}
-                            >
-                                Ver comentarios ({registro._count.comentarios})
-                            </Button>
+                            <div className="table-actions justify-content-start">
+                                <ActionButton
+                                    icon="bi-chat-left-text"
+                                    label={`Ver comentarios (${registro._count.comentarios})`}
+                                    variant="outline-primary"
+                                    onClick={() => setSeleccionado(registro)}
+                                />
+                            </div>
                         </ListGroup.Item>
                     ))}
                 </ListGroup>

@@ -1,5 +1,11 @@
-import {Container, Nav, Navbar, NavDropdown} from "react-bootstrap";
-
+import {
+    Container,
+    Nav,
+    Navbar,
+    NavDropdown,
+    OverlayTrigger,
+    Tooltip
+} from "react-bootstrap";
 import {Link, useNavigate} from "react-router-dom";
 
 import {useAuth} from "../contexts/AuthContext";
@@ -23,6 +29,8 @@ const getPanelPath = (rol) => {
 
 const getProfilePath = (rol) => {
     switch (rol) {
+        case "ADMIN":
+            return "/admin/perfil";
         case "CLIENTE":
             return "/cliente/perfil";
         case "PRODUCTOR":
@@ -125,29 +133,37 @@ export default function MainNavbar() {
                             </Nav.Link>
                         )}
 
-                        <button
-                            type="button"
-                            onClick={toggleTheme}
-                            className="btn btn-link nav-link d-flex align-items-center justify-content-center"
-                            aria-label={
-                                theme === "dark"
-                                    ? "Cambiar a modo claro"
-                                    : "Cambiar a modo oscuro"
-                            }
-                            title={
-                                theme === "dark"
-                                    ? "Modo claro"
-                                    : "Modo oscuro"
+                        <OverlayTrigger
+                            placement="bottom"
+                            trigger={["hover", "focus"]}
+                            overlay={
+                                <Tooltip id="navbar-theme-tooltip">
+                                    {theme === "dark"
+                                        ? "Cambiar a modo claro"
+                                        : "Cambiar a modo oscuro"}
+                                </Tooltip>
                             }
                         >
-                            <i
-                                className={
+                            <button
+                                type="button"
+                                onClick={toggleTheme}
+                                className="btn btn-link nav-link d-flex align-items-center justify-content-start justify-content-lg-center"
+                                aria-label={
                                     theme === "dark"
-                                        ? "bi bi-sun fs-5"
-                                        : "bi bi-moon-stars fs-5"
+                                        ? "Cambiar a modo claro"
+                                        : "Cambiar a modo oscuro"
                                 }
-                            />
-                        </button>
+                            >
+                                <i
+                                    className={
+                                        theme === "dark"
+                                            ? "bi bi-sun fs-5"
+                                            : "bi bi-moon-stars fs-5"
+                                    }
+                                    aria-hidden="true"
+                                />
+                            </button>
+                        </OverlayTrigger>
 
                         {!usuario ? (
                             <Link
@@ -192,8 +208,8 @@ export default function MainNavbar() {
 
                                 <NavDropdown.Divider/>
 
-                                <NavDropdown.Item onClick={handleLogout}>
-                                    <i className="bi bi-box-arrow-left me-2"/>
+                                <NavDropdown.Item onClick={handleLogout} className="navbar-logout">
+                                    <i className="bi bi-box-arrow-left me-2" />
                                     Cerrar sesión
                                 </NavDropdown.Item>
                             </NavDropdown>

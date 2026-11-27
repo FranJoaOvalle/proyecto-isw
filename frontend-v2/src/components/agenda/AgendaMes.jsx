@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { Badge, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import EmptyState from "../EmptyState";
 import { DIAS_SEMANA, TIPOS_ACTIVIDAD, obtenerNombre, obtenerProductoresAsignados, formatearFecha, formatearDia, obtenerVarianteEstado, formatearEstado } from "./agenda.utils";
@@ -741,80 +742,62 @@ export default function AgendaMes({ agenda }) {
                                         )}
 
                                         {!esEvento && (
-                                                <div className="d-flex flex-wrap gap-2 mt-3">
+                                                <div className="table-actions justify-content-start mt-3">
                                                     {registro.estado === "PENDIENTE" && (
-                                                        <Button
+                                                        <ActionButton
+                                                            icon="bi-check2-circle"
+                                                            label="Completar actividad"
                                                             variant="outline-success"
-                                                            size="sm"
-                                                            className="rounded-3 flex-fill py-2"
                                                             onClick={() => completarActividadPendiente(registro)}
                                                             disabled={cambiandoEstadoActividad}
-                                                        >
-                                                            <i className="bi bi-check2-circle me-1" />
-                                                            Completar
-                                                        </Button>
+                                                        />
                                                     )}
 
                                                     {registro.estado === "COMPLETADA" && (
-                                                        <Button
+                                                        <ActionButton
+                                                            icon="bi-arrow-counterclockwise"
+                                                            label="Marcar actividad como pendiente"
                                                             variant="outline-secondary"
-                                                            size="sm"
-                                                            className="rounded-3 flex-fill py-2"
                                                             onClick={() => marcarActividadPendiente(registro)}
                                                             disabled={cambiandoEstadoActividad}
-                                                        >
-                                                            <i className="bi bi-arrow-counterclockwise me-1" />
-                                                            Marcar pendiente
-                                                        </Button>
+                                                        />
                                                     )}
 
                                                     {(registro.estado !== "CANCELADA" || esAdmin) && (
-                                                        <Button
+                                                        <ActionButton
+                                                            icon="bi-pencil"
+                                                            label="Editar actividad"
                                                             variant="outline-primary"
-                                                            size="sm"
-                                                            className="rounded-3 flex-fill py-2"
                                                             onClick={() => abrirEdicionActividad(registro)}
-                                                        >
-                                                            <i className="bi bi-pencil me-1" />
-                                                            Editar
-                                                        </Button>
+                                                        />
                                                     )}
 
                                                     {registro.estado !== "CANCELADA" && (
-                                                        <Button
+                                                        <ActionButton
+                                                            icon="bi-x-circle"
+                                                            label="Cancelar actividad"
                                                             variant="outline-danger"
-                                                            size="sm"
-                                                            className="rounded-3 flex-fill py-2"
                                                             onClick={() => anularActividad(registro)}
-                                                        >
-                                                            <i className="bi bi-x-circle me-1" />
-                                                            Cancelar
-                                                        </Button>
+                                                        />
                                                     )}
 
                                                     {registro.estado === "CANCELADA" && esAdmin && (
-                                                        <Button
+                                                        <ActionButton
+                                                            icon="bi-check-circle"
+                                                            label="Reactivar actividad"
                                                             variant="outline-success"
-                                                            size="sm"
-                                                            className="rounded-3 flex-fill py-2"
                                                             onClick={() => setActividadReactivando(registro)}
                                                             disabled={cambiandoEstadoActividad}
-                                                        >
-                                                            <i className="bi bi-arrow-counterclockwise me-1" />
-                                                            Reactivar
-                                                        </Button>
+                                                        />
                                                     )}
 
                                                     {esAdmin && registro.estado === "CANCELADA" && (
-                                                        <Button
+                                                        <ActionButton
+                                                            icon="bi-trash"
+                                                            label="Eliminar actividad"
                                                             variant="danger"
-                                                            size="sm"
-                                                            className="rounded-3 flex-fill py-2"
                                                             onClick={() => solicitarEliminacionFisica(registro)}
-                                                        >
-                                                            <i className="bi bi-trash me-1" />
-                                                            Eliminar
-                                                        </Button>
+                                                        />
                                                     )}
                                                 </div>
                                             )}

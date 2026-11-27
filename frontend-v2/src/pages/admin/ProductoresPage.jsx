@@ -1,3 +1,5 @@
+import ConfirmModal from "../../components/ConfirmModal";
+import ActionButton from "../../components/ActionButton";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -36,7 +38,8 @@ export default function ProductoresPage() {
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [changingId, setChangingId] = useState(null);
+    const [pendiente, setPendiente] = useState(null);
+    const [changingIds, setChangingIds] = useState([]);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
     const [estado, setEstado] = useState("TODOS");
@@ -122,8 +125,9 @@ export default function ProductoresPage() {
     };
 
     const handleEstado = async (productor) => {
+        if (!productor || changingIds.includes(productor.id)) return;
         setError("");
-        setChangingId(productor.id);
+        setChangingIds(ids => [...ids, productor.id]);
 
         try {
             await cambiarEstadoProductor(
@@ -138,7 +142,8 @@ export default function ProductoresPage() {
                 "No fue posible cambiar el estado del productor."
             );
         } finally {
-            setChangingId(null);
+            setPendiente(actual => actual?.id === productor.id ? null : actual);
+            setChangingIds(ids => ids.filter(id => id !== productor.id));
         }
     };
 
@@ -259,40 +264,20 @@ export default function ProductoresPage() {
 
                                 <td className="text-end">
                                     <div className="table-actions">
-                                        <Button
-                                            size="sm"
+                                        <ActionButton
+                                            icon="bi-pencil"
+                                            label="Editar productor"
                                             variant="outline-primary"
-                                            className="me-2"
                                             onClick={() => openEdit(productor)}
-                                        >
-                                            <i className="bi bi-pencil me-1" />
-                                            Editar
-                                        </Button>
+                                        />
 
-                                        <Button
-                                            size="sm"
-                                            variant={
-                                                productor.usuario.activo
-                                                    ? "outline-danger"
-                                                    : "outline-success"
-                                            }
-                                            disabled={changingId === productor.id}
-                                            onClick={() => handleEstado(productor)}
-                                        >
-                                            {changingId === productor.id ? (
-                                                "Guardando..."
-                                            ) : productor.usuario.activo ? (
-                                                <>
-                                                    <i className="bi bi-person-x me-1" />
-                                                    Desactivar
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="bi bi-person-check me-1" />
-                                                    Activar
-                                                </>
-                                            )}
-                                        </Button>
+                                        <ActionButton
+                                            icon={productor.usuario.activo ? "bi-person-x" : "bi-person-check"}
+                                            label={productor.usuario.activo ? "Desactivar cuenta" : "Activar cuenta"}
+                                            variant={productor.usuario.activo ? "outline-danger" : "outline-success"}
+                                            onClick={() => productor.usuario.activo ? setPendiente(productor) : handleEstado(productor)}
+                                            loading={changingIds.includes(productor.id)}
+                                        />
                                     </div>
                                 </td>
                             </tr>
@@ -413,6 +398,16 @@ export default function ProductoresPage() {
                     </Modal.Footer>
                 </Form>
             </Modal>
+            <ConfirmModal
+                show={Boolean(pendiente)}
+                onHide={() => setPendiente(null)}
+                onConfirm={() => handleEstado(pendiente)}
+                loading={changingIds.includes(pendiente?.id)}
+                title="Desactivar cuenta"
+                confirmText="Desactivar cuenta"
+            >
+                La cuenta de <strong>{pendiente?.nombres} {pendiente?.apellidos}</strong> quedará desactivada. El productor podrá volver a iniciar sesión cuando reactives la cuenta.
+            </ConfirmModal>
         </Container>
     );
 }

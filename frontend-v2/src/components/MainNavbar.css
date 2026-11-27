@@ -20,3 +20,13 @@
     margin-left: 2px;
     margin-top: 0;
 }
+
+.navbar-logout {
+    color: var(--bs-danger-text-emphasis);
+
+    --bs-dropdown-link-hover-color: var(--bs-danger-text-emphasis);
+    --bs-dropdown-link-hover-bg: var(--bs-danger-bg-subtle);
+
+    --bs-dropdown-link-active-color: var(--bs-danger-text-emphasis);
+    --bs-dropdown-link-active-bg: var(--bs-danger-bg-subtle);
+}

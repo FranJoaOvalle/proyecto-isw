@@ -1,3 +1,4 @@
+import ActionButton from "../../components/ActionButton";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -383,37 +384,44 @@ export default function PresupuestosPage() {
                                             <td className="text-end">
                                                 <div className="table-actions">
                                                     {presupuesto.estado === "BORRADOR" && (
-                                                        <div className="d-flex justify-content-end gap-2">
-                                                            <Button
+                                                        <>
+                                                            <ActionButton
+                                                                icon="bi-pencil"
+                                                                label="Editar presupuesto"
                                                                 variant="outline-primary"
-                                                                size="sm"
                                                                 onClick={() => abrirEdicion(presupuesto)}
-                                                            >
-                                                                Editar
-                                                            </Button>
+                                                            />
                                                             {presupuesto.solicitudId && presupuesto.solicitud?.estado === "EN_REVISION" && (
-                                                                <Button size="sm" onClick={() => setPresupuestoEnviar(presupuesto)}>
-                                                                    Enviar propuesta
-                                                                </Button>
+                                                                <ActionButton
+                                                                    icon="bi-send"
+                                                                    label="Enviar propuesta"
+                                                                    onClick={() => setPresupuestoEnviar(presupuesto)}
+                                                                />
                                                             )}
-                                                            <Button
+                                                            <ActionButton
+                                                                icon="bi-x-circle"
+                                                                label="Cancelar presupuesto"
                                                                 variant="outline-danger"
-                                                                size="sm"
                                                                 onClick={() => setPresupuestoCancelar(presupuesto)}
-                                                            >
-                                                                Cancelar
-                                                            </Button>
-                                                        </div>
+                                                            />
+                                                        </>
                                                     )}
                                                     {presupuesto.estado === "ENVIADO" && (
-                                                        <Button variant="outline-danger" size="sm" onClick={() => setPresupuestoCancelar(presupuesto)}>
-                                                            Cancelar propuesta
-                                                        </Button>
+                                                        <ActionButton
+                                                            icon="bi-x-circle"
+                                                            label="Cancelar propuesta"
+                                                            variant="outline-danger"
+                                                            onClick={() => setPresupuestoCancelar(presupuesto)}
+                                                        />
                                                     )}
                                                     {presupuesto.evento && (
-                                                        <Button as={Link} to={`/admin/eventos/${presupuesto.evento.id}`} variant="outline-primary" size="sm">
-                                                            Ver evento
-                                                        </Button>
+                                                        <ActionButton
+                                                            icon="bi-eye"
+                                                            label="Ver evento"
+                                                            as={Link}
+                                                            to={`/admin/eventos/${presupuesto.evento.id}`}
+                                                            variant="outline-primary"
+                                                        />
                                                     )}
                                                 </div>
                                             </td>
@@ -459,7 +467,7 @@ export default function PresupuestosPage() {
                 confirmText="Cancelar presupuesto"
                 loading={cancelando}
             >
-                ¿Quieres cancelar el presupuesto #{presupuestoCancelar?.id}? Esta acción no elimina su historial.
+                ¿Quieres cancelar el presupuesto #{presupuestoCancelar?.id}? Se conservará su historial y la propuesta ya no podrá contratarse.
             </ConfirmModal>
         </Container>
     );

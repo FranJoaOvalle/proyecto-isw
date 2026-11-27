@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useState } from "react";
 import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { getProductores } from "../../services/productor.service";
@@ -47,14 +48,12 @@ export default function AsignarProductor({ evento, onCambio }) {
     return (
         <div>
             <NotificacionToast mensaje={mensaje} onClose={() => setMensaje("")} />
-            <Button
+            <ActionButton
+                icon="bi-person-gear"
+                label={evento.productorId ? "Reasignar productor" : "Asignar productor"}
                 variant="outline-primary"
                 onClick={abrir}
-            >
-                {evento.productorId
-                    ? "Reasignar productor"
-                    : "Asignar productor"}
-            </Button>
+            />
             <Modal
                 show={mostrar}
                 onHide={() => !saving && setMostrar(false)}

@@ -872,7 +872,7 @@ export default function AgendaPage() {
                 <strong>
                     «{actividadCancelando?.titulo}»
                 </strong>
-                ?
+                ? Seguirá en la agenda como cancelada. Un administrador podrá reactivarla.
             </ConfirmModal>
             {/* La reactivación siempre devuelve la actividad al estado pendiente. */}
             {esAdmin && <ConfirmModal

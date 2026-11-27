@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Form, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -116,9 +117,19 @@ export default function EventoReservas({ evento, administrar, onCambio }) {
                                                 <div className="table-actions">
                                                     {!reserva.cancelada && new Date(reserva.inicio) > new Date() && reserva.tipo === "Equipo" &&
                                                         reserva.referencia !== `Contrato evento #${evento.id}` && recursos.some(item => item.id === reserva.recursoId) &&
-                                                        <Button size="sm" variant="outline-primary" onClick={() => setRecursoAbierto(recursos.find(item => item.id === reserva.recursoId))}>Gestionar</Button>}
+                                                        <ActionButton
+                                                            icon="bi-calendar-event"
+                                                            label="Gestionar reserva de equipo"
+                                                            variant="outline-primary"
+                                                            onClick={() => setRecursoAbierto(recursos.find(item => item.id === reserva.recursoId))}
+                                                        />}
                                                     {!reserva.cancelada && new Date(reserva.inicio) > new Date() && reserva.tipo === "Vehículo" && vehiculos.some(item => item.id === reserva.vehiculoId) &&
-                                                        <Button size="sm" variant="outline-primary" onClick={() => setVehiculoAbierto(vehiculos.find(item => item.id === reserva.vehiculoId))}>Gestionar</Button>}
+                                                        <ActionButton
+                                                            icon="bi-calendar-event"
+                                                            label="Gestionar reserva de vehículo"
+                                                            variant="outline-primary"
+                                                            onClick={() => setVehiculoAbierto(vehiculos.find(item => item.id === reserva.vehiculoId))}
+                                                        />}
                                                 </div>
                                             </td>}
                                         </tr>

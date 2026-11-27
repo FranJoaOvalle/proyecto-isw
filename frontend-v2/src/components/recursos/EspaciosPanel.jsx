@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -152,7 +153,7 @@ export default function EspaciosPanel() {
         setValidated(false);
     };
 
-    const handleSubmit = async event => {
+    const handleSubmit = event => {
         event.preventDefault();
         const element = event.currentTarget;
         if (!element.checkValidity()) {
@@ -166,6 +167,14 @@ export default function EspaciosPanel() {
             return;
         }
 
+        if (editing?.habilitado && !form.habilitado) {
+            setSpaceEstado(editing);
+            return;
+        }
+        guardarEspacio();
+    };
+
+    const guardarEspacio = async () => {
         setSaving(true);
         setError("");
         setSuccess("");
@@ -193,6 +202,7 @@ export default function EspaciosPanel() {
                 "No fue posible guardar el espacio."
             );
         } finally {
+            setSpaceEstado(null);
             setSaving(false);
         }
     };
@@ -450,24 +460,32 @@ export default function EspaciosPanel() {
                                     </td>
                                     <td className="text-end text-nowrap">
                                         <div className="table-actions">
-                                            <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirReservas(espacio)}>
-                                                <i className="bi bi-calendar2-week me-1" />Reservas
-                                            </Button>
-                                            <Button size="sm" variant="outline-primary" className="me-2" onClick={() => abrirEditar(espacio)}>
-                                                <i className="bi bi-pencil me-1" />Editar
-                                            </Button>
-                                            <Button size="sm" variant={espacio.habilitado ? "outline-warning" : "outline-success"} disabled={changingId === espacio.id} onClick={() => setSpaceEstado(espacio)}>
-                                                {espacio.habilitado ? "Deshabilitar" : "Habilitar"}
-                                            </Button>
-                                            <Button
-                                                size="sm"
+                                            <ActionButton
+                                                icon="bi-calendar-event"
+                                                label="Ver reservas del espacio"
+                                                variant="outline-primary"
+                                                onClick={() => abrirReservas(espacio)}
+                                            />
+                                            <ActionButton
+                                                icon="bi-pencil"
+                                                label="Editar espacio"
+                                                variant="outline-primary"
+                                                onClick={() => abrirEditar(espacio)}
+                                            />
+                                            <ActionButton
+                                                icon={espacio.habilitado ? "bi-slash-circle" : "bi-check-circle"}
+                                                label={espacio.habilitado ? "Deshabilitar espacio" : "Habilitar espacio"}
+                                                variant={espacio.habilitado ? "outline-warning" : "outline-success"}
+                                                disabled={changingId === espacio.id}
+                                                onClick={() => setSpaceEstado(espacio)}
+                                            />
+                                            <ActionButton
+                                                icon="bi-trash"
+                                                label="Eliminar espacio"
                                                 variant="outline-danger"
-                                                className="ms-2"
                                                 disabled={changingId === espacio.id}
                                                 onClick={() => setSpaceEliminar(espacio)}
-                                            >
-                                                <i className="bi bi-trash me-1" />Eliminar
-                                            </Button>
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -477,7 +495,7 @@ export default function EspaciosPanel() {
                 </div>
             )}
 
-            <Modal show={showModal} onHide={cerrarModal} centered>
+            <Modal show={showModal && !spaceEstado} onHide={cerrarModal} centered>
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
                     <Modal.Header closeButton={!saving}>
                         <Modal.Title>{editing ? "Editar espacio" : "Registrar espacio"}</Modal.Title>
@@ -580,7 +598,13 @@ export default function EspaciosPanel() {
                                             <td><Badge bg={reserva.cancelada ? "secondary" : "success"}>{reserva.cancelada ? "Cancelada" : "Vigente"}</Badge></td>
                                             <td className="text-end">
                                                 <div className="table-actions">
-                                                    {!reserva.cancelada && reserva.eventoId == null && <Button size="sm" variant="outline-danger" onClick={() => setBookingCancel(reserva)} disabled={bookingSaving}>Cancelar</Button>}
+                                                    {!reserva.cancelada && reserva.eventoId == null && <ActionButton
+                                                        icon="bi-x-circle"
+                                                        label="Cancelar reserva"
+                                                        variant="outline-danger"
+                                                        onClick={() => setBookingCancel(reserva)}
+                                                        disabled={bookingSaving}
+                                                    />}
                                                 </div>
                                             </td>
                                         </tr>
@@ -596,14 +620,14 @@ export default function EspaciosPanel() {
             <ConfirmModal
                 show={Boolean(spaceEstado)}
                 onHide={() => changingId === null && setSpaceEstado(null)}
-                onConfirm={confirmarEstado}
-                loading={changingId !== null}
+                onConfirm={showModal ? guardarEspacio : confirmarEstado}
+                loading={saving || changingId !== null}
                 title={spaceEstado?.habilitado ? "Deshabilitar espacio" : "Habilitar espacio"}
                 confirmText={spaceEstado?.habilitado ? "Deshabilitar" : "Habilitar"}
                 variant={spaceEstado?.habilitado ? "danger" : "success"}
             >
                 {spaceEstado?.habilitado
-                    ? <>¿Deshabilitar <strong>{spaceEstado.nombre}</strong>? Las reservas existentes se conservarán.</>
+                    ? <>¿Deshabilitar <strong>{spaceEstado.nombre}</strong>? Se impedirán nuevas reservas hasta que vuelvas a habilitarlo. Las reservas existentes se conservarán.</>
                     : <>¿Habilitar <strong>{spaceEstado?.nombre}</strong> para nuevas reservas?</>}
             </ConfirmModal>
 
@@ -631,7 +655,7 @@ export default function EspaciosPanel() {
                 title="Cancelar reserva"
                 confirmText="Cancelar reserva"
             >
-                ¿Cancelar la reserva <strong>{bookingCancel?.referencia}</strong>? Su historial se conservará.
+                ¿Cancelar la reserva <strong>{bookingCancel?.referencia}</strong>? El espacio quedará libre de esta reserva en el horario indicado y se conservará su historial.
             </ConfirmModal>
         </>
     );

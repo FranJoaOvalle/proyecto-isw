@@ -1,3 +1,4 @@
+import ActionButton from "../../components/ActionButton";
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import { Link, useSearchParams } from "react-router-dom";
@@ -115,8 +116,14 @@ function CompraContrato() {
                                         {presupuesto.evento && `Evento contratado #${presupuesto.evento.id}. Consulta su estado desde la solicitud.`}
                                         {contratada && !presupuesto.evento && "Se contrató otra propuesta de esta solicitud. Esta cotización se conserva como antecedente."}
                                     </div>
-                                    <div className="d-flex flex-wrap gap-2">
-                                        {presupuesto.solicitudId && <Button as={Link} to={`/cliente/solicitudes/${presupuesto.solicitudId}`} variant="outline-primary">Ver solicitud</Button>}
+                                    <div className="table-actions">
+                                        {presupuesto.solicitudId && <ActionButton
+                                            icon="bi-eye"
+                                            label="Ver solicitud"
+                                            as={Link}
+                                            to={`/cliente/solicitudes/${presupuesto.solicitudId}`}
+                                            variant="outline-primary"
+                                        />}
                                         {aceptable && <Button onClick={() => {
                                             setPropuesta(presupuesto); setAceptacionExpresa(false); setErrorAceptacion(""); setResultadoIncierto(false);
                                         }}>Revisar y aceptar</Button>}

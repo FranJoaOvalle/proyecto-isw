@@ -1,3 +1,4 @@
+import ActionButton from "../../components/ActionButton";
 import {
     Badge,
     Button,
@@ -200,15 +201,15 @@ export default function ProductorPage() {
                                 />
                             </div>
 
-                            <Button
-                                as={Link}
-                                to="/productor/perfil"
-                                variant="outline-secondary"
-                                className="w-100"
-                            >
-                                Editar perfil
-                                <i className="bi bi-arrow-right ms-2" />
-                            </Button>
+                            <div className="table-actions">
+                                <ActionButton
+                                    as={Link}
+                                    to="/productor/perfil"
+                                    variant="outline-secondary"
+                                    icon="bi-pencil"
+                                    label="Editar perfil"
+                                />
+                            </div>
                         </Card.Body>
                     </Card>
                 </Col>

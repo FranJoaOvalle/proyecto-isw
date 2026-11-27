@@ -1,4 +1,5 @@
-import { Badge, Button, Card, Col, Row } from "react-bootstrap";
+import ActionButton from "../ActionButton";
+import { Badge, Card, Col, Row } from "react-bootstrap";
 import {
     TIPOS_ACTIVIDAD,
     formatearEstado,
@@ -70,10 +71,12 @@ export default function AgendaRegistroDetalle({
                     </div>
 
                     {onClose && (
-                        <Button variant="outline-secondary" size="sm" className="rounded-3" onClick={onClose}>
-                            <i className="bi bi-x-lg me-1" />
-                            Cerrar detalles
-                        </Button>
+                        <ActionButton
+                            icon="bi-x-lg"
+                            label="Cerrar detalles"
+                            variant="outline-secondary"
+                            onClick={onClose}
+                        />
                     )}
                 </div>
 
@@ -203,36 +206,57 @@ export default function AgendaRegistroDetalle({
                 )}
 
                 {!esEvento && (
-                    <div className="d-flex flex-wrap gap-2 mt-4">
+                    <div className="table-actions justify-content-start mt-4">
                         {registro.estado === "PENDIENTE" && onComplete && (
-                            <Button variant="outline-success" className="rounded-3" onClick={() => onComplete(registro)} disabled={changingStatus}>
-                                <i className="bi bi-check2-circle me-1" />Completar
-                            </Button>
+                            <ActionButton
+                                icon="bi-check2-circle"
+                                label="Completar actividad"
+                                variant="outline-success"
+                                onClick={() => onComplete(registro)}
+                                disabled={changingStatus}
+                            />
                         )}
                         {registro.estado === "COMPLETADA" && onSetPending && (
-                            <Button variant="outline-secondary" className="rounded-3" onClick={() => onSetPending(registro)} disabled={changingStatus}>
-                                <i className="bi bi-arrow-counterclockwise me-1" />Marcar pendiente
-                            </Button>
+                            <ActionButton
+                                icon="bi-arrow-counterclockwise"
+                                label="Marcar actividad como pendiente"
+                                variant="outline-secondary"
+                                onClick={() => onSetPending(registro)}
+                                disabled={changingStatus}
+                            />
                         )}
                         {onEdit && (registro.estado !== "CANCELADA" || esAdmin) && (
-                            <Button variant="outline-primary" className="rounded-3" onClick={() => onEdit(registro)}>
-                                <i className="bi bi-pencil me-1" />Editar
-                            </Button>
+                            <ActionButton
+                                icon="bi-pencil"
+                                label="Editar actividad"
+                                variant="outline-primary"
+                                onClick={() => onEdit(registro)}
+                            />
                         )}
                         {registro.estado !== "CANCELADA" && onCancel && (
-                            <Button variant="outline-danger" className="rounded-3" onClick={() => onCancel(registro)}>
-                                <i className="bi bi-x-circle me-1" />Cancelar
-                            </Button>
+                            <ActionButton
+                                icon="bi-x-circle"
+                                label="Cancelar actividad"
+                                variant="outline-danger"
+                                onClick={() => onCancel(registro)}
+                            />
                         )}
                         {esAdmin && registro.estado === "CANCELADA" && onReactivate && (
-                            <Button variant="outline-success" className="rounded-3" onClick={() => onReactivate(registro)} disabled={changingStatus}>
-                                <i className="bi bi-arrow-counterclockwise me-1" />Reactivar
-                            </Button>
+                            <ActionButton
+                                icon="bi-check-circle"
+                                label="Reactivar actividad"
+                                variant="outline-success"
+                                onClick={() => onReactivate(registro)}
+                                disabled={changingStatus}
+                            />
                         )}
                         {!esEvento && esAdmin && registro.estado === "CANCELADA" && onDelete && (
-                            <Button variant="danger" className="rounded-3" onClick={() => onDelete(registro)}>
-                                <i className="bi bi-trash me-1" />Eliminar
-                            </Button>
+                            <ActionButton
+                                icon="bi-trash"
+                                label="Eliminar actividad"
+                                variant="danger"
+                                onClick={() => onDelete(registro)}
+                            />
                         )}
                     </div>
                 )}

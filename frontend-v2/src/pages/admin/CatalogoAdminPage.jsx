@@ -687,7 +687,7 @@ export default function CatalogoAdminPage() {
                                 {tipoEventoEstado?.nombre}
                             </strong>
                             ? Dejará de aparecer en el
-                            catálogo público.
+                            catálogo público hasta que vuelvas a activarlo.
                         </p>
                     ) : (
                         <p className="mb-0">

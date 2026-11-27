@@ -1,8 +1,9 @@
+import ConfirmModal from "../../components/ConfirmModal";
+import ActionButton from "../../components/ActionButton";
 import { useEffect, useState } from "react";
 import {
     Alert,
     Badge,
-    Button,
     Container,
     Spinner,
     Table,
@@ -16,12 +17,12 @@ import {
 
 import UserAvatar from "../../components/UserAvatar";
 import TableToolbar from "../../components/admin/TableToolbar";
-import "../../components/admin/TableElements.css";
 
 export default function ClientesPage() {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [changingId, setChangingId] = useState(null);
+    const [pendiente, setPendiente] = useState(null);
+    const [changingIds, setChangingIds] = useState([]);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
     const [estado, setEstado] = useState("TODOS");
@@ -46,8 +47,9 @@ export default function ClientesPage() {
     }, []);
 
     const handleEstado = async (cliente) => {
+        if (!cliente || changingIds.includes(cliente.id)) return;
         setError("");
-        setChangingId(cliente.id);
+        setChangingIds(ids => [...ids, cliente.id]);
 
         try {
             const actualizado = await cambiarEstadoCliente(
@@ -66,7 +68,8 @@ export default function ClientesPage() {
                 "No fue posible cambiar el estado del cliente."
             );
         } finally {
-            setChangingId(null);
+            setPendiente(actual => actual?.id === cliente.id ? null : actual);
+            setChangingIds(ids => ids.filter(id => id !== cliente.id));
         }
     };
 
@@ -219,30 +222,13 @@ export default function ClientesPage() {
 
                                 <td className="text-end">
                                     <div className="table-actions">
-                                        <Button
-                                            size="sm"
-                                            variant={
-                                                cliente.usuario.activo
-                                                    ? "outline-danger"
-                                                    : "outline-success"
-                                            }
-                                            disabled={changingId === cliente.id}
-                                            onClick={() => handleEstado(cliente)}
-                                        >
-                                            {changingId === cliente.id ? (
-                                                "Guardando..."
-                                            ) : cliente.usuario.activo ? (
-                                                <>
-                                                    <i className="bi bi-person-x me-1" />
-                                                    Desactivar
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="bi bi-person-check me-1" />
-                                                    Activar
-                                                </>
-                                            )}
-                                        </Button>
+                                        <ActionButton
+                                            icon={cliente.usuario.activo ? "bi-person-x" : "bi-person-check"}
+                                            label={cliente.usuario.activo ? "Desactivar cuenta" : "Activar cuenta"}
+                                            variant={cliente.usuario.activo ? "outline-danger" : "outline-success"}
+                                            onClick={() => cliente.usuario.activo ? setPendiente(cliente) : handleEstado(cliente)}
+                                            loading={changingIds.includes(cliente.id)}
+                                        />
                                     </div>
                                 </td>
                             </tr>
@@ -262,6 +248,16 @@ export default function ClientesPage() {
                     </tbody>
                 </Table>
             </div>
+            <ConfirmModal
+                show={Boolean(pendiente)}
+                onHide={() => setPendiente(null)}
+                onConfirm={() => handleEstado(pendiente)}
+                loading={changingIds.includes(pendiente?.id)}
+                title="Desactivar cuenta"
+                confirmText="Desactivar cuenta"
+            >
+                La cuenta de <strong>{pendiente && (getNombre(pendiente) || pendiente.usuario.email)}</strong> quedará desactivada. El cliente podrá volver a iniciar sesión cuando reactives la cuenta.
+            </ConfirmModal>
         </Container>
     );
 }

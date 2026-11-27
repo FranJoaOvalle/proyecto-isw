@@ -1,9 +1,9 @@
+import ActionButton from "../../components/ActionButton";
 import {useEffect, useState} from "react";
 
 import {
     Alert,
     Badge,
-    Button,
     Card,
     Col,
     Container,
@@ -200,19 +200,7 @@ export default function EvaluacionesPage() {
                             </td>
 
                             <td>
-                                <Button
-                                    variant="link"
-                                    className="p-0 text-decoration-none text-start"
-                                    title="Consultar historial de desempeño"
-                                    onClick={() =>
-                                        setProductorHistorial(evento.productorId)
-                                    }
-                                >
-                                    {evento.productor?.nombres}{" "}
-                                    {evento.productor?.apellidos}
-
-                                    <i className="bi bi-clock-history ms-2"/>
-                                </Button>
+                                {evento.productor?.nombres}{" "}{evento.productor?.apellidos}
                             </td>
 
                             <td>
@@ -223,24 +211,11 @@ export default function EvaluacionesPage() {
                             </td>
 
                             <td>
-                                <Button
-                                    variant="link"
-                                    className="p-0 text-decoration-none"
-                                    title="Consultar encuesta del cliente"
-                                    onClick={() => setRespuestaClienteId(evento.id)}
-                                >
-                                    {evento.calificacion ? (
-                                        <Badge bg="primary">
-                                            {evento.calificacion.puntuacion} / 5
-                                            <i className="bi bi-eye ms-2"/>
-                                        </Badge>
-                                    ) : (
-                                        <span className="text-secondary small">
-                                            Sin calificar
-                                            <i className="bi bi-eye ms-2"/>
-                                        </span>
-                                    )}
-                                </Button>
+                                {evento.calificacion ? (
+                                    <Badge bg="primary">{evento.calificacion.puntuacion} / 5</Badge>
+                                ) : (
+                                    <span className="text-secondary small">Sin calificar</span>
+                                )}
                             </td>
 
                             <td>
@@ -257,27 +232,24 @@ export default function EvaluacionesPage() {
 
                             <td className="text-end">
                                 <div className="table-actions">
-                                    <Button
-                                        size="sm"
-                                        variant={
-                                            evento.evaluacionProductor
-                                                ? "outline-secondary"
-                                                : "primary"
-                                        }
-                                        onClick={() =>
-                                            setEventoSeleccionado(evento.id)
-                                        }
-                                    >
-                                        <i className={
-                                            evento.evaluacionProductor
-                                                ? "bi bi-eye me-2"
-                                                : "bi bi-clipboard-check me-2"
-                                        }/>
-
-                                        {evento.evaluacionProductor
-                                            ? "Ver evaluación"
-                                            : "Evaluar"}
-                                    </Button>
+                                    <ActionButton
+                                        icon="bi-clock-history"
+                                        label="Consultar historial de desempeño"
+                                        variant="link"
+                                        onClick={() => setProductorHistorial(evento.productorId)}
+                                    />
+                                    <ActionButton
+                                        icon="bi-eye"
+                                        label="Ver encuesta del cliente"
+                                        variant="link"
+                                        onClick={() => setRespuestaClienteId(evento.id)}
+                                    />
+                                    <ActionButton
+                                        icon={evento.evaluacionProductor ? "bi-eye" : "bi-clipboard-check"}
+                                        label={evento.evaluacionProductor ? "Ver evaluación" : "Evaluar productor"}
+                                        variant={evento.evaluacionProductor ? "outline-secondary" : "primary"}
+                                        onClick={() => setEventoSeleccionado(evento.id)}
+                                    />
                                 </div>
                             </td>
                         </tr>

@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { Link } from "react-router-dom";
 import { datosReservaEvento, fechaMinimaReserva } from "./reserva.utils";
 import { useCallback, useEffect, useState } from "react";
@@ -167,8 +168,20 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                                         <td className="text-end text-nowrap">
                                             <div className="table-actions">
                                                 {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                                {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setDevolucionId(reserva.id)} disabled={saving}>Devolver</Button>}
-                                                {new Date(reserva.inicio) > new Date() && (eventoInicial || reserva.eventoId == null) && <Button size="sm" variant="outline-danger" onClick={() => setCancelar(reserva)} disabled={saving}>Cancelar</Button>}
+                                                {!eventoInicial && new Date(reserva.inicio) <= new Date() && <ActionButton
+                                                    icon="bi-box-arrow-in-left"
+                                                    label="Registrar devolución del vehículo"
+                                                    variant="outline-success"
+                                                    onClick={() => setDevolucionId(reserva.id)}
+                                                    disabled={saving}
+                                                />}
+                                                {new Date(reserva.inicio) > new Date() && (eventoInicial || reserva.eventoId == null) && <ActionButton
+                                                    icon="bi-x-circle"
+                                                    label="Cancelar asignación"
+                                                    variant="outline-danger"
+                                                    onClick={() => setCancelar(reserva)}
+                                                    disabled={saving}
+                                                />}
                                             </>}
                                             </div>
                                         </td>
@@ -200,7 +213,7 @@ export default function ReservasVehiculoModal({ vehiculo, show, onHide, onChange
                 <Modal.Footer><Button variant="secondary" onClick={onHide} disabled={saving}>Cerrar</Button></Modal.Footer>
             </Modal>
             <ConfirmModal show={Boolean(cancelar)} onHide={() => !saving && setCancelar(null)} onConfirm={confirmarCancelacion} loading={saving} title="Cancelar asignación" confirmText="Cancelar asignación">
-                ¿Cancelar la asignación de <strong>{cancelar?.referencia}</strong>?
+                ¿Cancelar la asignación de <strong>{cancelar?.referencia}</strong>? El vehículo dejará de estar asignado a esa reserva y se conservará el registro.
             </ConfirmModal>
         </>
     );

@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert,
@@ -433,30 +434,32 @@ export default function RecursosPanel() {
                                     <td><Badge bg={recurso.activo ? "success" : "secondary"}>{recurso.activo ? "Activo" : "Inactivo"}</Badge></td>
                                     <td className="text-end text-nowrap">
                                         <div className="table-actions">
-                                            <div className="d-inline-flex flex-wrap justify-content-end gap-2">
-                                            <Button size="sm" variant="outline-secondary" onClick={() => setRecursoReservado(recurso)}>
-                                                <i className="bi bi-calendar2-week me-1" />Agenda
-                                            </Button>
-                                            <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(recurso)}>
-                                                <i className="bi bi-pencil me-1" />Editar
-                                            </Button>
-                                            <Button
-                                                size="sm"
+                                            <ActionButton
+                                                icon="bi-calendar-event"
+                                                label="Ver reservas del recurso"
+                                                variant="outline-secondary"
+                                                onClick={() => setRecursoReservado(recurso)}
+                                            />
+                                            <ActionButton
+                                                icon="bi-pencil"
+                                                label="Editar recurso"
+                                                variant="outline-primary"
+                                                onClick={() => abrirEditar(recurso)}
+                                            />
+                                            <ActionButton
+                                                icon={recurso.activo ? "bi-slash-circle" : "bi-check-circle"}
+                                                label={recurso.activo ? "Deshabilitar recurso" : "Habilitar recurso"}
                                                 variant={recurso.activo ? "outline-warning" : "outline-success"}
                                                 disabled={changingId === recurso.id}
                                                 onClick={() => setRecursoEstado(recurso)}
-                                            >
-                                                {recurso.activo ? "Deshabilitar" : "Habilitar"}
-                                            </Button>
-                                            <Button
-                                                size="sm"
+                                            />
+                                            <ActionButton
+                                                icon="bi-trash"
+                                                label="Eliminar recurso"
                                                 variant="outline-danger"
                                                 disabled={changingId === recurso.id}
                                                 onClick={() => setRecursoEliminar(recurso)}
-                                            >
-                                                <i className="bi bi-trash me-1" />Eliminar
-                                            </Button>
-                                            </div>
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -530,7 +533,7 @@ export default function RecursosPanel() {
                 variant={recursoEstado?.activo ? "danger" : "success"}
             >
                 {recursoEstado?.activo
-                    ? <>¿Deshabilitar <strong>{recursoEstado.nombre}</strong>? Se conservará en presupuestos y eventos existentes.</>
+                    ? <>¿Deshabilitar <strong>{recursoEstado.nombre}</strong>? Podrás volver a habilitarlo. Se conservará en presupuestos y eventos existentes.</>
                     : <>¿Habilitar <strong>{recursoEstado?.nombre}</strong> para nuevos presupuestos y eventos?</>}
             </ConfirmModal>
 

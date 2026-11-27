@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Form, InputGroup, Modal, Spinner, Table } from "react-bootstrap";
 
@@ -343,26 +344,32 @@ export default function VehiculosPanel() {
                                     <td>{!vehiculo.habilitado || vehiculo.estado !== "DISPONIBLE" ? <span className="text-secondary">No asignable</span> : rangoAplicado ? <Badge bg={vehiculo.disponible ? "success" : "warning"} text={vehiculo.disponible ? undefined : "dark"}>{vehiculo.disponible ? "Disponible" : "Ocupado"}</Badge> : <span className="text-secondary">Consulta un horario</span>}</td>
                                     <td className="text-end text-nowrap">
                                         <div className="table-actions">
-                                            <div className="d-inline-flex flex-wrap justify-content-end gap-2">
-                                            <Button size="sm" variant="outline-secondary" onClick={() => setReservasVehiculo(vehiculo)}><i className="bi bi-calendar2-week me-1" />Agenda</Button>
-                                            <Button size="sm" variant="outline-primary" onClick={() => abrirEditar(vehiculo)}><i className="bi bi-pencil me-1" />Editar</Button>
-                                            <Button
-                                                size="sm"
+                                            <ActionButton
+                                                icon="bi-calendar-event"
+                                                label="Ver reservas del vehículo"
+                                                variant="outline-secondary"
+                                                onClick={() => setReservasVehiculo(vehiculo)}
+                                            />
+                                            <ActionButton
+                                                icon="bi-pencil"
+                                                label="Editar vehículo"
+                                                variant="outline-primary"
+                                                onClick={() => abrirEditar(vehiculo)}
+                                            />
+                                            <ActionButton
+                                                icon={vehiculo.habilitado ? "bi-slash-circle" : "bi-check-circle"}
+                                                label={vehiculo.habilitado ? "Deshabilitar vehículo" : "Habilitar vehículo"}
                                                 variant={vehiculo.habilitado ? "outline-warning" : "outline-success"}
                                                 disabled={changingId === vehiculo.id}
                                                 onClick={() => setVehiculoAccion({ vehiculo, tipo: vehiculo.habilitado ? "deshabilitar" : "habilitar" })}
-                                            >
-                                                {vehiculo.habilitado ? "Deshabilitar" : "Habilitar"}
-                                            </Button>
-                                            <Button
-                                                size="sm"
+                                            />
+                                            <ActionButton
+                                                icon="bi-trash"
+                                                label="Eliminar vehículo"
                                                 variant="outline-danger"
                                                 disabled={changingId === vehiculo.id}
                                                 onClick={() => setVehiculoAccion({ vehiculo, tipo: "eliminar" })}
-                                            >
-                                                <i className="bi bi-trash me-1" />Eliminar
-                                            </Button>
-                                            </div>
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -455,7 +462,7 @@ export default function VehiculosPanel() {
                         ? <><strong>{vehiculoAccion.vehiculo.patente}</strong> no se puede eliminar porque tiene {vehiculoAccion.vehiculo._count.reservas} {vehiculoAccion.vehiculo._count.reservas === 1 ? "reserva" : "reservas"} asociadas. Deshabilítalo para conservar el historial.</>
                         : <>¿Eliminar <strong>{vehiculoAccion.vehiculo.patente}</strong> definitivamente? Esta acción no se puede deshacer.</>
                     : vehiculoAccion?.tipo === "deshabilitar"
-                        ? <>¿Deshabilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? No podrá recibir nuevas reservas y conservará su estado operativo e historial.</>
+                        ? <>¿Deshabilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Conservará su estado operativo y su historial. Para que pueda recibir nuevas reservas tendrás que volver a habilitarlo.</>
                         : <>¿Habilitar <strong>{vehiculoAccion?.vehiculo.patente}</strong>? Podrá volver a reservarse si su estado operativo es disponible.</>}
             </ConfirmModal>
         </>

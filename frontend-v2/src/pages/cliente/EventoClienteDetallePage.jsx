@@ -1,3 +1,4 @@
+import ActionButton from "../../components/ActionButton";
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
@@ -98,12 +99,23 @@ function DetalleEvento({ id }) {
                                 <p className="mb-4">{evento.productor
                                     ? [evento.productor.nombres, evento.productor.apellidos].filter(Boolean).join(" ")
                                     : "Sin productor asignado"}</p>
-                                <div className="d-grid gap-2 border-top pt-3">
+                                <div className="table-actions justify-content-start border-top pt-3">
                                     {evento.solicitudId && (
-                                        <Button as={Link} to={`/cliente/solicitudes/${evento.solicitudId}`} variant="outline-primary">Ver solicitud original</Button>
+                                        <ActionButton
+                                            icon="bi-eye"
+                                            label="Ver solicitud original"
+                                            as={Link}
+                                            to={`/cliente/solicitudes/${evento.solicitudId}`}
+                                            variant="outline-primary"
+                                        />
                                     )}
-                                    <Button as={Link} to={evento.solicitudId ? `/cliente/compra?solicitudId=${evento.solicitudId}` : "/cliente/compra"}
-                                        variant="outline-primary">Ver antecedentes comerciales</Button>
+                                    <ActionButton
+                                        icon="bi-file-earmark-text"
+                                        label="Ver antecedentes comerciales"
+                                        as={Link}
+                                        to={evento.solicitudId ? `/cliente/compra?solicitudId=${evento.solicitudId}` : "/cliente/compra"}
+                                        variant="outline-primary"
+                                    />
                                 </div>
                             </Card.Body>
                         </Card>

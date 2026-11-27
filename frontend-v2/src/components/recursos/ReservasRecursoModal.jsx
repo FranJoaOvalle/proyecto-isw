@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { Link } from "react-router-dom";
 import { datosReservaEvento, fechaMinimaReserva } from "./reserva.utils";
 import { useCallback, useEffect, useState } from "react";
@@ -195,9 +196,21 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
                                             <td className="text-end text-nowrap">
                                                 <div className="table-actions">
                                                     {!reserva.cancelada && reserva.estadoDevolucion === "PENDIENTE" && <>
-                                                        {!eventoInicial && new Date(reserva.inicio) <= new Date() && <Button size="sm" variant="outline-success" className="me-2" onClick={() => setReservaDevolucion(reserva)} disabled={saving}>Devolver</Button>}
+                                                        {!eventoInicial && new Date(reserva.inicio) <= new Date() && <ActionButton
+                                                            icon="bi-box-arrow-in-left"
+                                                            label="Registrar devolución del recurso"
+                                                            variant="outline-success"
+                                                            onClick={() => setReservaDevolucion(reserva)}
+                                                            disabled={saving}
+                                                        />}
                                                         {new Date(reserva.inicio) > new Date() && (eventoInicial ? reserva.referencia !== `Contrato evento #${eventoInicial.id}` : reserva.eventoId == null) &&
-                                                            <Button size="sm" variant="outline-danger" onClick={() => setReservaCancelar(reserva)} disabled={saving}>Cancelar</Button>}
+                                                            <ActionButton
+                                                                icon="bi-x-circle"
+                                                                label="Cancelar reserva"
+                                                                variant="outline-danger"
+                                                                onClick={() => setReservaCancelar(reserva)}
+                                                                disabled={saving}
+                                                            />}
                                                     </>}
                                                 </div>
                                             </td>
@@ -243,7 +256,7 @@ export default function ReservasRecursoModal({ recurso, show, onHide, onChanged,
                 title="Cancelar reserva"
                 confirmText="Cancelar reserva"
             >
-                ¿Cancelar la reserva <strong>{reservaCancelar?.referencia}</strong>?
+                ¿Cancelar la reserva <strong>{reservaCancelar?.referencia}</strong>? La cantidad reservada quedará libre para ese horario y se conservará el registro de la cancelación.
             </ConfirmModal>
         </>
     );

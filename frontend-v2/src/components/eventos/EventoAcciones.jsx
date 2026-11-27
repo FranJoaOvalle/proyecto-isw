@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { useState } from "react";
 import { Alert, Button, Form, Modal } from "react-bootstrap";
 import ConfirmModal from "../ConfirmModal";
@@ -22,7 +23,7 @@ const estadosSiguientes = {
     EN_CURSO: { COMPLETADO: "Completado" }
 };
 
-export default function EventoAcciones({ evento, onCambio }) {
+export default function EventoAcciones({ evento, onCambio, children }) {
     const tieneReservas = [evento.reservasEspacio, evento.reservasRecurso, evento.reservasVehiculo]
         .some((reservas) => reservas?.some((reserva) => !reserva.cancelada));
     const minimoAsistentes = evento.presupuesto?.cantidadPersonasBaseTipoEvento ?? 1;
@@ -104,43 +105,46 @@ export default function EventoAcciones({ evento, onCambio }) {
                     {error}
                 </Alert>
             )}
-            <div className="d-flex flex-wrap gap-2 mt-3">
+            <div className="table-actions justify-content-start mt-3">
+                {children}
                 {estadosSiguientes[evento.estado] && (
-                    <Button variant="outline-primary" onClick={() => {
-                        setForm({ estado: Object.keys(estadosSiguientes[evento.estado])[0], motivo: "" });
-                        setValidated(false);
-                        setError("");
-                        setAccion("estado");
-                    }}>
-                        Cambiar estado
-                    </Button>
+                    <ActionButton
+                        icon="bi-arrow-left-right"
+                        label="Cambiar estado del evento"
+                        variant="outline-primary"
+                        onClick={() => {
+                            setForm({ estado: Object.keys(estadosSiguientes[evento.estado])[0], motivo: "" });
+                            setValidated(false);
+                            setError("");
+                            setAccion("estado");
+                        }}
+                    />
                 )}
                 {!["CANCELADO", "COMPLETADO"].includes(evento.estado) && (
-                    <Button
+                    <ActionButton
+                        icon="bi-pencil"
+                        label="Editar evento"
                         variant="outline-primary"
                         onClick={abrirEditar}
-                    >
-                        <i className="bi bi-pencil me-2" />
-                        Editar
-                    </Button>
+                    />
                 )}
                 {["CONFIRMADO", "POSPUESTO"].includes(evento.estado) && (
-                    <Button
+                    <ActionButton
+                        icon="bi-x-circle"
+                        label="Cancelar evento"
                         variant="outline-danger"
                         onClick={() => {
                             setError("");
                             setAccion("cancelar");
                         }}
-                    >
-                        Cancelar evento
-                    </Button>
-                )}
-                {evento.estado === "CANCELADO" && (
-                    <small className="text-secondary">
-                        La eliminación definitiva no está disponible porque el evento conserva un presupuesto contratado y su historial.
-                    </small>
+                    />
                 )}
             </div>
+            {evento.estado === "CANCELADO" && (
+                <small className="d-block text-secondary">
+                    La eliminación definitiva no está disponible porque el evento conserva un presupuesto contratado y su historial.
+                </small>
+            )}
             <Modal show={accion === "estado"} onHide={cerrar} centered backdrop="static">
                 <Form noValidate validated={validated} onSubmit={(e) => {
                     e.preventDefault();
@@ -378,7 +382,7 @@ export default function EventoAcciones({ evento, onCambio }) {
                 confirmText="Sí, cancelar evento"
             >
                 <p>
-                    El evento quedará cancelado. Su presupuesto, los pagos, los
+                    El evento <strong>#{evento.id} · {evento.tipoEvento?.nombre}</strong> quedará cancelado. Su presupuesto, los pagos, los
                     recursos y el historial seguirán disponibles.
                 </p>
                 {error && <Alert variant="danger">{error}</Alert>}

@@ -1,3 +1,4 @@
+import ActionButton from "../ActionButton";
 import { Button, Card, Col, Form, InputGroup, Row } from "react-bootstrap";
 
 import {
@@ -57,36 +58,30 @@ export default function PreguntaEditor({
                     Pregunta {index + 1}
                 </span>
 
-                <div className="d-flex gap-2">
-                    <Button
+                <div className="table-actions">
+                    <ActionButton
+                        icon="bi-arrow-up"
+                        label="Subir pregunta"
                         variant="outline-secondary"
-                        size="sm"
-                        title="Subir pregunta"
                         disabled={index === 0}
                         onClick={() => onMove(-1)}
-                    >
-                        <i className="bi bi-arrow-up" />
-                    </Button>
+                    />
 
-                    <Button
+                    <ActionButton
+                        icon="bi-arrow-down"
+                        label="Bajar pregunta"
                         variant="outline-secondary"
-                        size="sm"
-                        title="Bajar pregunta"
                         disabled={index === total - 1}
                         onClick={() => onMove(1)}
-                    >
-                        <i className="bi bi-arrow-down" />
-                    </Button>
+                    />
 
-                    <Button
+                    <ActionButton
+                        icon="bi-trash"
+                        label="Eliminar pregunta"
                         variant="outline-danger"
-                        size="sm"
-                        title="Eliminar pregunta"
                         disabled={total === 1}
                         onClick={onRemove}
-                    >
-                        <i className="bi bi-trash" />
-                    </Button>
+                    />
                 </div>
             </Card.Header>
 
@@ -160,13 +155,13 @@ export default function PreguntaEditor({
                                     }
                                 />
 
-                                <Button
+                                <ActionButton
+                                    icon="bi-trash"
+                                    label="Eliminar alternativa"
                                     variant="outline-danger"
                                     disabled={pregunta.opciones.length <= 2}
                                     onClick={() => eliminarOpcion(i)}
-                                >
-                                    <i className="bi bi-x-lg" />
-                                </Button>
+                                />
                             </InputGroup>
                         ))}
 

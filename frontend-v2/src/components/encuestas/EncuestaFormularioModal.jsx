@@ -1,3 +1,4 @@
+import ConfirmModal from "../ConfirmModal";
 import { useState } from "react";
 import {
     Alert,
@@ -34,7 +35,8 @@ export default function EncuestaFormularioModal({
                 nombre: encuesta.nombre,
                 descripcion: encuesta.descripcion ?? "",
                 tipo: encuesta.tipo,
-                preguntas: encuesta.preguntas.map(p => ({
+                preguntas: encuesta.preguntas.map((p, indiceOriginal) => ({
+                    indiceOriginal,
                     enunciado: p.enunciado,
                     tipo: p.tipo,
                     obligatoria: p.obligatoria,
@@ -44,6 +46,7 @@ export default function EncuestaFormularioModal({
             : nuevaEncuesta()
     );
 
+    const [confirmarRetiro, setConfirmarRetiro] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState("");
 
@@ -128,7 +131,11 @@ export default function EncuestaFormularioModal({
         return null;
     };
 
-    const handleSubmit = async (e) => {
+    const preguntasRetiradas = encuesta?.preguntas.filter((_, indice) =>
+        !form.preguntas.some(pregunta => pregunta.indiceOriginal === indice)
+    ) ?? [];
+
+    const handleSubmit = (e) => {
         e.preventDefault();
         setError("");
 
@@ -139,10 +146,25 @@ export default function EncuestaFormularioModal({
             return;
         }
 
+        if (preguntasRetiradas.length) {
+            setConfirmarRetiro(true);
+            return;
+        }
+        guardarEncuesta();
+    };
+
+    const guardarEncuesta = async () => {
         setGuardando(true);
 
         try {
-            const { tipo, ...contenido } = form;
+            const { tipo, nombre, descripcion, preguntas } = form;
+            const contenido = {
+                nombre,
+                descripcion,
+                preguntas: preguntas.map(({ enunciado, tipo, obligatoria, opciones }) => ({
+                    enunciado, tipo, obligatoria, opciones
+                }))
+            };
 
             if (editando) {
                 await updateEncuesta(encuesta.id, contenido);
@@ -159,9 +181,28 @@ export default function EncuestaFormularioModal({
                 "No fue posible guardar la encuesta."
             );
         } finally {
+            setConfirmarRetiro(false);
             setGuardando(false);
         }
     };
+
+    if (confirmarRetiro) {
+        return (
+            <ConfirmModal
+                show
+                onHide={() => setConfirmarRetiro(false)}
+                onConfirm={guardarEncuesta}
+                title="Quitar preguntas de la encuesta"
+                confirmText="Quitar y guardar cambios"
+                loading={guardando}
+            >
+                Al guardar <strong>{encuesta.nombre}</strong>, estas preguntas dejarán de formar parte del formulario.
+                <ul className="mb-0">{preguntasRetiradas.map((pregunta, i) => (
+                    <li key={pregunta.id ?? i}>{pregunta.enunciado}</li>
+                ))}</ul>
+            </ConfirmModal>
+        );
+    }
 
     return (
         <Modal

@@ -5,6 +5,7 @@ import "@fontsource-variable/inter";
 import "./styles/bootstrap.scss";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./index.css";
+import "./components/admin/TableElements.css";
 
 import App from "./App.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
