@@ -42,4 +42,9 @@ router.patch("/:id/estado",
     encuestaController.cambiarEstado
 );
 
+router.put("/:id/predeterminada",
+    validator(idParamSchema),
+    encuestaController.establecerPredeterminada
+);
+
 module.exports = router;

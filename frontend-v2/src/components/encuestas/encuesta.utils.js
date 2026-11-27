@@ -28,3 +28,17 @@ export const nuevaEncuesta = () => ({
     tipo: "CLIENTE_EVENTO",
     preguntas: [nuevaPregunta()]
 });
+
+export const respuestaVacia = (valor) =>
+    valor === undefined ||
+    valor === null ||
+    (typeof valor === "string" && !valor.trim()) ||
+    (Array.isArray(valor) && valor.length === 0);
+
+export const validarRespuestasObligatorias = (preguntas, respuestas) => {
+    return preguntas.filter(
+        pregunta =>
+            pregunta.obligatoria &&
+            respuestaVacia(respuestas[pregunta.id])
+    );
+};

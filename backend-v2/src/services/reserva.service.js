@@ -4,6 +4,7 @@ const ConflictException = require("../exceptions/ConflictException");
 const UbicacionService = require("./ubicacion.service");
 const DisponibilidadService = require("./disponibilidad.service");
 const ContratacionRecursosService = require("./contratacionRecursos.service");
+const InvitacionEncuestaService = require("./invitacion-encuesta.service");
 
 class ReservaService {
 
@@ -90,6 +91,7 @@ class ReservaService {
     }
 
     async actualizarEvento(actual, datos, cambios) {
+        console.log("[DEBUG] Entrando a actualizarEvento");
         return prisma.$transaction(async (tx) => {
             const evento = await this.bloquearEvento(tx, actual.id);
             if (evento.updatedAt.getTime() !== actual.updatedAt.getTime()) {
@@ -273,6 +275,12 @@ class ReservaService {
                     inicio, fin
                 } });
             }
+            console.log("[DEBUG] Estado anterior:", evento.estado);
+            console.log("[DEBUG] Estado nuevo:", actualizado.estado);
+            if (evento.estado !== "COMPLETADO" && actualizado.estado === "COMPLETADO") {
+                await InvitacionEncuestaService.generar(tx, actualizado.id);
+            }
+
             return actualizado;
         });
     }

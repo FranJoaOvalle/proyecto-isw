@@ -108,13 +108,13 @@ model Usuario {
   cliente   Cliente?
   productor Productor?
 
-  solicitudesCreadas SolicitudEvento[] @relation("AutorSolicitud")
-  cambiosSolicitud SolicitudEventoCambio[]
-  cambiosEvento EventoCambio[]
-  seguimientosEvento SeguimientoEvento[]
+  solicitudesCreadas     SolicitudEvento[]       @relation("AutorSolicitud")
+  cambiosSolicitud       SolicitudEventoCambio[]
+  cambiosEvento          EventoCambio[]
+  seguimientosEvento     SeguimientoEvento[]
   comentariosSeguimiento ComentarioSeguimiento[]
-  propuestasEnviadas Presupuesto[] @relation("EmisorPresupuesto")
-  propuestasAceptadas Presupuesto[] @relation("AceptantePresupuesto")
+  propuestasEnviadas     Presupuesto[]           @relation("EmisorPresupuesto")
+  propuestasAceptadas    Presupuesto[]           @relation("AceptantePresupuesto")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -131,7 +131,7 @@ model Cliente {
   empresa      ClienteEmpresa?
   eventos      Evento[]
   presupuestos Presupuesto[]
-  solicitudes SolicitudEvento[]
+  solicitudes  SolicitudEvento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -177,20 +177,20 @@ model Productor {
 }
 
 model TipoEvento {
-  id                   Int     @id @default(autoincrement())
-  nombre               String  @unique
+  id                   Int                       @id @default(autoincrement())
+  nombre               String                    @unique
   descripcion          String
   modalidadPrecio      ModalidadPrecioTipoEvento @default(FIJO)
-  precioBase           Decimal? @db.Decimal(12, 2)
-  tarifaHora           Decimal? @db.Decimal(12, 2)
-  incluye              String?  @db.Text
-  imagen_url           String? @db.Text
+  precioBase           Decimal?                  @db.Decimal(12, 2)
+  tarifaHora           Decimal?                  @db.Decimal(12, 2)
+  incluye              String?                   @db.Text
+  imagen_url           String?                   @db.Text
   cantidadPersonasBase Int
-  activo               Boolean @default(true)
+  activo               Boolean                   @default(true)
 
   eventos      Evento[]
   presupuestos Presupuesto[]
-  solicitudes SolicitudEvento[]
+  solicitudes  SolicitudEvento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,11 +202,11 @@ model Recurso {
   descripcion String?
   tipo        TipoRecurso
 
-  precioUnitario Decimal @db.Decimal(12, 2)
-  stockTotal     Int
-  cantidadEnMantencion Int @default(0)
-  cantidadPerdida Int @default(0)
-  activo         Boolean @default(true)
+  precioUnitario       Decimal @db.Decimal(12, 2)
+  stockTotal           Int
+  cantidadEnMantencion Int     @default(0)
+  cantidadPerdida      Int     @default(0)
+  activo               Boolean @default(true)
 
   material RecursoMaterial?
   humano   RecursoHumano?
@@ -216,7 +216,7 @@ model Recurso {
 
   eventos      EventoRecurso[]
   presupuestos PresupuestoRecurso[]
-  reservas ReservaRecurso[]
+  reservas     ReservaRecurso[]
 
   @@unique([nombre, tipo])
 }
@@ -225,7 +225,7 @@ model Espacio {
   id             Int             @id @default(autoincrement())
   nombre         String          @db.VarChar(100)
   direccion      String          @db.VarChar(250)
-  comuna String? @db.VarChar(100)
+  comuna         String?         @db.VarChar(100)
   capacidad      Int
   costoArriendo  Decimal?        @db.Decimal(12, 2)
   unidadArriendo UnidadArriendo?
@@ -236,8 +236,8 @@ model Espacio {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  reservas ReservaEspacio[]
-  eventos  Evento[]
+  reservas     ReservaEspacio[]
+  eventos      Evento[]
   presupuestos Presupuesto[]
 
   @@index([nombre])
@@ -252,9 +252,9 @@ model ReservaEspacio {
   cancelada  Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  eventoId   Int?
-  evento     Evento?  @relation(fields: [eventoId], references: [id], onDelete: Restrict)
-  espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  eventoId Int?
+  evento   Evento? @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  espacio  Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
 
   @@index([eventoId])
   @@index([espacioId, inicio, fin])
@@ -274,27 +274,27 @@ model ReservaRecurso {
   observacionesDevolucion String?                @db.Text
   createdAt               DateTime               @default(now())
 
-  eventoId                Int?
-  evento                  Evento?                @relation(fields: [eventoId], references: [id], onDelete: Restrict)
-  recurso Recurso @relation(fields: [recursoId], references: [id], onDelete: Restrict)
+  eventoId Int?
+  evento   Evento? @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  recurso  Recurso @relation(fields: [recursoId], references: [id], onDelete: Restrict)
 
   @@index([eventoId])
   @@index([recursoId, inicio, fin])
 }
 
 model Vehiculo {
-  id                  Int             @id @default(autoincrement())
-  patente             String          @unique @db.VarChar(15)
-  tipo                String          @db.VarChar(60)
-  marca               String          @db.VarChar(60)
-  modelo              String          @db.VarChar(80)
-  anio                Int?
-  capacidadPasajeros  Int?
-  estado              EstadoVehiculo  @default(DISPONIBLE)
-  habilitado          Boolean         @default(true)
-  observaciones       String?         @db.Text
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  id                 Int            @id @default(autoincrement())
+  patente            String         @unique @db.VarChar(15)
+  tipo               String         @db.VarChar(60)
+  marca              String         @db.VarChar(60)
+  modelo             String         @db.VarChar(80)
+  anio               Int?
+  capacidadPasajeros Int?
+  estado             EstadoVehiculo @default(DISPONIBLE)
+  habilitado         Boolean        @default(true)
+  observaciones      String?        @db.Text
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   reservas ReservaVehiculo[]
 
@@ -312,8 +312,8 @@ model ReservaVehiculo {
   observacionesDevolucion String?                @db.Text
   createdAt               DateTime               @default(now())
 
-  eventoId                Int?
-  evento                  Evento?                @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  eventoId Int?
+  evento   Evento?  @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   vehiculo Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Restrict)
 
   @@index([eventoId])
@@ -337,44 +337,45 @@ model RecursoHumano {
 }
 
 model Evento {
-  id            Int          @id @default(autoincrement())
-  clienteId     Int
-  productorId   Int?
-  tipoEventoId  Int
-  inicio        DateTime
-  fin           DateTime
-  lugar         String
-  direccion String? @db.VarChar(250)
-  comuna String? @db.VarChar(100)
-  referenciaDireccion String? @db.VarChar(500)
-  asistentes    Int
-  estado        EstadoEvento @default(CONFIRMADO)
-  observaciones String?
-  imagen_url    String? @db.Text
+  id                  Int          @id @default(autoincrement())
+  clienteId           Int
+  productorId         Int?
+  tipoEventoId        Int
+  inicio              DateTime
+  fin                 DateTime
+  lugar               String
+  direccion           String?      @db.VarChar(250)
+  comuna              String?      @db.VarChar(100)
+  referenciaDireccion String?      @db.VarChar(500)
+  asistentes          Int
+  estado              EstadoEvento @default(CONFIRMADO)
+  observaciones       String?
+  imagen_url          String?      @db.Text
 
   calificacion Calificacion?
 
-  cliente   Cliente   @relation(fields: [clienteId], references: [id])
-  productor Productor? @relation(fields: [productorId], references: [id], onDelete: Restrict)
+  cliente    Cliente    @relation(fields: [clienteId], references: [id])
+  productor  Productor? @relation(fields: [productorId], references: [id], onDelete: Restrict)
   tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id])
 
-  cambios     EventoCambio[]
-  seguimientos SeguimientoEvento[]
-  recursos    EventoRecurso[]
-  actividades Actividad[]
-  espacioId Int?
-  espacio Espacio? @relation(fields: [espacioId], references: [id], onDelete: Restrict)
-  reservasEspacio ReservaEspacio[]
-  reservasRecurso ReservaRecurso[]
+  cambios          EventoCambio[]
+  seguimientos     SeguimientoEvento[]
+  recursos         EventoRecurso[]
+  actividades      Actividad[]
+  espacioId        Int?
+  espacio          Espacio?            @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  reservasEspacio  ReservaEspacio[]
+  reservasRecurso  ReservaRecurso[]
   reservasVehiculo ReservaVehiculo[]
 
-  solicitudId Int? @unique
-  solicitud SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
-  presupuestoId Int         @unique
-  presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id])
+  solicitudId   Int?             @unique
+  solicitud     SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  presupuestoId Int              @unique
+  presupuesto   Presupuesto      @relation(fields: [presupuestoId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  invitacionEncuesta InvitacionEncuesta?
 
   @@index([espacioId])
   @@index([clienteId])
@@ -396,42 +397,42 @@ model EventoRecurso {
 }
 
 model Presupuesto {
-  solicitudId Int?
-  solicitud SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
-  id           Int @id @default(autoincrement())
+  solicitudId  Int?
+  solicitud    SolicitudEvento? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  id           Int              @id @default(autoincrement())
   clienteId    Int
   tipoEventoId Int
 
-  inicio     DateTime
-  fin        DateTime
-  lugar      String
-  asistentes Int
-  venceAt    DateTime?
-  version Int @default(1)
-  enviadoAt DateTime?
-  enviadoPorId Int?
-  enviadoPor Usuario? @relation("EmisorPresupuesto", fields: [enviadoPorId], references: [id], onDelete: Restrict)
-  aceptadoAt DateTime?
-  aceptadoPorId Int?
-  aceptadoPor Usuario? @relation("AceptantePresupuesto", fields: [aceptadoPorId], references: [id], onDelete: Restrict)
-  versionAceptada Int?
-  espacioId Int?
-  espacio Espacio? @relation(fields: [espacioId], references: [id], onDelete: Restrict)
-  direccion String? @db.VarChar(250)
-  comuna String? @db.VarChar(100)
-  referenciaDireccion String? @db.VarChar(500)
+  inicio              DateTime
+  fin                 DateTime
+  lugar               String
+  asistentes          Int
+  venceAt             DateTime?
+  version             Int       @default(1)
+  enviadoAt           DateTime?
+  enviadoPorId        Int?
+  enviadoPor          Usuario?  @relation("EmisorPresupuesto", fields: [enviadoPorId], references: [id], onDelete: Restrict)
+  aceptadoAt          DateTime?
+  aceptadoPorId       Int?
+  aceptadoPor         Usuario?  @relation("AceptantePresupuesto", fields: [aceptadoPorId], references: [id], onDelete: Restrict)
+  versionAceptada     Int?
+  espacioId           Int?
+  espacio             Espacio?  @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+  direccion           String?   @db.VarChar(250)
+  comuna              String?   @db.VarChar(100)
+  referenciaDireccion String?   @db.VarChar(500)
 
   // Snapshot del catálogo al momento de cotizar
-  nombreTipoEvento     String
-  precioBaseTipoEvento Decimal @db.Decimal(12, 2)
-  precioBaseCatalogo Decimal? @db.Decimal(12, 2)
-  precioBaseAcordado Decimal? @db.Decimal(12, 2)
-  costoArriendoEspacio Decimal? @db.Decimal(12, 2)
-  unidadArriendoEspacio UnidadArriendo?
-  subtotalArriendoEspacio Decimal? @db.Decimal(12, 2)
-  arriendoIncluido Boolean?
-  modalidadPrecioTipoEvento ModalidadPrecioTipoEvento?
-  tarifaHoraTipoEvento Decimal? @db.Decimal(12, 2)
+  nombreTipoEvento               String
+  precioBaseTipoEvento           Decimal                    @db.Decimal(12, 2)
+  precioBaseCatalogo             Decimal?                   @db.Decimal(12, 2)
+  precioBaseAcordado             Decimal?                   @db.Decimal(12, 2)
+  costoArriendoEspacio           Decimal?                   @db.Decimal(12, 2)
+  unidadArriendoEspacio          UnidadArriendo?
+  subtotalArriendoEspacio        Decimal?                   @db.Decimal(12, 2)
+  arriendoIncluido               Boolean?
+  modalidadPrecioTipoEvento      ModalidadPrecioTipoEvento?
+  tarifaHoraTipoEvento           Decimal?                   @db.Decimal(12, 2)
   cantidadPersonasBaseTipoEvento Int?
 
   subtotal       Decimal @db.Decimal(12, 2)
@@ -550,8 +551,8 @@ model Actividad {
 }
 
 model ActividadProductor {
-  actividadId Int
-  productorId Int
+  actividadId   Int
+  productorId   Int
   esResponsable Boolean @default(false)
 
   actividad Actividad @relation(fields: [actividadId], references: [id], onDelete: Cascade)
@@ -577,16 +578,16 @@ enum ImportanciaSeguimiento {
 }
 
 model SeguimientoEvento {
-  id          Int @id @default(autoincrement())
+  id          Int                    @id @default(autoincrement())
   eventoId    Int
   usuarioId   Int
-  descripcion String @db.Text
+  descripcion String                 @db.Text
   tipo        TipoSeguimiento
   importancia ImportanciaSeguimiento
-  createdAt   DateTime @default(now())
+  createdAt   DateTime               @default(now())
 
-  evento      Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
-  usuario     Usuario @relation(fields: [usuarioId], references: [id])
+  evento      Evento                  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuario     Usuario                 @relation(fields: [usuarioId], references: [id])
   comentarios ComentarioSeguimiento[]
 
   @@index([eventoId, createdAt, id])
@@ -594,14 +595,14 @@ model SeguimientoEvento {
 }
 
 model ComentarioSeguimiento {
-  id            Int @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   seguimientoId Int
   usuarioId     Int
-  comentario    String @db.Text
+  comentario    String   @db.Text
   createdAt     DateTime @default(now())
 
   seguimiento SeguimientoEvento @relation(fields: [seguimientoId], references: [id], onDelete: Cascade)
-  usuario     Usuario @relation(fields: [usuarioId], references: [id])
+  usuario     Usuario           @relation(fields: [usuarioId], references: [id])
 
   @@index([seguimientoId, createdAt, id])
   @@index([usuarioId])
@@ -615,42 +616,44 @@ enum EstadoSolicitudEvento {
 }
 
 model SolicitudEvento {
-  id Int @id @default(autoincrement())
-  clienteId Int
-  tipoEventoId Int
-  autorId Int
-  inicio DateTime
-  fin DateTime
-  asistentes Int
-  lugar String? @db.VarChar(200)
-  observaciones String? @db.Text
-  estado EstadoSolicitudEvento @default(PENDIENTE)
-  tipoCierre String?
-  motivoCierre String? @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  tipoEvento TipoEvento @relation(fields: [tipoEventoId], references: [id], onDelete: Restrict)
-  autor Usuario @relation("AutorSolicitud", fields: [autorId], references: [id], onDelete: Restrict)
-  presupuestos Presupuesto[]
-  evento Evento?
-  cambios SolicitudEventoCambio[]
+  id            Int                     @id @default(autoincrement())
+  clienteId     Int
+  tipoEventoId  Int
+  autorId       Int
+  inicio        DateTime
+  fin           DateTime
+  asistentes    Int
+  lugar         String?                 @db.VarChar(200)
+  observaciones String?                 @db.Text
+  estado        EstadoSolicitudEvento   @default(PENDIENTE)
+  tipoCierre    String?
+  motivoCierre  String?                 @db.Text
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  cliente       Cliente                 @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  tipoEvento    TipoEvento              @relation(fields: [tipoEventoId], references: [id], onDelete: Restrict)
+  autor         Usuario                 @relation("AutorSolicitud", fields: [autorId], references: [id], onDelete: Restrict)
+  presupuestos  Presupuesto[]
+  evento        Evento?
+  cambios       SolicitudEventoCambio[]
+
   @@index([clienteId, createdAt])
   @@index([estado, createdAt])
   @@index([tipoEventoId])
 }
 
 model SolicitudEventoCambio {
-  id Int @id @default(autoincrement())
+  id          Int             @id @default(autoincrement())
   solicitudId Int
-  actorId Int
-  accion String
-  motivo String? @db.Text
-  anterior Json?
-  nuevo Json?
-  createdAt DateTime @default(now())
-  solicitud SolicitudEvento @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
-  actor Usuario @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  actorId     Int
+  accion      String
+  motivo      String?         @db.Text
+  anterior    Json?
+  nuevo       Json?
+  createdAt   DateTime        @default(now())
+  solicitud   SolicitudEvento @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  actor       Usuario         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
   @@index([solicitudId, createdAt])
   @@index([actorId])
 }
@@ -677,8 +680,10 @@ model Encuesta {
 
   preguntas PreguntaEncuesta[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  predeterminadas EncuestaPredeterminada[]
+  invitaciones    InvitacionEncuesta[]
 
   @@index([tipo, activo])
 }
@@ -695,4 +700,49 @@ model PreguntaEncuesta {
   encuesta Encuesta @relation(fields: [encuestaId], references: [id], onDelete: Cascade)
 
   @@unique([encuestaId, orden])
+}
+
+enum EstadoInvitacionEncuesta {
+  PENDIENTE
+  ENVIADA
+  FALLIDA
+}
+
+model EncuestaPredeterminada {
+  tipo       TipoEncuesta @id
+  encuestaId Int
+
+  encuesta Encuesta @relation(fields: [encuestaId], references: [id], onDelete: Restrict)
+
+  updatedAt DateTime @updatedAt
+}
+
+model InvitacionEncuesta {
+  id         Int @id @default(autoincrement())
+  encuestaId Int
+  eventoId   Int @unique
+
+  destinatario String
+  tokenHash    String?   @unique
+  expiraAt     DateTime?
+
+  formulario Json
+  respuestas Json?
+
+  estado   EstadoInvitacionEncuesta @default(PENDIENTE)
+  intentos Int                      @default(0)
+
+  ultimoError  String?
+  enviadoAt    DateTime?
+  respondidoAt DateTime?
+
+  encuesta Encuesta @relation(fields: [encuestaId], references: [id], onDelete: Restrict)
+
+  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([estado])
+  @@index([encuestaId])
 }

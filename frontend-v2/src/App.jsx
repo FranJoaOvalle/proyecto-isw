@@ -11,6 +11,7 @@ import PublicOnlyRoute from "./routes/PublicOnlyRoute";
 import HomePage from "./pages/HomePage";
 import CatalogoPage from "./pages/CatalogoPage";
 import ProfilePage from "./pages/ProfilePage";
+import EncuestaPublicaPage from "./pages/EncuestaPublicaPage";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -124,6 +125,11 @@ export default function App() {
                     element={<ResetPasswordPage />}
                 />
             </Route>
+
+            <Route
+                path="/encuesta"
+                element={<EncuestaPublicaPage />}
+            />
 
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

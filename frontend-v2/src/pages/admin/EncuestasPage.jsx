@@ -16,7 +16,8 @@ import EncuestaPreviewModal from "../../components/encuestas/EncuestaPreviewModa
 
 import {
     getEncuestas,
-    cambiarEstadoEncuesta
+    cambiarEstadoEncuesta,
+    establecerEncuestaPredeterminada
 } from "../../services/encuesta.service";
 
 import {
@@ -36,6 +37,7 @@ export default function EncuestasPage() {
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [encuestaEditando, setEncuestaEditando] = useState(null);
     const [encuestaPreview, setEncuestaPreview] = useState(null);
+    const [predeterminandoId, setPredeterminandoId] = useState(null);
 
     const loadEncuestas = async () => {
         try {
@@ -48,6 +50,27 @@ export default function EncuestasPage() {
             );
         } finally {
             setLoading(false);
+        }
+    };
+
+    const esPredeterminada = (encuesta) =>
+        encuesta.predeterminadas?.length > 0;
+
+    const handlePredeterminada = async (encuesta) => {
+        setError("");
+        setPredeterminandoId(encuesta.id);
+
+        try {
+            await establecerEncuestaPredeterminada(encuesta.id);
+            await loadEncuestas();
+        } catch (error) {
+            setError(
+                error.response?.data?.error?.message ??
+                error.response?.data?.message ??
+                "No fue posible establecer la encuesta predeterminada."
+            );
+        } finally {
+            setPredeterminandoId(null);
         }
     };
 
@@ -191,8 +214,17 @@ export default function EncuestasPage() {
                     {encuestasFiltradas.map((encuesta) => (
                         <tr key={encuesta.id}>
                             <td>
-                                <div className="fw-semibold">
-                                    {encuesta.nombre}
+                                <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    <span className="fw-semibold">
+                                        {encuesta.nombre}
+                                     </span>
+
+                                    {esPredeterminada(encuesta) && (
+                                        <Badge bg="warning" text="dark">
+                                            <i className="bi bi-star-fill me-1" />
+                                            Predeterminada
+                                        </Badge>
+                                    )}
                                 </div>
 
                                 <small className="text-secondary">
@@ -226,6 +258,27 @@ export default function EncuestasPage() {
                                 </Badge>
                             </td>
                             <td className="text-end">
+                                {!esPredeterminada(encuesta) && encuesta.activo && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline-warning"
+                                        className="me-2"
+                                        title="Establecer como predeterminada"
+                                        aria-label="Establecer como predeterminada"
+                                        disabled={
+                                            predeterminandoId !== null ||
+                                            changingId !== null
+                                        }
+                                        onClick={() => handlePredeterminada(encuesta)}
+                                    >
+                                        {predeterminandoId === encuesta.id ? (
+                                            <Spinner animation="border" size="sm" />
+                                        ) : (
+                                            <i className="bi bi-star" />
+                                        )}
+                                    </Button>
+                                )}
+
                                 <Button
                                     size="sm"
                                     variant="outline-secondary"
@@ -254,7 +307,11 @@ export default function EncuestasPage() {
                                             ? "outline-danger"
                                             : "outline-success"
                                     }
-                                    disabled={changingId !== null}
+                                    disabled={
+                                        changingId !== null ||
+                                        predeterminandoId !== null ||
+                                        esPredeterminada(encuesta)
+                                    }
                                     onClick={() => handleEstado(encuesta)}
                                 >
                                     {changingId === encuesta.id

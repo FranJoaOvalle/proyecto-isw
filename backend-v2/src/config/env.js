@@ -14,7 +14,12 @@ const envSchema = z.object({
         .transform((value) => value === "true"),
     SMTP_USER: z.string().min(1),
     SMTP_PASS: z.string().min(1),
-    SMTP_FROM: z.email()
+    SMTP_FROM: z.email(),
+    ENCUESTAS_EMAIL_ACTIVO: z
+        .enum(["true", "false"])
+        .default("false")
+        .transform(value => value === "true"),
+    ENCUESTAS_EMAIL_PRUEBA: z.email().optional(),
 });
 
 const result = envSchema.safeParse(process.env);

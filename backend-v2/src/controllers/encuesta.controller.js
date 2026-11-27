@@ -62,10 +62,24 @@ const cambiarEstado = async (req, res, next) => {
     }
 };
 
+const establecerPredeterminada = async (req, res, next) => {
+    try {
+        const resultado =
+            await EncuestaService.establecerPredeterminada(
+                req.validated.params.id
+            );
+
+        return res.status(200).json(resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
     create,
     update,
-    cambiarEstado
+    cambiarEstado,
+    establecerPredeterminada
 };

@@ -1,14 +1,15 @@
 const prisma = require("../config/prisma");
 const NotFoundException = require("../exceptions/NotFoundException");
+const ConflictException = require("../exceptions/ConflictException");
 
 const include = {
     preguntas: {
         orderBy: { orden: "asc" }
-    }
+    },
+    predeterminadas: true
 };
 
 class EncuestaService {
-
     prepararPreguntas(preguntas) {
         return preguntas.map((pregunta, index) => ({
             ...pregunta,
@@ -93,12 +94,66 @@ class EncuestaService {
     }
 
     async cambiarEstado(id, activo) {
-        await this.getById(id);
+        return prisma.$transaction(async tx => {
+            const encuesta = await tx.encuesta.findUnique({
+                where: { id },
+                include
+            });
 
-        return prisma.encuesta.update({
-            where: { id },
-            data: { activo },
-            include
+            if (!encuesta) {
+                throw new NotFoundException(
+                    "Encuesta no encontrada."
+                );
+            }
+
+            if (!activo && encuesta.predeterminadas.length > 0) {
+                throw new ConflictException(
+                    "Debes establecer otra encuesta predeterminada antes de desactivar esta."
+                );
+            }
+
+            return tx.encuesta.update({
+                where: { id },
+                data: { activo },
+                include
+            });
+        }, {
+            isolationLevel: "Serializable"
+        });
+    }
+
+    async establecerPredeterminada(id) {
+        return prisma.$transaction(async tx => {
+            const encuesta = await tx.encuesta.findUnique({
+                where: { id }
+            });
+
+            if (!encuesta) {
+                throw new NotFoundException(
+                    "Encuesta no encontrada."
+                );
+            }
+
+            if (!encuesta.activo) {
+                throw new ConflictException(
+                    "La encuesta debe estar activa."
+                );
+            }
+
+            return tx.encuestaPredeterminada.upsert({
+                where: {
+                    tipo: encuesta.tipo
+                },
+                create: {
+                    tipo: encuesta.tipo,
+                    encuestaId: id
+                },
+                update: {
+                    encuestaId: id
+                }
+            });
+        }, {
+            isolationLevel: "Serializable"
         });
     }
 }

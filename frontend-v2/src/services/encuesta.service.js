@@ -30,3 +30,11 @@ export const cambiarEstadoEncuesta = async (id, activo) => {
 
     return response.data;
 };
+
+export const establecerEncuestaPredeterminada = async (id) => {
+    const response = await api.put(
+        `/encuestas/${id}/predeterminada`
+    );
+
+    return response.data;
+};
