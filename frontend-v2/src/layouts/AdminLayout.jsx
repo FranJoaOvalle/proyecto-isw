@@ -34,7 +34,8 @@ const grupos = [
         nombre: "Desempeño",
         items: [
             { nombre: "Encuestas", ruta: "/admin/encuestas", icono: "ui-checks" },
-            { nombre: "Evaluaciones", ruta: "/admin/evaluaciones", icono: "clipboard-check" }
+            { nombre: "Evaluaciones", ruta: "/admin/evaluaciones", icono: "clipboard-check" },
+            { nombre: "Ranking", ruta: "/admin/ranking", icono: "trophy" }
         ]
     }
 ];

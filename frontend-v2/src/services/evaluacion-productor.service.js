@@ -21,3 +21,11 @@ export const getHistorialProductor = async (id) => {
     const response = await api.get(`${BASE}/productores/${id}`);
     return response.data;
 };
+
+export const getRankingProductores = async (filtros = {}, signal) => {
+    const response = await api.get(`${BASE}/ranking`, {
+        params: filtros,
+        signal
+    });
+    return response.data;
+};

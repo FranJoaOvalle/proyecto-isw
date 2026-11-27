@@ -29,6 +29,7 @@ import PagosPage from "./pages/admin/PagosPage.jsx";
 import AgendaPage from "./pages/admin/AgendaPage.jsx";
 import EncuestasPage from "./pages/admin/EncuestasPage";
 import EvaluacionesPage from "./pages/admin/EvaluacionesPage";
+import RankingPage from "./pages/admin/RankingPage";
 
 import ProductorPage from "./pages/productor/ProductorPage";
 import EventosProductorPage from "./pages/productor/EventosProductorPage.jsx";
@@ -69,6 +70,7 @@ export default function App() {
                         <Route path="/admin/presupuestos" element={<PresupuestosPage />}/>
                         <Route path="/admin/pagos" element={<PagosPage />} />
                         <Route path="/admin/evaluaciones" element={<EvaluacionesPage />}/>
+                        <Route path="/admin/ranking" element={<RankingPage />}/>
                     </Route>
                 </Route>
 
