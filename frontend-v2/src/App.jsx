@@ -26,6 +26,7 @@ import EventosPage from "./pages/admin/EventosPage.jsx";
 import PresupuestosPage from "./pages/admin/PresupuestosPage.jsx";
 import PagosPage from "./pages/admin/PagosPage.jsx";
 import AgendaPage from "./pages/admin/AgendaPage.jsx";
+import EncuestasPage from "./pages/admin/EncuestasPage";
 
 import ProductorPage from "./pages/productor/ProductorPage";
 import EventosProductorPage from "./pages/productor/EventosProductorPage.jsx";
@@ -52,6 +53,10 @@ export default function App() {
 
                 <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
                     <Route element={<AdminLayout />}>
+                        <Route
+                            path="/admin/encuestas"
+                            element={<EncuestasPage />}
+                        />
                         <Route
                             path="/admin/eventos/:id"
                             element={<EventoDetallePage />}

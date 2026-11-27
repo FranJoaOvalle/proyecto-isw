@@ -55,6 +55,11 @@ export default function AdminLayout() {
                             <i className="bi bi-cash-coin me-2" />
                             Pagos
                         </Nav.Link>
+
+                        <Nav.Link as={NavLink} to="/admin/encuestas">
+                            <i className="bi bi-ui-checks me-2" />
+                            Encuestas
+                        </Nav.Link>
                     </Nav>
                 </Container>
             </div>
