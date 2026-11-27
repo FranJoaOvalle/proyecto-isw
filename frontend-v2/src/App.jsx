@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import AdminLayout from "./layouts/AdminLayout.jsx";
 import ClienteLayout from "./layouts/ClienteLayout.jsx";
+import ProductorLayout from "./layouts/ProductorLayout";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicOnlyRoute from "./routes/PublicOnlyRoute";
@@ -75,10 +76,13 @@ export default function App() {
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["PRODUCTOR"]} />}>
-                    <Route path="/productor/eventos/:id" element={<EventoProductorDetallePage />}/>
-                    <Route path="/productor" element={<ProductorPage />} />
-                    <Route path="/productor/agenda" element={<AgendaProductorPage />}/>
-                    <Route path="/productor/eventos" element={<EventosProductorPage />}/>
+                    <Route element={<ProductorLayout />}>
+                        <Route path="/productor/eventos/:id" element={<EventoProductorDetallePage />}/>
+                        <Route path="/productor" element={<ProductorPage />} />
+                        <Route path="/productor/agenda" element={<AgendaProductorPage />}/>
+                        <Route path="/productor/eventos" element={<EventosProductorPage />}/>
+                        <Route path="/productor/perfil" element={<ProfilePage />} />
+                    </Route>
                 </Route>
 
                 <Route element={<ProtectedRoute roles={["CLIENTE"]} />}>
@@ -89,6 +93,8 @@ export default function App() {
                         <Route path="/cliente/compra" element={<CompraContratoPage />} />
                         <Route path="/cliente/eventos" element={<MisEventosPage />} />
                         <Route path="/cliente/eventos/:id" element={<EventoClienteDetallePage />} />
+                        <Route path="/cliente/catalogo" element={<CatalogoPage />} />
+                        <Route path="/cliente/perfil" element={<ProfilePage />} />
                     </Route>
                 </Route>
             </Route>

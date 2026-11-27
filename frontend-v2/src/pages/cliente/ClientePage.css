@@ -1,0 +1,85 @@
+.cliente-dashboard {
+    max-width: 1440px;
+}
+
+.cliente-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 28px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+    background-color: var(--bs-tertiary-bg);
+}
+
+.cliente-fecha::first-letter {
+    text-transform: uppercase;
+}
+
+.cliente-acceso,
+.cliente-cuenta {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+}
+
+.cliente-acceso {
+    color: var(--bs-body-color);
+    transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease,
+            transform 150ms ease;
+}
+
+.cliente-acceso:hover {
+    color: var(--bs-body-color);
+    border-color: var(--bs-primary);
+    box-shadow: var(--bs-box-shadow-sm);
+    transform: translateY(-2px);
+}
+
+.cliente-icono {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+    font-size: 1.25rem;
+}
+
+.cliente-cuenta-link {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 12px;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    transition: background-color 150ms ease;
+}
+
+.cliente-cuenta-link:hover {
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
+}
+
+@media (max-width: 767.98px) {
+    .cliente-banner {
+        padding: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cliente-acceso {
+        transition: none;
+    }
+
+    .cliente-acceso:hover {
+        transform: none;
+    }
+}

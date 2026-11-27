@@ -1,7 +1,88 @@
-import { Button, Card, Col, Container, Row } from "react-bootstrap";
+import {
+    Badge,
+    Button,
+    Card,
+    Col,
+    Container,
+    Row
+} from "react-bootstrap";
+
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../contexts/AuthContext";
+import PageHeader from "../../components/PageHeader";
+
+import "../cliente/ClientePage.css";
+
+const secciones = [
+    {
+        titulo: "Mi agenda",
+        descripcion: "Consulta tus eventos y actividades programadas.",
+        icono: "calendar-week",
+        ruta: "/productor/agenda",
+        accion: "Ver agenda"
+    },
+    {
+        titulo: "Eventos asignados",
+        descripcion: "Revisa la planificación, los recursos y las actividades de tus eventos.",
+        icono: "calendar-event",
+        ruta: "/productor/eventos",
+        accion: "Ver eventos"
+    }
+];
+
+function AccesoDirecto({ titulo, descripcion, icono, ruta, accion }) {
+    return (
+        <Card
+            as={Link}
+            to={ruta}
+            className="cliente-acceso h-100 text-decoration-none"
+        >
+            <Card.Body className="d-flex flex-column p-4">
+                <div className="cliente-icono mb-3">
+                    <i
+                        className={`bi bi-${icono}`}
+                        aria-hidden="true"
+                    />
+                </div>
+
+                <h5 className="fw-bold mb-2">
+                    {titulo}
+                </h5>
+
+                <p className="text-secondary small mb-4">
+                    {descripcion}
+                </p>
+
+                <div className="text-primary fw-semibold small mt-auto d-flex align-items-center justify-content-between">
+                    {accion}
+                    <i className="bi bi-arrow-right" />
+                </div>
+            </Card.Body>
+        </Card>
+    );
+}
+
+function DatoCuenta({ titulo, valor, icono }) {
+    return (
+        <div className="d-flex align-items-center gap-3">
+            <i
+                className={`bi bi-${icono} text-secondary fs-5`}
+                aria-hidden="true"
+            />
+
+            <div className="flex-grow-1 overflow-hidden">
+                <div className="text-secondary small">
+                    {titulo}
+                </div>
+
+                <div className="fw-medium text-break">
+                    {valor}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function ProductorPage() {
     const { usuario } = useAuth();
@@ -9,123 +90,129 @@ export default function ProductorPage() {
     const productor = usuario?.productor;
     const nombre = productor?.nombres ?? "";
 
-    return (
-        <Container className="py-5">
-            <div className="mb-5">
-                <h1 className="fw-bold">
-                    {nombre ? `Hola, ${nombre}` : "Panel del productor"}
-                </h1>
+    const fecha = new Date().toLocaleDateString("es-CL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Santiago"
+    });
 
-                <p className="text-secondary mb-0">
-                    Gestiona tu cuenta y revisa tus operaciones asignadas.
-                </p>
+    return (
+        <Container fluid className="cliente-dashboard py-4 px-3 px-xl-4">
+            <PageHeader
+                title={nombre ? `Hola, ${nombre}` : "Panel del productor"}
+                description="Panel de producción"
+            />
+
+            <div className="cliente-banner mb-4">
+                <div>
+                    <div className="cliente-fecha text-secondary small mb-2">
+                        {fecha}
+                    </div>
+
+                    <h4 className="fw-bold mb-2">
+                        Agenda de trabajo
+                    </h4>
+
+                    <p className="text-secondary mb-0">
+                        Consulta la programación de tus eventos
+                        y actividades.
+                    </p>
+                </div>
+
+                <Button
+                    as={Link}
+                    to="/productor/agenda"
+                    variant="outline-primary"
+                    className="flex-shrink-0"
+                >
+                    <i className="bi bi-calendar-week me-2" />
+                    Abrir agenda
+                </Button>
             </div>
 
-            <Row className="g-4 mb-4">
-                <Col md={6} xl={4}>
-                    <Card className="h-100 shadow-sm">
-                        <Card.Body className="p-4">
-                            <Card.Title className="fw-bold">
-                                Mi agenda
-                            </Card.Title>
+            <Row className="g-4">
+                <Col xl={8}>
+                    <h5 className="fw-bold mb-3">
+                        Operaciones
+                    </h5>
 
-                            <Card.Text className="text-secondary">
-                                Consulta tus eventos asignados y actividades programadas.
-                            </Card.Text>
-
-                            <Button as={Link} to="/productor/agenda">
-                                Ver agenda
-                            </Button>
-                        </Card.Body>
-                    </Card>
+                    <Row className="g-3">
+                        {secciones.map(seccion => (
+                            <Col md={6} key={seccion.ruta}>
+                                <AccesoDirecto {...seccion} />
+                            </Col>
+                        ))}
+                    </Row>
                 </Col>
 
-                <Col md={6} xl={4}>
-                    <Card className="h-100 shadow-sm">
+                <Col xl={4}>
+                    <h5 className="fw-bold mb-3">
+                        Mi cuenta
+                    </h5>
+
+                    <Card className="cliente-cuenta">
                         <Card.Body className="p-4">
-                            <Card.Title className="fw-bold">
-                                Eventos asignados
-                            </Card.Title>
+                            <div className="d-flex align-items-center gap-3 mb-4">
+                                <div className="cliente-icono">
+                                    <i className="bi bi-person" />
+                                </div>
 
-                            <Card.Text className="text-secondary">
-                                Aquí podrás revisar y gestionar los eventos
-                                que tengas asignados.
-                            </Card.Text>
+                                <div className="flex-grow-1">
+                                    <div className="fw-bold">
+                                        {productor
+                                            ? `${productor.nombres} ${productor.apellidos}`
+                                            : "Productor"}
+                                    </div>
 
-                            <Button as={Link} to="/productor/eventos">
-                                Ver eventos asignados
-                            </Button>
-                        </Card.Body>
-                    </Card>
-                </Col>
+                                    <small className="text-secondary">
+                                        Productor
+                                    </small>
+                                </div>
 
-                <Col md={6} xl={4}>
-                    <Card className="h-100 shadow-sm">
-                        <Card.Body className="p-4">
-                            <Card.Title className="fw-bold">
-                                Mi perfil
-                            </Card.Title>
+                                {usuario && (
+                                    <Badge
+                                        bg={usuario.activo
+                                            ? "success"
+                                            : "secondary"}
+                                    >
+                                        {usuario.activo
+                                            ? "Activo"
+                                            : "Inactivo"}
+                                    </Badge>
+                                )}
+                            </div>
 
-                            <Card.Text className="text-secondary">
-                                Actualiza tus datos personales, correo,
-                                teléfono o contraseña.
-                            </Card.Text>
+                            <hr />
+
+                            <div className="d-flex flex-column gap-3 my-4">
+                                <DatoCuenta
+                                    titulo="Correo electrónico"
+                                    valor={usuario?.email ?? "No registrado"}
+                                    icono="envelope"
+                                />
+
+                                <DatoCuenta
+                                    titulo="Teléfono"
+                                    valor={productor?.telefono || "No registrado"}
+                                    icono="telephone"
+                                />
+                            </div>
 
                             <Button
                                 as={Link}
-                                to="/perfil"
-                                variant="outline-primary"
+                                to="/productor/perfil"
+                                variant="outline-secondary"
+                                className="w-100"
                             >
-                                Administrar perfil
+                                Editar perfil
+                                <i className="bi bi-arrow-right ms-2" />
                             </Button>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
-
-            {productor && (
-                <Card>
-                    <Card.Body className="p-4">
-                        <h2 className="h5 fw-bold mb-3">
-                            Información de cuenta
-                        </h2>
-
-                        <Row className="g-3">
-                            <Col md={6}>
-                                <div className="text-secondary small">
-                                    Nombre
-                                </div>
-                                <div>
-                                    {productor.nombres} {productor.apellidos}
-                                </div>
-                            </Col>
-
-                            <Col md={6}>
-                                <div className="text-secondary small">
-                                    Correo
-                                </div>
-                                <div>{usuario.email}</div>
-                            </Col>
-
-                            <Col md={6}>
-                                <div className="text-secondary small">
-                                    Teléfono
-                                </div>
-                                <div>{productor.telefono || "No registrado"}</div>
-                            </Col>
-
-                            <Col md={6}>
-                                <div className="text-secondary small">
-                                    Estado
-                                </div>
-                                <div>
-                                    {usuario.activo ? "Activo" : "Inactivo"}
-                                </div>
-                            </Col>
-                        </Row>
-                    </Card.Body>
-                </Card>
-            )}
         </Container>
     );
 }

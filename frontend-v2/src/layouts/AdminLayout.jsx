@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Button, Nav, Offcanvas } from "react-bootstrap";
-import { NavLink, Outlet } from "react-router-dom";
+import {useState} from "react";
+import {Button, Nav, Offcanvas} from "react-bootstrap";
+import {NavLink, Outlet} from "react-router-dom";
 
 import "./AdminLayout.css";
 
@@ -8,39 +8,92 @@ const grupos = [
     {
         nombre: "General",
         items: [
-            { nombre: "Panel", ruta: "/admin", icono: "window", end: true },
-            { nombre: "Agenda", ruta: "/admin/agenda", icono: "calendar-week" }
+            {
+                nombre: "Panel",
+                ruta: "/admin",
+                icono: "window",
+                end: true
+            },
+            {
+                nombre: "Agenda",
+                ruta: "/admin/agenda",
+                icono: "calendar-week"
+            }
         ]
     },
     {
         nombre: "Gestión",
         items: [
-            { nombre: "Clientes", ruta: "/admin/clientes", icono: "person" },
-            { nombre: "Productores", ruta: "/admin/productores", icono: "person-gear" },
-            { nombre: "Catálogo", ruta: "/admin/catalogo", icono: "shop-window" },
-            { nombre: "Solicitudes", ruta: "/admin/solicitudes", icono: "inbox" },
-            { nombre: "Eventos", ruta: "/admin/eventos", icono: "calendar-event" },
-            { nombre: "Recursos", ruta: "/admin/recursos", icono: "box2" }
+            {
+                nombre: "Clientes",
+                ruta: "/admin/clientes",
+                icono: "person"
+            },
+            {
+                nombre: "Productores",
+                ruta: "/admin/productores",
+                icono: "person-gear"
+            },
+            {
+                nombre: "Catálogo",
+                ruta: "/admin/catalogo",
+                icono: "shop-window"
+            },
+            {
+                nombre: "Solicitudes",
+                ruta: "/admin/solicitudes",
+                icono: "inbox"
+            },
+            {
+                nombre: "Eventos",
+                ruta: "/admin/eventos",
+                icono: "calendar-event"
+            },
+            {
+                nombre: "Recursos",
+                ruta: "/admin/recursos",
+                icono: "box2"
+            }
         ]
     },
     {
         nombre: "Finanzas",
         items: [
-            { nombre: "Presupuestos", ruta: "/admin/presupuestos", icono: "receipt" },
-            { nombre: "Pagos", ruta: "/admin/pagos", icono: "cash-coin" }
+            {
+                nombre: "Presupuestos",
+                ruta: "/admin/presupuestos",
+                icono: "receipt"
+            },
+            {
+                nombre: "Pagos",
+                ruta: "/admin/pagos",
+                icono: "cash-coin"
+            }
         ]
     },
     {
         nombre: "Desempeño",
         items: [
-            { nombre: "Encuestas", ruta: "/admin/encuestas", icono: "ui-checks" },
-            { nombre: "Evaluaciones", ruta: "/admin/evaluaciones", icono: "clipboard-check" },
-            { nombre: "Ranking", ruta: "/admin/ranking", icono: "trophy" }
+            {
+                nombre: "Encuestas",
+                ruta: "/admin/encuestas",
+                icono: "ui-checks"
+            },
+            {
+                nombre: "Evaluaciones",
+                ruta: "/admin/evaluaciones",
+                icono: "clipboard-check"
+            },
+            {
+                nombre: "Ranking",
+                ruta: "/admin/ranking",
+                icono: "trophy"
+            }
         ]
     }
 ];
 
-function AdminNavigation({ onNavigate }) {
+function AdminNavigation({onNavigate}) {
     return (
         <Nav className="admin-navigation flex-column">
             {grupos.map(grupo => (
@@ -85,7 +138,7 @@ export default function AdminLayout() {
                     Administración
                 </div>
 
-                <AdminNavigation />
+                <AdminNavigation/>
             </aside>
 
             <Offcanvas
@@ -113,12 +166,12 @@ export default function AdminLayout() {
                         variant="outline-primary"
                         onClick={() => setMostrarMenu(true)}
                     >
-                        <i className="bi bi-list me-2" />
+                        <i className="bi bi-list me-2"/>
                         Menú administrativo
                     </Button>
                 </div>
 
-                <Outlet />
+                <Outlet/>
             </main>
         </div>
     );

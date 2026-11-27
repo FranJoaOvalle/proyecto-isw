@@ -19,6 +19,17 @@ const getPanelPath = (rol) => {
     }
 };
 
+const getProfilePath = (rol) => {
+    switch (rol) {
+        case "CLIENTE":
+            return "/cliente/perfil";
+        case "PRODUCTOR":
+            return "/productor/perfil";
+        default:
+            return "/perfil";
+    }
+};
+
 const getNombreUsuario = (usuario) => {
     if (!usuario) return "";
 
@@ -53,7 +64,8 @@ export default function MainNavbar() {
     return (
         <Navbar
             expand="lg"
-            className="border-bottom bg-body"
+            sticky="top"
+            className="border-bottom bg-body main-navbar"
         >
             <Container fluid className="px-4">
                 <Navbar.Brand
@@ -86,17 +98,19 @@ export default function MainNavbar() {
 
                         <Nav.Link
                             as={Link}
-                            to="/catalogo"
+                            to={usuario?.rol === "CLIENTE"
+                                ? "/cliente/catalogo"
+                                : "/catalogo"}
                             className="d-flex align-items-center"
                         >
                             <i className="bi bi-shop-window me-2"/>
                             Catálogo
                         </Nav.Link>
 
-                        {usuario?.rol === "CLIENTE" && (
+                        {usuario && (
                             <Nav.Link
                                 as={Link}
-                                to="/cliente"
+                                to={getPanelPath(usuario.rol)}
                                 className="d-flex align-items-center"
                             >
                                 <i className="bi bi-grid me-2" />
@@ -160,7 +174,7 @@ export default function MainNavbar() {
                                 </NavDropdown.Item>
 
                                 <NavDropdown.Item
-                                    onClick={() => navigate("/perfil")}
+                                    onClick={() => navigate(getProfilePath(usuario.rol))}
                                 >
                                     <i className="bi bi-person-circle me-2"/>
                                     Mi perfil

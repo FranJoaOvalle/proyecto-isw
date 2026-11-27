@@ -1,4 +1,5 @@
 :root {
+  --navbar-height: 60px;
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
@@ -108,4 +109,9 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+.main-navbar {
+  min-height: var(--navbar-height);
+  z-index: 1030;
 }
