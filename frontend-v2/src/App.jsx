@@ -75,6 +75,7 @@ export default function App() {
                         <Route path="/admin/pagos" element={<PagosPage />} />
                         <Route path="/admin/evaluaciones" element={<EvaluacionesPage />}/>
                         <Route path="/admin/ranking" element={<RankingPage />}/>
+                        <Route path="/admin/perfil" element={<ProfilePage />} />
                     </Route>
                 </Route>
 

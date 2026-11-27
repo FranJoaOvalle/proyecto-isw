@@ -1,0 +1,24 @@
+.user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+    color: #fff;
+
+    user-select: none;
+    overflow: hidden;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.user-avatar svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+.user-avatar text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.20);
+}

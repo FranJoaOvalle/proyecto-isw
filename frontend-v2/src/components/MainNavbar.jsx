@@ -6,6 +6,8 @@ import {useAuth} from "../contexts/AuthContext";
 import {useTheme} from "../contexts/ThemeContext";
 import UserAvatar from "./UserAvatar";
 
+import "./MainNavbar.css";
+
 const getPanelPath = (rol) => {
     switch (rol) {
         case "ADMIN":
@@ -30,24 +32,29 @@ const getProfilePath = (rol) => {
     }
 };
 
-const getNombreUsuario = (usuario) => {
+const getNombreUsuario = (usuario, completo = false) => {
     if (!usuario) return "";
-
-    if (usuario.rol === "PRODUCTOR")
-        return usuario.productor?.nombres ?? usuario.email;
-
-    if (usuario.rol === "CLIENTE") {
-        if (usuario.cliente?.tipo === "PERSONA")
-            return usuario.cliente.persona?.nombres ?? usuario.email;
-
-        if (usuario.cliente?.tipo === "EMPRESA")
-            return usuario.cliente.empresa?.razonSocial ?? usuario.email;
-    }
 
     if (usuario.rol === "ADMIN")
         return "Administrador";
 
-    return usuario.email;
+    if (usuario.rol === "CLIENTE" && usuario.cliente?.tipo === "EMPRESA") {
+        return usuario.cliente.empresa?.razonSocial || usuario.email;
+    }
+
+    const persona = usuario.rol === "PRODUCTOR"
+        ? usuario.productor
+        : usuario.cliente?.persona;
+
+    if (!persona) return usuario.email;
+
+    const nombre = completo
+        ? [persona.nombres, persona.apellidos]
+            .filter(Boolean)
+            .join(" ")
+        : persona.nombres;
+
+    return nombre || usuario.email;
 };
 
 export default function MainNavbar() {
@@ -153,16 +160,19 @@ export default function MainNavbar() {
                         ) : (
                             <NavDropdown
                                 title={
-                                    <span className="d-inline-flex align-items-center gap-2 pe-2">
-                                    <UserAvatar
-                                        nombre={getNombreUsuario(usuario)}
-                                        size={30}
-                                    />
-                                        {getNombreUsuario(usuario)}
+                                    <span className="navbar-user-identity">
+                                        <UserAvatar
+                                            nombre={getNombreUsuario(usuario, true)}
+                                            userId={usuario.id}
+                                            size={30}
+                                        />
+                                        <span className="navbar-user-name">
+                                            {getNombreUsuario(usuario)}
+                                        </span>
                                     </span>
                                 }
                                 align="end"
-                                className="ms-lg-2"
+                                className="navbar-user-dropdown ms-lg-2"
                             >
                                 <NavDropdown.Item
                                     onClick={() =>

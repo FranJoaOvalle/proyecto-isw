@@ -33,6 +33,12 @@ const grupos = [
             { nombre: "Evaluaciones", ruta: "/admin/evaluaciones", icono: "clipboard-check" },
             { nombre: "Ranking", ruta: "/admin/ranking", icono: "trophy" }
         ]
+    },
+    {
+        nombre: "Cuenta",
+        items: [
+            { nombre: "Mi perfil", ruta: "/admin/perfil", icono: "person" }
+        ]
     }
 ];
 

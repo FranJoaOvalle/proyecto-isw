@@ -16,6 +16,7 @@ import {
 
 import UserAvatar from "../../components/UserAvatar";
 import TableToolbar from "../../components/admin/TableToolbar";
+import "../../components/admin/TableElements.css";
 
 export default function ClientesPage() {
     const [clientes, setClientes] = useState([]);
@@ -170,7 +171,8 @@ export default function ClientesPage() {
                                     <div className="d-flex align-items-center gap-3">
                                         <UserAvatar
                                             nombre={nombre}
-                                            size={38}
+                                            userId={cliente.usuario?.id}
+                                            size={36}
                                         />
 
                                         <div>
@@ -186,24 +188,32 @@ export default function ClientesPage() {
                                 </td>
 
                                 <td>
-                                    {cliente.tipo === "PERSONA"
-                                        ? "Persona"
-                                        : "Empresa"}
+                                    <span className="table-type">
+                                        <span
+                                            className={`table-type-icon ${
+                                                cliente.tipo === "PERSONA" 
+                                                    ? "table-type-person" 
+                                                    : "table-type-company"
+                                            }`}
+                                            aria-hidden="true"
+                                        >
+                                            <i
+                                                className={`bi ${
+                                                    cliente.tipo === "PERSONA" 
+                                                        ? "bi-person" 
+                                                        : "bi-building"
+                                                }`}
+                                            />
+                                        </span>
+                                        {cliente.tipo === "PERSONA" ? "Persona" : "Empresa"}
+                                    </span>
                                 </td>
 
                                 <td>{getRut(cliente)}</td>
 
                                 <td>
-                                    <Badge
-                                        bg={
-                                            cliente.usuario.activo
-                                                ? "success"
-                                                : "secondary"
-                                        }
-                                    >
-                                        {cliente.usuario.activo
-                                            ? "Activo"
-                                            : "Inactivo"}
+                                    <Badge bg={cliente.usuario.activo ? "success" : "secondary"}>
+                                        {cliente.usuario.activo ? "Activo" : "Inactivo"}
                                     </Badge>
                                 </td>
 

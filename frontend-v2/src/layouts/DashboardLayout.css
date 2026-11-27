@@ -90,6 +90,7 @@
     flex: 1;
     min-width: 0;
     width: 100%;
+    padding-inline: 16px;
 }
 
 .admin-mobile-sidebar {
@@ -99,6 +100,10 @@
 @media (max-width: 992px) {
     .admin-layout {
         display: block;
+    }
+
+    .admin-content {
+        padding-inline: 8px;
     }
 }
 

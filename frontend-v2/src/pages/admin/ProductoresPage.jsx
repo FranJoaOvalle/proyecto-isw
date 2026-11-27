@@ -222,8 +222,9 @@ export default function ProductoresPage() {
                                 <td>
                                     <div className="d-flex align-items-center gap-3">
                                         <UserAvatar
-                                            nombre={nombre}
-                                            size={38}
+                                            nombre={`${productor.nombres} ${productor.apellidos}`}
+                                            userId={productor.usuario.id}
+                                            size={36}
                                         />
 
                                         <div>

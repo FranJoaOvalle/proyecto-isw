@@ -1,0 +1,37 @@
+.table-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.table-type-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.table-type-person {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.table-type-company {
+    background-color: #ffedd5;
+    color: #c2410c;
+}
+
+[data-bs-theme="dark"] .table-type-person {
+    background-color: #172e4d;
+    color: #93c5fd;
+}
+
+[data-bs-theme="dark"] .table-type-company {
+    background-color: #432818;
+    color: #fdba74;
+}
